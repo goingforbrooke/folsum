@@ -1,4 +1,5 @@
+.DS_Store
+directory_summarizer.code-workspace
 /target
 test_dir/*
-.DS_Store
 .vscode/
