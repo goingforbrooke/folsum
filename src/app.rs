@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use egui::Ui;
 use itertools::Itertools;
 
 use crate::catalog_directory;
@@ -125,31 +126,27 @@ impl eframe::App for TemplateApp {
                 ui.separator();
             });
 
-            egui::Grid::new("extension_counts_table_content")
-                .striped(true)
-                .num_columns(2)
-                // Prevent the first column header from getting smushed down.
-                .min_col_width(80.0)
-                .show(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading("Extension");
-                    });
-                    ui.vertical_centered(|ui| {
-                        ui.heading("File Count");
-                    });
-                    ui.end_row();
-                    if !extension_counts.is_empty() {
-                        for (extension, file_count) in extension_counts.iter().sorted() {
-                            ui.label(extension);
-                            ui.label(file_count.to_string());
-                            ui.end_row();
+            // Use the app's global text style for the style of each row.
+            let text_style = egui::TextStyle::Body;
+            // Use the app's global text height for the height of each row.
+            let row_height: f32 = ui.text_style_height(&text_style);
+            // Make one one table row for each file extension and the number of times it occurs.
+            let total_rows = extension_counts.len();
+            // Efficiently show a large number of rows.
+            egui::ScrollArea::vertical()
+                // Don't shrink the table if there aren't enough rows to fill available space.
+                .auto_shrink([false; 2])
+                .show_rows(
+                    ui,
+                    row_height,
+                    total_rows,
+                    |ui, row_range| {
+                        for row in row_range {
+                            let text = format!("This is row {}/{}", row + 1, total_rows);
+                            ui.label(text);
                         }
-                    } else {
-                        ui.label("Nothing summarized");
-                        ui.label("0");
-                        ui.end_row();
-                    }
-                });
+                    },
+                );
         });
     }
 }
