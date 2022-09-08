@@ -31,6 +31,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ahash"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57e6e951cfbb2db8de1828d49073a113a29fd7117b1596caa781a258c7e38d72"
+dependencies = [
+ "cfg-if 1.0.0",
+ "getrandom",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
 name = "android_glue"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -400,7 +412,8 @@ version = "1.0.0"
 dependencies = [
  "console_error_panic_hook",
  "eframe",
- "egui",
+ "egui 0.18.1",
+ "egui_extras",
  "itertools",
  "rfd",
  "serde",
@@ -449,7 +462,7 @@ checksum = "53fa97a8188c36261ea162e625dbb23599f67b60777b462b834fe38161b81dce"
 dependencies = [
  "bytemuck",
  "directories-next",
- "egui",
+ "egui 0.18.1",
  "egui-winit",
  "egui_glow",
  "glow",
@@ -471,12 +484,23 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb095a8b9feb9b7ff8f00b6776dffcef059538a3f4a91238e03c900e9c9ad9a2"
 dependencies = [
- "ahash",
- "epaint",
+ "ahash 0.7.6",
+ "epaint 0.18.1",
  "nohash-hasher",
  "ron",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "egui"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc9fcd393c3daaaf5909008a1d948319d538b79c51871e4df0993260260a94e4"
+dependencies = [
+ "ahash 0.8.0",
+ "epaint 0.19.0",
+ "nohash-hasher",
 ]
 
 [[package]]
@@ -486,12 +510,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b040afd583fd95a9b9578d4399214a13d948ed26bc0ff7cc0104502501f34e68"
 dependencies = [
  "arboard",
- "egui",
+ "egui 0.18.1",
  "instant",
  "serde",
  "tracing",
  "webbrowser",
  "winit",
+]
+
+[[package]]
+name = "egui_extras"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f698f685bb0ad39e87109e2f695ded0bccde77d5d40bbf7590cb5561c1e3039d"
+dependencies = [
+ "egui 0.19.0",
 ]
 
 [[package]]
@@ -501,7 +534,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54cbe18dacf32b29a015d1d2eaa0ee803f1a5468def004f956864a4b89e7d1e5"
 dependencies = [
  "bytemuck",
- "egui",
+ "egui 0.18.1",
  "glow",
  "memoffset",
  "tracing",
@@ -526,19 +559,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "emath"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9542a40106fdba943a055f418d1746a050e1a903a049b030c2b097d4686a33cf"
+
+[[package]]
 name = "epaint"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c29567088888e8ac3e8f61bbb2ddc820207ebb8d69eefde5bcefa06d65e4e89"
 dependencies = [
  "ab_glyph",
- "ahash",
+ "ahash 0.7.6",
  "atomic_refcell",
  "bytemuck",
- "emath",
+ "emath 0.18.0",
  "nohash-hasher",
  "parking_lot 0.12.0",
  "serde",
+]
+
+[[package]]
+name = "epaint"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ba04741be7f6602b1a1b28f1082cce45948a7032961c52814f8946b28493300"
+dependencies = [
+ "ab_glyph",
+ "ahash 0.8.0",
+ "atomic_refcell",
+ "emath 0.19.0",
+ "nohash-hasher",
+ "parking_lot 0.12.0",
 ]
 
 [[package]]
