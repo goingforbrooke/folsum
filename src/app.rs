@@ -146,7 +146,7 @@ impl eframe::App for TemplateApp {
                         // Extract the file extension's name and the number of times it was found.
                         let this_extension: (&String, &i128) = extension_details[row];
                         let row_content: String =
-                            format!("{} of {} --- {}: {}", row, total_rows, this_extension.0, this_extension.1);
+                            format!("{}: {}", this_extension.0, this_extension.1);
                         ui.label(row_content);
                     }
                 });
