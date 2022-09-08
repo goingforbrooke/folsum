@@ -142,9 +142,9 @@ impl eframe::App for TemplateApp {
                 .auto_shrink([false; 2])
                 .show_rows(ui, row_height, total_rows, |ui, row_range| {
                     // Add one row to the table for each file extension.
-                    for row in row_range {
+                    for row_number in row_range {
                         // Extract the file extension's name and the number of times it was found.
-                        let this_extension: (&String, &i128) = extension_details[row];
+                        let this_extension: (&String, &i128) = extension_details[row_number];
                         let row_content: String =
                             format!("{}: {}", this_extension.0, this_extension.1);
                         ui.label(row_content);
