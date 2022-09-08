@@ -132,10 +132,10 @@ impl eframe::App for TemplateApp {
             let text_style: TextStyle = egui::TextStyle::Body;
             // Use the app's global text height for the height of each row.
             let row_height: f32 = ui.text_style_height(&text_style);
+            // Convert the file extensions hashmap to a vector so we can iterate over its more efficiently (via index).
+            let extension_details: Vec<(&String, &i128)> = Vec::from_iter(extension_counts.iter());
             // Get the number of extensions found so we know how many rows the table should have.
-            let extension_count: usize = extension_counts.len();
-            // Create an iterator for the file extensions
-            let mut extension_iterator: Iter<String, i128> = extension_counts.iter();
+            let extension_count: usize = extension_details.len();
             // Efficiently show a large number of rows.
             egui::ScrollArea::vertical()
                 // Don't shrink the table if there aren't enough rows to fill available space.
@@ -144,8 +144,9 @@ impl eframe::App for TemplateApp {
                     // Make one one table row for each file extension and the number of times it occurs.
                     for row in row_range {
                         // Extract file extension and number of times it was found.
-                        let extension_details: (&String, &i128) = extension_iterator.next().unwrap();
-                        let row_content: String = format!("{}: {}--{}/{}", extension_details.0, extension_details.1, row, extension_count);
+                        let thing: (&String, &i128) = extension_details[row];
+                        let row_content: String =
+                            format!("{} of {} --- {}: {}", row, extension_count, thing.0, thing.1);
                         ui.label(row_content);
                     }
                 });
