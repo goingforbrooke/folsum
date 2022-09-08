@@ -1,7 +1,9 @@
+use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use egui::TextStyle;
 use egui::Ui;
 use itertools::Itertools;
 
@@ -127,26 +129,26 @@ impl eframe::App for TemplateApp {
             });
 
             // Use the app's global text style for the style of each row.
-            let text_style = egui::TextStyle::Body;
+            let text_style: TextStyle = egui::TextStyle::Body;
             // Use the app's global text height for the height of each row.
             let row_height: f32 = ui.text_style_height(&text_style);
-            // Make one one table row for each file extension and the number of times it occurs.
-            let total_rows = extension_counts.len();
+            // Get the number of extensions found so we know how many rows the table should have.
+            let extension_count: usize = extension_counts.len();
+            // Create an iterator for the file extensions
+            let mut extension_iterator: Iter<String, i128> = extension_counts.iter();
             // Efficiently show a large number of rows.
             egui::ScrollArea::vertical()
                 // Don't shrink the table if there aren't enough rows to fill available space.
                 .auto_shrink([false; 2])
-                .show_rows(
-                    ui,
-                    row_height,
-                    total_rows,
-                    |ui, row_range| {
-                        for row in row_range {
-                            let text = format!("This is row {}/{}", row + 1, total_rows);
-                            ui.label(text);
-                        }
-                    },
-                );
+                .show_rows(ui, row_height, extension_count, |ui, row_range| {
+                    // Make one one table row for each file extension and the number of times it occurs.
+                    for row in row_range {
+                        // Extract file extension and number of times it was found.
+                        let extension_details: (&String, &i128) = extension_iterator.next().unwrap();
+                        let row_content: String = format!("{}: {}--{}/{}", extension_details.0, extension_details.1, row, extension_count);
+                        ui.label(row_content);
+                    }
+                });
         });
     }
 }
