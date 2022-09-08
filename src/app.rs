@@ -1,7 +1,10 @@
+use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use egui::TextStyle;
+use egui::Ui;
 use itertools::Itertools;
 
 use crate::catalog_directory;
@@ -55,8 +58,13 @@ impl eframe::App for TemplateApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        let Self { extension_counts, total_files, time_taken, .. } = self;
-        
+        let Self {
+            extension_counts,
+            total_files,
+            time_taken,
+            ..
+        } = self;
+
         // Show a live update of how many files have been summarized.
         *total_files = extension_counts.values().sum();
 
@@ -71,44 +79,48 @@ impl eframe::App for TemplateApp {
             });
         });
 
-        egui::SidePanel::left("left_panel").resizable(false)
-                                           .show(ctx, |ui| {
-            ui.heading("Choose a Directory to Summarize");
+        egui::SidePanel::left("left_panel")
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.heading("Choose a Directory to Summarize");
 
-            // Add a directory picker only when compiling natively.
-            #[cfg(not(target_arch = "wasm32"))]
-            if ui.button("Open directory...").clicked() {
-                if let Some(path) = rfd::FileDialog::new()
-                    .pick_folder() {
+                // Don't add a directory picker when compiling for web.
+                #[cfg(not(target_arch = "wasm32"))]
+                if ui.button("Open directory...").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         self.picked_path = Some(path);
+                    }
                 }
-            }
 
-            if let Some(picked_path) = &self.picked_path {
-                ui.horizontal(|ui| {
-                    ui.label("Chosen directory:");
-                    ui.monospace(picked_path.display().to_string());
-                });
-            }
+                if let Some(picked_path) = &self.picked_path {
+                    ui.horizontal(|ui| {
+                        ui.label("Chosen directory:");
+                        ui.monospace(picked_path.display().to_string());
+                    });
+                }
 
-            if ui.button("Summarize").clicked() {
-                // Start the stopwatch for summarization time.
-                let now: Instant = Instant::now();
-                catalog_directory(&self.picked_path.as_ref().unwrap(), extension_counts);
-                *time_taken = now.elapsed();
-            };
+                if ui.button("Summarize").clicked() {
+                    // Start the stopwatch for summarization time.
+                    let now: Instant = Instant::now();
+                    catalog_directory(&self.picked_path.as_ref().unwrap(), extension_counts);
+                    *time_taken = now.elapsed();
+                };
 
-            ui.label(format!("Summarized {} files in {} milliseconds", &total_files, &time_taken.as_millis()));
+                ui.label(format!(
+                    "Summarized {} files in {} milliseconds",
+                    &total_files,
+                    &time_taken.as_millis()
+                ));
 
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                egui::warn_if_debug_build(ui);
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.label("written with love by ");
-                    ui.hyperlink_to("Brooke", "https://github.com/goingforbrooke");
+                ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                    egui::warn_if_debug_build(ui);
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 0.0;
+                        ui.label("written with love by ");
+                        ui.hyperlink_to("Brooke", "https://github.com/goingforbrooke");
+                    });
                 });
             });
-        });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
@@ -116,31 +128,26 @@ impl eframe::App for TemplateApp {
                 ui.separator();
             });
 
-            
-            egui::Grid::new("extension_counts_table_content")
-                .striped(true)
-                .num_columns(2)
-                // Prevent the first column header from getting smushed down.
-                .min_col_width(80.0)
-                .show(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading("Extension");
-                    });
-                    ui.vertical_centered(|ui| {
-                        ui.heading("File Count");
-                    });
-                    ui.end_row();
-                    if !extension_counts.is_empty() {
-                        for (extension, file_count) in extension_counts.iter().sorted() {
-                            ui.label(extension);
-                            ui.label(file_count.to_string());
-                            ui.end_row();
-                        }
-                    }
-                    else {
-                        ui.label("Nothing summarized");
-                        ui.label("0");
-                        ui.end_row();
+            // Use the app's global text style for the style of each row.
+            let text_style: TextStyle = egui::TextStyle::Body;
+            // Use the app's global text height for the height of each row.
+            let row_height: f32 = ui.text_style_height(&text_style);
+            // Convert the file extensions hashmap to a vector so we can iterate over its more efficiently (via index).
+            let extension_details: Vec<(&String, &i128)> = Vec::from_iter(extension_counts.iter());
+            // Get the number of extensions found so we know how many rows the table should have.
+            let total_rows: usize = extension_details.len();
+            // Efficiently show a large number of rows.
+            egui::ScrollArea::vertical()
+                // Don't shrink the table if there aren't enough rows to fill available space.
+                .auto_shrink([false; 2])
+                .show_rows(ui, row_height, total_rows, |ui, row_range| {
+                    // Add one row to the table for each file extension.
+                    for row_number in row_range {
+                        // Extract the file extension's name and the number of times it was found.
+                        let this_extension: (&String, &i128) = extension_details[row_number];
+                        let row_content: String =
+                            format!("{}: {}", this_extension.0, this_extension.1);
+                        ui.label(row_content);
                     }
                 });
         });
