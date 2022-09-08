@@ -135,18 +135,18 @@ impl eframe::App for TemplateApp {
             // Convert the file extensions hashmap to a vector so we can iterate over its more efficiently (via index).
             let extension_details: Vec<(&String, &i128)> = Vec::from_iter(extension_counts.iter());
             // Get the number of extensions found so we know how many rows the table should have.
-            let extension_count: usize = extension_details.len();
+            let total_rows: usize = extension_details.len();
             // Efficiently show a large number of rows.
             egui::ScrollArea::vertical()
                 // Don't shrink the table if there aren't enough rows to fill available space.
                 .auto_shrink([false; 2])
-                .show_rows(ui, row_height, extension_count, |ui, row_range| {
-                    // Make one one table row for each file extension and the number of times it occurs.
+                .show_rows(ui, row_height, total_rows, |ui, row_range| {
+                    // Add one row to the table for each file extension.
                     for row in row_range {
-                        // Extract file extension and number of times it was found.
-                        let thing: (&String, &i128) = extension_details[row];
+                        // Extract the file extension's name and the number of times it was found.
+                        let this_extension: (&String, &i128) = extension_details[row];
                         let row_content: String =
-                            format!("{} of {} --- {}: {}", row, extension_count, thing.0, thing.1);
+                            format!("{} of {} --- {}: {}", row, total_rows, this_extension.0, this_extension.1);
                         ui.label(row_content);
                     }
                 });
