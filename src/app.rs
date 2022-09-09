@@ -1,11 +1,8 @@
-use std::collections::hash_map::Iter;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use egui::TextStyle;
-use egui::Ui;
-use itertools::Itertools;
+use egui_extras::{TableBuilder, Size};
 
 use crate::catalog_directory;
 
@@ -127,28 +124,26 @@ impl eframe::App for TemplateApp {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
-
-            // Use the app's global text style for the style of each row.
-            let text_style: TextStyle = egui::TextStyle::Body;
-            // Use the app's global text height for the height of each row.
-            let row_height: f32 = ui.text_style_height(&text_style);
-            // Convert the file extensions hashmap to a vector so we can iterate over its more efficiently (via index).
-            let extension_details: Vec<(&String, &i128)> = Vec::from_iter(extension_counts.iter());
-            // Get the number of extensions found so we know how many rows the table should have.
-            let total_rows: usize = extension_details.len();
-            // Efficiently show a large number of rows.
-            egui::ScrollArea::vertical()
-                // Don't shrink the table if there aren't enough rows to fill available space.
-                .auto_shrink([false; 2])
-                .show_rows(ui, row_height, total_rows, |ui, row_range| {
-                    // Add one row to the table for each file extension.
-                    for row_number in row_range {
-                        // Extract the file extension's name and the number of times it was found.
-                        let this_extension: (&String, &i128) = extension_details[row_number];
-                        let row_content: String =
-                            format!("{}: {}", this_extension.0, this_extension.1);
-                        ui.label(row_content);
-                    }
+            TableBuilder::new(ui)
+                .column(Size::remainder().at_least(100.0))
+                .column(Size::exact(40.0))
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.heading("Growing");
+                    });
+                    header.col(|ui| {
+                        ui.heading("Fixed");
+                    });
+                })
+                .body(|mut body| {
+                    body.row(30.0, |mut row| {
+                        row.col(|ui| {
+                            ui.label("first row growing cell");
+                        });
+                        row.col(|ui| {
+                            ui.button("action");
+                        });
+                    });
                 });
         });
     }
