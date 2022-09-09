@@ -125,9 +125,10 @@ impl eframe::App for TemplateApp {
                 ui.separator();
             });
             TableBuilder::new(ui)
+                .resizable(true)
+                .striped(true)
                 .column(Size::initial(60.0).at_least(40.0))
                 .column(Size::remainder().at_least(60.0))
-                .resizable(true)
                 .header(20.0, |mut header| {
                     header.col(|ui| {
                         ui.heading("File Extension");
