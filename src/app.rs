@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use egui_extras::{TableBuilder, Size};
+use egui_extras::{Size, TableBuilder};
 
 use crate::catalog_directory;
 
