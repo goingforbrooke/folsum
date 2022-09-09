@@ -127,7 +127,7 @@ impl eframe::App for TemplateApp {
             TableBuilder::new(ui)
                 .resizable(true)
                 .striped(true)
-                .column(Size::initial(60.0).at_least(40.0))
+                .column(Size::initial(150.0).at_least(150.0))
                 .column(Size::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
