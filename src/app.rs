@@ -130,10 +130,10 @@ impl eframe::App for TemplateApp {
                 .resizable(true)
                 .header(20.0, |mut header| {
                     header.col(|ui| {
-                        ui.heading("Growing");
+                        ui.heading("File Extension");
                     });
                     header.col(|ui| {
-                        ui.heading("Fixed");
+                        ui.heading("Occurrences");
                     });
                 })
                 .body(|mut body| {
