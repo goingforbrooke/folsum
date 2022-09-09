@@ -62,6 +62,7 @@ impl eframe::App for TemplateApp {
             ..
         } = self;
 
+        // todo: fix live update count (which isn't live)
         // Show a live update of how many files have been summarized.
         *total_files = extension_counts.values().sum();
 
@@ -72,6 +73,7 @@ impl eframe::App for TemplateApp {
                         frame.close();
                     }
                 });
+                // Add a dark/light mode toggle button to the top menu bar.
                 egui::widgets::global_dark_light_mode_switch(ui);
             });
         });
