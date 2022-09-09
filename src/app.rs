@@ -138,14 +138,16 @@ impl eframe::App for TemplateApp {
                     });
                 })
                 .body(|mut body| {
-                    body.row(30.0, |mut row| {
-                        row.col(|ui| {
-                            ui.label("first row growing cell");
+                    for (extension_name, times_seen) in extension_counts.iter() {
+                        body.row(30.0, |mut row| {
+                            row.col(|ui| {
+                                ui.label(extension_name);
+                            });
+                            row.col(|ui| {
+                                ui.label(times_seen.to_string());
+                            });
                         });
-                        row.col(|ui| {
-                            ui.label("second row growing cell");
-                        });
-                    });
+                    }
                 });
         });
     }
