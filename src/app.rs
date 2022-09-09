@@ -142,7 +142,7 @@ impl eframe::App for TemplateApp {
                             ui.label("first row growing cell");
                         });
                         row.col(|ui| {
-                            ui.button("action");
+                            ui.label("second row growing cell");
                         });
                     });
                 });
