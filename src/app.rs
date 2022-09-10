@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -62,6 +63,7 @@ impl eframe::App for TemplateApp {
             ..
         } = self;
 
+        // todo: fix live update count (which isn't live)
         // Show a live update of how many files have been summarized.
         *total_files = extension_counts.values().sum();
 
@@ -72,6 +74,7 @@ impl eframe::App for TemplateApp {
                         frame.close();
                     }
                 });
+                // Add a dark/light mode toggle button to the top menu bar.
                 egui::widgets::global_dark_light_mode_switch(ui);
             });
         });
@@ -124,6 +127,12 @@ impl eframe::App for TemplateApp {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
+            // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
+            let mut ext_info: Vec<(&String, &i128)> = extension_counts.iter().sorted().collect();
+            // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
+            ext_info.sort_by(|a, b| b.1.cmp(a.1));
+            // todo: Optimize table by efficiently displaying viewable rows.
+            // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
                 .resizable(true)
                 .striped(true)
@@ -138,10 +147,10 @@ impl eframe::App for TemplateApp {
                     });
                 })
                 .body(|mut body| {
-                    for (extension_name, times_seen) in extension_counts.iter() {
+                    for (extension_name, times_seen) in ext_info.iter() {
                         body.row(30.0, |mut row| {
                             row.col(|ui| {
-                                ui.label(extension_name);
+                                ui.label(extension_name.to_string());
                             });
                             row.col(|ui| {
                                 ui.label(times_seen.to_string());
