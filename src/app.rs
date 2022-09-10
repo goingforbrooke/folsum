@@ -131,6 +131,7 @@ impl eframe::App for TemplateApp {
             let mut ext_info: Vec<(&String, &i128)> = extension_counts.iter().sorted().collect();
             // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
             ext_info.sort_by(|a, b| b.1.cmp(a.1));
+            // todo: Optimize table by efficiently displaying viewable rows.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
                 .resizable(true)
