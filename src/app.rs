@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -87,7 +88,7 @@ impl eframe::App for TemplateApp {
                 // Don't add a directory picker when compiling for web.
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    if let Some(path) = FileDialog::new().pick_folder() {
                         self.picked_path = Some(path);
                     }
                 }
