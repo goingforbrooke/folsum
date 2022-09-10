@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -126,6 +127,8 @@ impl eframe::App for TemplateApp {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
+            let mut ext_info: Vec<(&String, &i128)> = extension_counts.iter().collect();
+            ext_info.sort_by(|a, b| b.1.cmp(a.1));
             TableBuilder::new(ui)
                 .resizable(true)
                 .striped(true)
@@ -140,10 +143,10 @@ impl eframe::App for TemplateApp {
                     });
                 })
                 .body(|mut body| {
-                    for (extension_name, times_seen) in extension_counts.iter() {
+                    for (extension_name, times_seen) in ext_info.iter() {
                         body.row(30.0, |mut row| {
                             row.col(|ui| {
-                                ui.label(extension_name);
+                                ui.label(extension_name.to_string());
                             });
                             row.col(|ui| {
                                 ui.label(times_seen.to_string());
