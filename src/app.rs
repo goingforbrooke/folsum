@@ -148,7 +148,7 @@ impl eframe::App for TemplateApp {
                 })
                 .body(|mut body| {
                     for (extension_name, times_seen) in ext_info.iter() {
-                        body.row(30.0, |mut row| {
+                        body.row(15.0, |mut row| {
                             row.col(|ui| {
                                 ui.label(extension_name.to_string());
                             });
