@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -16,6 +17,7 @@ pub struct TemplateApp {
     extension_counts: HashMap<String, i128>,
     #[serde(skip)]
     total_files: i128,
+    #[serde(skip)]
     picked_path: Option<PathBuf>,
     #[serde(skip)]
     time_taken: Duration,
@@ -87,22 +89,32 @@ impl eframe::App for TemplateApp {
                 // Don't add a directory picker when compiling for web.
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    if let Some(path) = FileDialog::new().pick_folder() {
                         self.picked_path = Some(path);
                     }
                 }
 
-                if let Some(picked_path) = &self.picked_path {
-                    ui.horizontal(|ui| {
-                        ui.label("Chosen directory:");
-                        ui.monospace(picked_path.display().to_string());
-                    });
-                }
+                ui.horizontal(|ui| {
+                    // Check if the user has picked a directory to summarize.
+                    let shown_path: &str = match &self.picked_path {
+                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                        None => "No directory selected",
+                    };
+                    ui.label("Chosen directory:");
+                    // Display the user's chosen directory in monospace font.
+                    ui.monospace(shown_path);
+                });
 
                 if ui.button("Summarize").clicked() {
                     // Start the stopwatch for summarization time.
                     let now: Instant = Instant::now();
-                    catalog_directory(&self.picked_path.as_ref().unwrap(), extension_counts);
+                    // If the user picked a directory to summarize....
+                    if self.picked_path.is_some() {
+                        let chosen_dir: &PathBuf = self.picked_path.as_ref().unwrap();
+                        // Recursively count file extensions in the chosen directory.
+                        catalog_directory(&chosen_dir, extension_counts);
+                    };
+                    // Stop the stopwatch for summarization time.
                     *time_taken = now.elapsed();
                 };
 
