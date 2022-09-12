@@ -17,6 +17,7 @@ pub struct TemplateApp {
     extension_counts: HashMap<String, i128>,
     #[serde(skip)]
     total_files: i128,
+    #[serde(skip)]
     picked_path: Option<PathBuf>,
     #[serde(skip)]
     time_taken: Duration,
