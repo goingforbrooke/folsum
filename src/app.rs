@@ -108,7 +108,10 @@ impl eframe::App for TemplateApp {
                 if ui.button("Summarize").clicked() {
                     // Start the stopwatch for summarization time.
                     let now: Instant = Instant::now();
-                    catalog_directory(&self.picked_path.as_ref().unwrap(), extension_counts);
+                    let chosen_dir : &&PathBuf = &self.picked_path.as_ref().unwrap();
+                    // Recursively count file extensions in the chosen directory.
+                    catalog_directory(&chosen_dir, extension_counts);
+                    // Stop the stopwatch for summarization time.
                     *time_taken = now.elapsed();
                 };
 
