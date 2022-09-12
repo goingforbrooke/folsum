@@ -94,12 +94,16 @@ impl eframe::App for TemplateApp {
                     }
                 }
 
-                if let Some(picked_path) = &self.picked_path {
-                    ui.horizontal(|ui| {
-                        ui.label("Chosen directory:");
-                        ui.monospace(picked_path.display().to_string());
-                    });
-                }
+                ui.horizontal(|ui| {
+                    // Check if the user has picked a directory to summarize.
+                    let shown_path: &str = match &self.picked_path {
+                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                        None => "No directory selected",
+                    };
+                    ui.label("Chosen directory:");
+                    // Display the user's chosen directory in monospace font.
+                    ui.monospace(shown_path);
+                });
 
                 if ui.button("Summarize").clicked() {
                     // Start the stopwatch for summarization time.
