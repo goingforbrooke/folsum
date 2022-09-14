@@ -73,7 +73,6 @@ impl eframe::App for TemplateApp {
             ..
         } = self;
 
-        // todo: fix live update count (which isn't live)
         // Show a live update of how many files have been summarized.
         *total_files = extension_counts.lock().unwrap().values().sum();
 
