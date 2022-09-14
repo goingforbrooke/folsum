@@ -2,8 +2,6 @@
 
 mod app;
 pub use app::TemplateApp;
-mod summarize;
-pub use summarize::catalog_directory;
 
 // ----------------------------------------------------------------------------
 // When compiling for web:
