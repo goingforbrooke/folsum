@@ -3,10 +3,13 @@ use rfd::FileDialog;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use std::ffi::OsString;
+use std::ffi::OsStr;
+use walkdir::WalkDir;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::thread;
 
 use egui_extras::{Size, TableBuilder};
-
-use crate::catalog_directory;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -14,11 +17,11 @@ use crate::catalog_directory;
 pub struct TemplateApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
-    extension_counts: HashMap<String, i128>,
+    extension_counts: Arc<Mutex<HashMap<String, i128>>>,
     #[serde(skip)]
     total_files: i128,
     #[serde(skip)]
-    picked_path: Option<PathBuf>,
+    picked_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
     time_taken: Duration,
 }
@@ -26,9 +29,9 @@ pub struct TemplateApp {
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            extension_counts: HashMap::new(),
+            extension_counts: Arc::new(Mutex::new(HashMap::new())),
             total_files: 0,
-            picked_path: None,
+            picked_path: Arc::new(Mutex::new(None)),
             time_taken: Duration::ZERO,
         }
     }
@@ -67,7 +70,7 @@ impl eframe::App for TemplateApp {
 
         // todo: fix live update count (which isn't live)
         // Show a live update of how many files have been summarized.
-        *total_files = extension_counts.values().sum();
+        *total_files = extension_counts.lock().unwrap().values().sum();
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
@@ -90,29 +93,55 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
-                        self.picked_path = Some(path);
+                        self.picked_path = Arc::new(Mutex::new(Some(path)));
                     }
                 }
 
-                ui.horizontal(|ui| {
-                    // Check if the user has picked a directory to summarize.
-                    let shown_path: &str = match &self.picked_path {
-                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                        None => "No directory selected",
-                    };
-                    ui.label("Chosen directory:");
-                    // Display the user's chosen directory in monospace font.
-                    ui.monospace(shown_path);
-                });
+                //ui.horizontal(|ui| {
+                //    let unlocked_path: &mut Option<PathBuf> = &mut *self.picked_path.lock().unwrap();
+                //    // Check if the user has picked a directory to summarize.
+                //    let shown_path: &str = match &mut *unlocked_path {
+                //        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                //        None => "No directory selected",
+                //    };
+                //    ui.label("Chosen directory:");
+                //    // Display the user's chosen directory in monospace font.
+                //    ui.monospace(shown_path);
+                //});
 
                 if ui.button("Summarize").clicked() {
                     // Start the stopwatch for summarization time.
                     let now: Instant = Instant::now();
                     // If the user picked a directory to summarize....
-                    if self.picked_path.is_some() {
-                        let chosen_dir: &PathBuf = self.picked_path.as_ref().unwrap();
+                    if self.picked_path.lock().unwrap().is_some() {
                         // Recursively count file extensions in the chosen directory.
-                        catalog_directory(&chosen_dir, extension_counts);
+                        // Reset file extension counts to zero.
+                        *extension_counts.lock().unwrap() = HashMap::new();
+                        let counts_copy = Arc::clone(&extension_counts);
+
+                        let dir_copy = Arc::clone(&self.picked_path);
+
+                        thread::spawn(move || {
+                            let unlocked_dir_copy = dir_copy.lock().unwrap();
+                            let chosen_dir: &PathBuf = unlocked_dir_copy.as_ref().unwrap();
+                            // Categorize all extensionless files as "No extension."
+                            let default_extension = OsString::from("No extension");
+                            // Recursively iterate through each subdirectory and don't add subdirectories to the result.
+                            for entry in WalkDir::new(&chosen_dir)
+                                    .min_depth(1)
+                                    .into_iter()
+                                    .filter_map(Result::ok)
+                                    .filter(|e| !e.file_type().is_dir()) {
+                                // Extract the file extension from the file's name.
+                                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
+                                let show_ext: String = String::from(file_ext.to_string_lossy());
+                                let mut unlocked_stuff = counts_copy.lock().unwrap();
+                                // Add newly encountered file extensions to known file extensions with a counter of 0.
+                                let counter: &mut i128 = unlocked_stuff.entry(show_ext).or_insert(0);
+                                // Increment the counter for known file extensions by one.
+                                *counter += 1;
+                            }
+                        });
                     };
                     // Stop the stopwatch for summarization time.
                     *time_taken = now.elapsed();
@@ -139,8 +168,9 @@ impl eframe::App for TemplateApp {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
+            let unlocked_exts = extension_counts.lock().unwrap();
             // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
-            let mut ext_info: Vec<(&String, &i128)> = extension_counts.iter().sorted().collect();
+            let mut ext_info: Vec<(&String, &i128)> = unlocked_exts.iter().sorted().collect();
             // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
             ext_info.sort_by(|a, b| b.1.cmp(a.1));
             // todo: Optimize table by efficiently displaying viewable rows.
