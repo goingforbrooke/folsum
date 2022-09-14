@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use std::ffi::OsString;
 use std::ffi::OsStr;
 use walkdir::WalkDir;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use egui_extras::{Size, TableBuilder};
@@ -64,6 +64,7 @@ impl eframe::App for TemplateApp {
         let Self {
             extension_counts,
             total_files,
+            picked_path,
             time_taken,
             ..
         } = self;
@@ -93,12 +94,12 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
-                        self.picked_path = Arc::new(Mutex::new(Some(path)));
+                        *picked_path = Arc::new(Mutex::new(Some(path)));
                     }
                 }
 
                 //ui.horizontal(|ui| {
-                //    let unlocked_path: &mut Option<PathBuf> = &mut *self.picked_path.lock().unwrap();
+                //    let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
                 //    // Check if the user has picked a directory to summarize.
                 //    let shown_path: &str = match &mut *unlocked_path {
                 //        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
@@ -112,22 +113,20 @@ impl eframe::App for TemplateApp {
                 if ui.button("Summarize").clicked() {
                     // Start the stopwatch for summarization time.
                     let now: Instant = Instant::now();
+                    let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
                     // If the user picked a directory to summarize....
-                    if self.picked_path.lock().unwrap().is_some() {
+                    if unlocked_path.is_some() {
                         // Recursively count file extensions in the chosen directory.
                         // Reset file extension counts to zero.
                         *extension_counts.lock().unwrap() = HashMap::new();
                         let counts_copy = Arc::clone(&extension_counts);
-
-                        let dir_copy = Arc::clone(&self.picked_path);
-
+                        let dir_copy = Arc::clone(&picked_path);
                         thread::spawn(move || {
-                            let unlocked_dir_copy = dir_copy.lock().unwrap();
-                            let chosen_dir: &PathBuf = unlocked_dir_copy.as_ref().unwrap();
                             // Categorize all extensionless files as "No extension."
                             let default_extension = OsString::from("No extension");
+                            let unlocked_dir_copy = dir_copy.lock().unwrap();
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry in WalkDir::new(&chosen_dir)
+                            for entry in WalkDir::new(unlocked_dir_copy.as_ref().unwrap())
                                     .min_depth(1)
                                     .into_iter()
                                     .filter_map(Result::ok)
