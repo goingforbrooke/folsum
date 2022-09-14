@@ -23,7 +23,9 @@ pub struct TemplateApp {
     #[serde(skip)]
     picked_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
-    time_taken: Duration,
+    summarization_start: Arc<Mutex<Instant>>,
+    #[serde(skip)]
+    time_taken: Arc<Mutex<Duration>>,
 }
 
 impl Default for TemplateApp {
@@ -32,7 +34,8 @@ impl Default for TemplateApp {
             extension_counts: Arc::new(Mutex::new(HashMap::new())),
             total_files: 0,
             picked_path: Arc::new(Mutex::new(None)),
-            time_taken: Duration::ZERO,
+            summarization_start: Arc::new(Mutex::new(Instant::now())),
+            time_taken: Arc::new(Mutex::new(Duration::ZERO)),
         }
     }
 }
@@ -66,6 +69,7 @@ impl eframe::App for TemplateApp {
             total_files,
             picked_path,
             time_taken,
+            summarization_start,
             ..
         } = self;
 
@@ -111,19 +115,22 @@ impl eframe::App for TemplateApp {
                 //});
 
                 if ui.button("Summarize").clicked() {
-                    // Start the stopwatch for summarization time.
-                    let now: Instant = Instant::now();
                     let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
                     // If the user picked a directory to summarize....
                     if unlocked_path.is_some() {
-                        // Recursively count file extensions in the chosen directory.
+                        // ...then recursively count file extensions in the chosen directory.
                         // Reset file extension counts to zero.
                         *extension_counts.lock().unwrap() = HashMap::new();
                         let counts_copy = Arc::clone(&extension_counts);
                         let dir_copy = Arc::clone(&picked_path);
+                        let start_copy = Arc::clone(&summarization_start);
+                        let time_taken_copy = Arc::clone(&time_taken);
                         thread::spawn(move || {
                             // Categorize all extensionless files as "No extension."
                             let default_extension = OsString::from("No extension");
+                            // Start the stopwatch for summarization time.
+                            let mut unlocked_start_copy = start_copy.lock().unwrap();
+                            *unlocked_start_copy = Instant::now();
                             let unlocked_dir_copy = dir_copy.lock().unwrap();
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
                             for entry in WalkDir::new(unlocked_dir_copy.as_ref().unwrap())
@@ -134,23 +141,27 @@ impl eframe::App for TemplateApp {
                                 // Extract the file extension from the file's name.
                                 let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
                                 let show_ext: String = String::from(file_ext.to_string_lossy());
-                                let mut unlocked_stuff = counts_copy.lock().unwrap();
+                                let mut unlocked_counts_copy = counts_copy.lock().unwrap();
                                 // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                let counter: &mut i128 = unlocked_stuff.entry(show_ext).or_insert(0);
+                                let counter: &mut i128 = unlocked_counts_copy.entry(show_ext).or_insert(0);
                                 // Increment the counter for known file extensions by one.
                                 *counter += 1;
+                                // Update the summarization time stopwatch.
+                                let mut unlocked_time_taken_copy = time_taken_copy.lock().unwrap();
+                                *unlocked_time_taken_copy = unlocked_start_copy.elapsed();
                             }
                         });
                     };
-                    // Stop the stopwatch for summarization time.
-                    *time_taken = now.elapsed();
                 };
 
-                ui.label(format!(
-                    "Summarized {} files in {} milliseconds",
-                    &total_files,
-                    &time_taken.as_millis()
-                ));
+                ui.horizontal(|ui| {
+                    let unlocked_time_taken = time_taken.lock().unwrap();
+                    ui.label(format!(
+                        "Summarized {} files in {} milliseconds",
+                        &total_files,
+                        &unlocked_time_taken.as_millis()
+                    ));
+                });
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     egui::warn_if_debug_build(ui);
