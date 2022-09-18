@@ -101,17 +101,18 @@ impl eframe::App for TemplateApp {
                     }
                 }
 
-                //ui.horizontal(|ui| {
-                //    let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
-                //    // Check if the user has picked a directory to summarize.
-                //    let shown_path: &str = match &mut *unlocked_path {
-                //        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                //        None => "No directory selected",
-                //    };
-                //    ui.label("Chosen directory:");
-                //    // Display the user's chosen directory in monospace font.
-                //    ui.monospace(shown_path);
-                //});
+                ui.horizontal(|ui| {
+                    let unlocked_path: & Option<PathBuf> = & *picked_path.lock().unwrap();
+                    //unlocked_path.un
+                    // Check if the user has picked a directory to summarize.
+                    let shown_path: &str = match & *unlocked_path {
+                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                        None => "No directory selected",
+                    };
+                    ui.label("Chosen directory:");
+                    // Display the user's chosen directory in monospace font.
+                    ui.monospace(shown_path);
+                });
 
                 if ui.button("Summarize").clicked() {
                     let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
