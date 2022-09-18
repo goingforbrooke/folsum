@@ -132,8 +132,10 @@ impl eframe::App for TemplateApp {
                             let mut unlocked_start_copy = start_copy.lock().unwrap();
                             *unlocked_start_copy = Instant::now();
                             let unlocked_dir_copy = dir_copy.lock().unwrap();
+                            let copy_copy_copy = unlocked_dir_copy.clone();
+                            drop(unlocked_dir_copy);
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry in WalkDir::new(unlocked_dir_copy.as_ref().unwrap())
+                            for entry in WalkDir::new(copy_copy_copy.unwrap())
                                     .min_depth(1)
                                     .into_iter()
                                     .filter_map(Result::ok)
