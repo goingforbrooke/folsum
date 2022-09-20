@@ -1,15 +1,15 @@
-use itertools::Itertools;
-use rfd::FileDialog;
 use std::collections::HashMap;
-use std::path::PathBuf;
-use std::time::{Duration, Instant};
-use std::ffi::OsString;
 use std::ffi::OsStr;
-use walkdir::WalkDir;
+use std::ffi::OsString;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use egui_extras::{Size, TableBuilder};
+use itertools::Itertools;
+use rfd::FileDialog;
+use walkdir::WalkDir;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -43,12 +43,11 @@ impl Default for TemplateApp {
 impl TemplateApp {
     /// Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customized the look at feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
+        // Customized the look at feel of egui using `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
         // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
         if let Some(storage) = cc.storage {
+            // You must enable the `persistence` feature for this to work.
             return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
         }
 
@@ -102,10 +101,10 @@ impl eframe::App for TemplateApp {
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: & Option<PathBuf> = & *picked_path.lock().unwrap();
+                    let unlocked_path: &Option<PathBuf> = &*picked_path.lock().unwrap();
                     //unlocked_path.un
                     // Check if the user has picked a directory to summarize.
-                    let shown_path: &str = match & *unlocked_path {
+                    let shown_path: &str = match &*unlocked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
@@ -121,31 +120,41 @@ impl eframe::App for TemplateApp {
                         // ...then recursively count file extensions in the chosen directory.
                         // Reset file extension counts to zero.
                         *extension_counts.lock().unwrap() = HashMap::new();
+
                         let counts_copy = Arc::clone(&extension_counts);
                         let dir_copy = Arc::clone(&picked_path);
                         let start_copy = Arc::clone(&summarization_start);
                         let time_taken_copy = Arc::clone(&time_taken);
+
                         thread::spawn(move || {
                             // Categorize all extensionless files as "No extension."
                             let default_extension = OsString::from("No extension");
+
                             // Start the stopwatch for summarization time.
                             let mut unlocked_start_copy = start_copy.lock().unwrap();
                             *unlocked_start_copy = Instant::now();
+
                             let unlocked_dir_copy = dir_copy.lock().unwrap();
                             let copy_copy_copy = unlocked_dir_copy.clone();
+                            // Release the mutex lock on the chosen path so extension count table can update.
                             drop(unlocked_dir_copy);
+
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
                             for entry in WalkDir::new(copy_copy_copy.unwrap())
-                                    .min_depth(1)
-                                    .into_iter()
-                                    .filter_map(Result::ok)
-                                    .filter(|e| !e.file_type().is_dir()) {
+                                .min_depth(1)
+                                .into_iter()
+                                .filter_map(Result::ok)
+                                .filter(|e| !e.file_type().is_dir())
+                            {
                                 // Extract the file extension from the file's name.
-                                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
+                                let file_ext: &OsStr =
+                                    entry.path().extension().unwrap_or(&default_extension);
                                 let show_ext: String = String::from(file_ext.to_string_lossy());
+                                // Lock the extension counts variable so we can add a file to it.
                                 let mut unlocked_counts_copy = counts_copy.lock().unwrap();
                                 // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                let counter: &mut i128 = unlocked_counts_copy.entry(show_ext).or_insert(0);
+                                let counter: &mut i128 =
+                                    unlocked_counts_copy.entry(show_ext).or_insert(0);
                                 // Increment the counter for known file extensions by one.
                                 *counter += 1;
                                 // Update the summarization time stopwatch.
@@ -185,7 +194,7 @@ impl eframe::App for TemplateApp {
             let mut ext_info: Vec<(&String, &i128)> = unlocked_exts.iter().sorted().collect();
             // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
             ext_info.sort_by(|a, b| b.1.cmp(a.1));
-            // todo: Optimize table by efficiently displaying viewable rows.
+            // todo: Optimize table by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
                 .resizable(true)
