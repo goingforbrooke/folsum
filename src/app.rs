@@ -124,6 +124,7 @@ impl eframe::App for TemplateApp {
                         // Reset file extension counts to zero.
                         *extension_counts.lock().unwrap() = HashMap::new();
 
+                        // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                         let counts_copy = Arc::clone(&extension_counts);
                         let dir_copy = Arc::clone(&picked_path);
                         let start_copy = Arc::clone(&summarization_start);
