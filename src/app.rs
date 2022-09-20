@@ -11,9 +11,9 @@ use itertools::Itertools;
 use rfd::FileDialog;
 use walkdir::WalkDir;
 
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
+// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
+#[serde(default)] // Define default fields when deserializing old state.
 pub struct TemplateApp {
     // this how you opt-out of serialization of a member
     #[serde(skip)]
@@ -41,7 +41,7 @@ impl Default for TemplateApp {
 }
 
 impl TemplateApp {
-    /// Called once before the first frame.
+    // Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Customized the look at feel of egui using `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
@@ -56,12 +56,12 @@ impl TemplateApp {
 }
 
 impl eframe::App for TemplateApp {
-    /// Called by the framework to save state before shutdown.
+    // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
+    // Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         let Self {
             extension_counts,
