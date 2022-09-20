@@ -15,14 +15,18 @@ use walkdir::WalkDir;
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // Define default fields when deserializing old state.
 pub struct TemplateApp {
-    // this how you opt-out of serialization of a member
+    // Opt-out of member serialization with `#[serde(skip)]`.
     #[serde(skip)]
+    // Unique file extensions and the number of times each one was encountered.
     extension_counts: Arc<Mutex<HashMap<String, i128>>>,
     #[serde(skip)]
+    // Number of files summarized, which doesn't include files and directories that were skipped.
     total_files: i128,
     #[serde(skip)]
+    // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     picked_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
+    // Note the time when summarization starts so it can be used to calculate the time taken.
     summarization_start: Arc<Mutex<Instant>>,
     #[serde(skip)]
     time_taken: Arc<Mutex<Duration>>,
