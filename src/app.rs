@@ -130,7 +130,7 @@ impl eframe::App for TemplateApp {
                         let time_taken_copy = Arc::clone(&time_taken);
 
                         thread::spawn(move || {
-                            // Categorize all extensionless files as "No extension."
+                            // Categorize extensionless files as "No extension."
                             let default_extension = OsString::from("No extension");
 
                             // Start the stopwatch for summarization time.
