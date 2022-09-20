@@ -18,10 +18,10 @@ pub struct TemplateApp {
     // Opt-out of member serialization with `#[serde(skip)]`.
     #[serde(skip)]
     // Unique file extensions and the number of times each one was encountered.
-    extension_counts: Arc<Mutex<HashMap<String, i128>>>,
+    extension_counts: Arc<Mutex<HashMap<String, u32>>>,
     #[serde(skip)]
     // Number of files summarized, which doesn't include files and directories that were skipped.
-    total_files: i128,
+    total_files: u32,
     #[serde(skip)]
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     picked_path: Arc<Mutex<Option<PathBuf>>>,
@@ -157,7 +157,7 @@ impl eframe::App for TemplateApp {
                                 // Lock the extension counts variable so we can add a file to it.
                                 let mut unlocked_counts_copy = counts_copy.lock().unwrap();
                                 // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                let counter: &mut i128 =
+                                let counter: &mut u32 =
                                     unlocked_counts_copy.entry(show_ext).or_insert(0);
                                 // Increment the counter for known file extensions by one.
                                 *counter += 1;
@@ -195,7 +195,7 @@ impl eframe::App for TemplateApp {
             });
             let unlocked_exts = extension_counts.lock().unwrap();
             // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
-            let mut ext_info: Vec<(&String, &i128)> = unlocked_exts.iter().sorted().collect();
+            let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
             // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
             ext_info.sort_by(|a, b| b.1.cmp(a.1));
             // todo: Optimize table by efficiently displaying viewable rows with `show_rows()`.
