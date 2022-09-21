@@ -125,7 +125,7 @@ impl eframe::App for TemplateApp {
                         *extension_counts.lock().unwrap() = HashMap::new();
 
                         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-                        let counts_copy = Arc::clone(&extension_counts);
+                        let extension_counts_copy = Arc::clone(&extension_counts);
                         let dir_copy = Arc::clone(&picked_path);
                         let start_copy = Arc::clone(&summarization_start);
                         let time_taken_copy = Arc::clone(&time_taken);
@@ -155,7 +155,7 @@ impl eframe::App for TemplateApp {
                                     entry.path().extension().unwrap_or(&default_extension);
                                 let show_ext: String = String::from(file_ext.to_string_lossy());
                                 // Lock the extension counts variable so we can add a file to it.
-                                let mut unlocked_counts_copy = counts_copy.lock().unwrap();
+                                let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
                                 // Add newly encountered file extensions to known file extensions with a counter of 0.
                                 let counter: &mut u32 =
                                     unlocked_counts_copy.entry(show_ext).or_insert(0);
