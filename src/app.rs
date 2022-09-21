@@ -126,7 +126,7 @@ impl eframe::App for TemplateApp {
 
                         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                         let extension_counts_copy = Arc::clone(&extension_counts);
-                        let dir_copy = Arc::clone(&picked_path);
+                        let picked_path_copy = Arc::clone(&picked_path);
                         let start_copy = Arc::clone(&summarization_start);
                         let time_taken_copy = Arc::clone(&time_taken);
 
@@ -138,13 +138,14 @@ impl eframe::App for TemplateApp {
                             let mut unlocked_start_copy = start_copy.lock().unwrap();
                             *unlocked_start_copy = Instant::now();
 
-                            let unlocked_dir_copy = dir_copy.lock().unwrap();
-                            let copy_copy_copy = unlocked_dir_copy.clone();
+                            let unlocked_picked_path = picked_path_copy.lock().unwrap();
+                            // Clone the user's chosen path so we can release it's lock, allowing live table updates.
+                            let picked_path_copy = unlocked_picked_path.clone();
                             // Release the mutex lock on the chosen path so extension count table can update.
-                            drop(unlocked_dir_copy);
+                            drop(unlocked_picked_path);
 
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry in WalkDir::new(copy_copy_copy.unwrap())
+                            for entry in WalkDir::new(picked_path_copy.unwrap())
                                 .min_depth(1)
                                 .into_iter()
                                 .filter_map(Result::ok)
