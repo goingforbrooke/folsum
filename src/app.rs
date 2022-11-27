@@ -78,6 +78,8 @@ impl eframe::App for TemplateApp {
 
         // Show a live update of how many files have been summarized.
         *total_files = extension_counts.lock().unwrap().values().sum();
+        // Update the screen on each iteration, bounded by the refresh rate of the user's screen.
+        ctx.request_repaint();
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
