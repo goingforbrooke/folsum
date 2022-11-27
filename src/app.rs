@@ -76,7 +76,7 @@ impl eframe::App for TemplateApp {
             ..
         } = self;
 
-        // Show a live update of how many files have been summarized.
+        // Update the count of total files summarized.
         *total_files = extension_counts.lock().unwrap().values().sum();
         // Update the screen on each iteration, bounded by the refresh rate of the user's screen.
         ctx.request_repaint();
