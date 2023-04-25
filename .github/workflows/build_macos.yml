@@ -2,7 +2,7 @@ name: Build, Bundle, and Publish for macOS
 on:
   push:
     branches:
-      - main
+      - cicd/test_macos
 jobs:
   build:
     runs-on: macos-latest
