@@ -1,0 +1,39 @@
+name: Build, Bundle, and Publish for macOS
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Build x86_64 project
+        run: cargo build --release --target x86_64-apple-darwin
+      - name: Build ARM64 project
+        run: cargo build --release --target aarch64-apple-darwin
+      - name: Bundle for macOS
+        run: |
+          lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+          mkdir -p "Directory Summarizer.app/Contents/MacOS"
+          cp directory_summarizer "Directory Summarizer.app/Contents/MacOS/directory_summarizer"
+          chmod +x "Directory Summarizer.app/Contents/MacOS/directory_summarizer"
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: directory_summarizer.app
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # New Release
+
+            This is a new release of Directory Summarizer.
+
+            ## Changelog
+
+            - Add feature X
+            - Fix bug Y
