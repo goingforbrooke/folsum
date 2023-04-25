@@ -13,6 +13,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: aarch64-apple-darwin
       - name: Build x86_64 project
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 project
