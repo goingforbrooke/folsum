@@ -17,6 +17,7 @@ Launch the program, select the directory that you'd like to summarize, and click
 Use [cross](https://github.com/cross-rs/cross) to create release versions for MacOS and Windows.
 
 Build for MacOS (Standard Processor):
+
 ```console
 $ user@host: cross build --release --target aarch64-apple-darwin
 Finished release [optimized] target(s) in 0.06s
@@ -28,7 +29,6 @@ Build for MacOS (ARM64/Apple Silicone):
 $ user@host: cross build --release --target x86_64-apple-darwin
 Finished release [optimized] target(s) in 0.08s
 ```
-
 
 Build for Windows:
 
