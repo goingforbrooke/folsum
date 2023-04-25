@@ -1,6 +1,6 @@
 [package]
 name = "directory_summarizer"
-default-run = "directory_summarizer_bin"
+default-run = "directory_summarizer"
 version = "1.0.0"
 authors = ["Brooke <12855764+goingforbrooke@users.noreply.github.com>"]
 edition = "2021"
@@ -9,7 +9,7 @@ rust-version = "1.60"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name = "directory_summarizer_bin"
+name = "directory_summarizer"
 path = "src/main.rs"
 
 [lib]
