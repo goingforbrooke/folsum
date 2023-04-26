@@ -27,7 +27,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          files: directory_summarizer.app
+          files: "Directory Summarizer".app
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release
