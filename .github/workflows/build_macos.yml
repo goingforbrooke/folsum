@@ -39,7 +39,7 @@ jobs:
           cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
           chmod +x directory_summarizer.app/Contents/MacOS/directory_summarizer
       - name: Check if directory exists
-        - run: readlink -f directory_summarizer.app
+        run: readlink -f directory_summarizer.app
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
