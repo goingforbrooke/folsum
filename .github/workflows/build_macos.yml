@@ -38,7 +38,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: {{ steps.get_semver.outputs.semver }}}
+          name: ${{ steps.get_semver.outputs.semver }}}
           files: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
