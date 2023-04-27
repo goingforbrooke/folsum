@@ -38,7 +38,7 @@ jobs:
           mkdir -p directory_summarizer.app/Contents/MacOS
           cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
           chmod +x directory_summarizer.app/Contents/MacOS/directory_summarizer
-          zip 
+          ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
