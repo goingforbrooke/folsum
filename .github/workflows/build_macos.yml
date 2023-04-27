@@ -27,9 +27,9 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v$(cargo metadata --format-version | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')
           files: "Directory Summarizer.app"
           token: ${{ secrets.GITHUB_TOKEN }}
-          name: v$(cargo metadata --format-version | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')
           body: |
             # New Release
 
