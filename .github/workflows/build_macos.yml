@@ -41,7 +41,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.sha }}
+          tag_name: v1.0.0
           files: directory_summarizer.app
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
