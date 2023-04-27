@@ -6,9 +6,14 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Set up sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -18,11 +23,6 @@ jobs:
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
         run: cargo build --release --target aarch64-apple-darwin
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
       - name: Create a universal binary from the x86_64 and ARM64 binaries
         run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
       - name: Create *.app folder structure
