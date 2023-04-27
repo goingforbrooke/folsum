@@ -21,9 +21,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - name: Build x86_64 project
+      - name: Build x86_64 binary
         run: cargo build --release --target x86_64-apple-darwin
-      - name: Build ARM64 project
+      - name: Build ARM64 binary
         run: cargo build --release --target aarch64-apple-darwin
       - name: Cache build artifacts
         uses: actions/cache@v2
@@ -34,11 +34,11 @@ jobs:
             ${{ runner.os }}-target-
       - name: Create a universal binary from the x86_64 and ARM64 binaries
         run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
-      - name: Create `*.app` folder structure
+      - name: Create *.app folder structure
         run: mkdir -p directory_summarizer.app/Contents/MacOS
-      - name: Move binary into the `*.app` folder
+      - name: Move binary into the *.app folder
         run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
-      - name: Compress to *.zip, preserving resource fork and Finder information
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Create release
         uses: softprops/action-gh-release@v1
