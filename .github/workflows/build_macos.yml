@@ -35,14 +35,14 @@ jobs:
       - name: Bundle for macOS
         run: |
           lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
-          mkdir -p "Directory Summarizer.app/Contents/MacOS"
-          cp directory_summarizer "Directory Summarizer.app/Contents/MacOS/directory_summarizer"
-          chmod +x "Directory Summarizer.app/Contents/MacOS/directory_summarizer"
+          mkdir -p directory_summarizer.app/Contents/MacOS
+          cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
+          chmod +x directory_summarizer.app/Contents/MacOS/directory_summarizer
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v$(cargo metadata --format-version | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')
-          files: "Directory Summarizer.app"
+          files: "directory_summarizer.app"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release
