@@ -34,7 +34,7 @@ jobs:
       - name: Get SemVer version from Cargo.toml
         id: get_semver
         run: echo v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')
-      - name: Create release
+      - name: Publish a new release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
