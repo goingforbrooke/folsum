@@ -9,12 +9,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Install Rust
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: aarch64-apple-darwin
-      - name: Cache Dependencies
+      - name: Restore Cargo dependencies
         uses: actions/cache@v2
         with:
           path: ~/.cargo
@@ -27,7 +27,9 @@ jobs:
       - name: Cache build artifacts
         uses: actions/cache@v2
         with:
-          path: target/release
+          path: |
+            target/release
+            target/debug
           key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-target-
       - name: Create a universal binary from the x86_64 and ARM64 binaries
