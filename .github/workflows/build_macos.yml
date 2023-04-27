@@ -32,13 +32,14 @@ jobs:
           key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-target-
-      - name: Bundle for macOS
-        run: |
-          lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
-          mkdir -p directory_summarizer.app/Contents/MacOS
-          cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
-          chmod +x directory_summarizer.app/Contents/MacOS/directory_summarizer
-          ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+      - name: Create a universal binary
+        run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+      - name: Create `*.app` folder structure
+        run: mkdir -p directory_summarizer.app/Contents/MacOS
+      - name: Move binary into the `*.app` folder
+        run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
+      - name: Compress to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
