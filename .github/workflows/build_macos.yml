@@ -43,7 +43,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v1.0.0
-          files: directory_summarizer.app
+          files: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release
