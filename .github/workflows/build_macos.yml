@@ -14,10 +14,24 @@ jobs:
         with:
           toolchain: stable
           target: aarch64-apple-darwin
+      - name: Cache Dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       - name: Build x86_64 project
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 project
         run: cargo build --release --target aarch64-apple-darwin
+      - name: Cache build artifacts
+        uses: actions/cache@v2
+        with:
+          path: target/release
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-
       - name: Bundle for macOS
         run: |
           lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
