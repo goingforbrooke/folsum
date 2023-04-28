@@ -31,6 +31,8 @@ jobs:
         run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+      - name: Increment minor version in Cargo.toml
+        run: cargo set-version --bump minor
       - name: Get SemVer version from Cargo.toml
         id: get_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
