@@ -33,7 +33,7 @@ jobs:
         run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Get SemVer version from Cargo.toml
         id: get_semver
-        run: echo "v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> $GITHUB_OUTPUT
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
       - name: Publish a new release
         uses: ncipollo/release-action@v1
         with:
