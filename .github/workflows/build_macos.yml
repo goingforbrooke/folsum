@@ -14,7 +14,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain with M1 chip support
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
