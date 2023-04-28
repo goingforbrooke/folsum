@@ -37,7 +37,7 @@ jobs:
       - name: Publish a new release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.get_semver.outputs.semver }}}
+          tag: ${{ steps.get_semver.outputs.semver }}
           commit: cicd/test_macos
           artifacts: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
