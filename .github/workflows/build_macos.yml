@@ -15,10 +15,10 @@ jobs:
       - name: Set up sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Install Rust toolchain with M1 chip support
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          target: aarch64-apple-darwin
+          targets: aarch64-apple-darwin
       - name: Build x86_64 binary
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
