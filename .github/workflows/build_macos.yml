@@ -1,0 +1,52 @@
+name: Build, Bundle, and Publish for macOS
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Install Rust toolchain with M1 chip support
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin
+      - name: Build x86_64 binary
+        run: cargo build --release --target x86_64-apple-darwin
+      - name: Build ARM64 binary
+        run: cargo build --release --target aarch64-apple-darwin
+      - name: Create a universal binary from the x86_64 and ARM64 binaries
+        run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+      - name: Create *.app folder structure
+        run: mkdir -p directory_summarizer.app/Contents/MacOS
+      - name: Move binary into the *.app folder
+        run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+      - name: Get SemVer version from Cargo.toml
+        id: get_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
+      - name: Publish a new release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.get_semver.outputs.semver }}
+          commit: main
+          artifacts: directory_summarizer.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # New Release
+
+            This is a new release of Directory Summarizer.
+
+            ## Changelog
+
+            - Add feature X
+            - Fix bug Y
