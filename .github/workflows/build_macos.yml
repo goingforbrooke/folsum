@@ -35,10 +35,11 @@ jobs:
         id: get_semver
         run: echo v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')
       - name: Publish a new release
-        uses: softprops/action-gh-release@v1
+        uses: ncipollo/release-action@v1
         with:
-          name: ${{ steps.get_semver.outputs.semver }}}
-          files: directory_summarizer.zip
+          tag: ${{ steps.get_semver.outputs.semver }}}
+          commit: cicd/test_macos
+          artifacts: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release
