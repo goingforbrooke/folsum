@@ -11,7 +11,7 @@ jobs:
       RUSTC_WRAPPER: "sccache"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Install Rust toolchain
