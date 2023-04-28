@@ -2,7 +2,7 @@ name: Build, Bundle, and Publish for macOS
 on:
   push:
     branches:
-      - cicd/test_macos
+      - main
 jobs:
   build:
     runs-on: macos-latest
@@ -38,7 +38,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_semver.outputs.semver }}
-          commit: cicd/test_macos
+          commit: main
           artifacts: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
