@@ -40,3 +40,8 @@ opt-level = 2 # fast and small wasm
 
 
 [patch.crates-io]
+
+[package.metadata.bundle]
+identifier = "com.bytesluice.directory_summarizer"
+copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
+category = "Forensic Tool"
