@@ -38,5 +38,5 @@ tracing-wasm = "0.2.1"
 [profile.release]
 opt-level = 2 # fast and small wasm
 
-[build-dependencies]
+[dev-dependencies]
 cargo-edit = "0.12.0"
