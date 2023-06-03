@@ -36,6 +36,10 @@ Build for Windows:
 $ user@host: cross build --release --target x86_64-pc-windows-gnu
 ```
 
+## CI/CD
+
+Pushes to the `main` branch automatically trigger a release.
+
 ## Misc.
 
 Format inspired by [Make a README](https://www.makeareadme.com).
