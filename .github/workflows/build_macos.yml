@@ -2,7 +2,8 @@ name: Build, Bundle, and Publish for macOS
 on:
   push:
     branches:
-      - cicd/apple_signing
+      - main
+      - 'cicd/**'
 jobs:
   build:
     runs-on: macos-latest
