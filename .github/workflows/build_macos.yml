@@ -29,8 +29,6 @@ jobs:
         run: mkdir -p directory_summarizer.app/Contents/MacOS
       - name: Move binary into the *.app folder
         run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
-      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
-        run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Codesign app bundle
         env: 
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
@@ -49,7 +47,9 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
           # Codesign the app bundle with hardened runtime so it passes notarization.
-          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime target/mac/Espanso.app -v
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime target/mac/directory_summarizer.app -v
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
       - name: Increment minor version in Cargo.toml
         run: cargo set-version --bump minor
       - name: Get SemVer version from Cargo.toml
