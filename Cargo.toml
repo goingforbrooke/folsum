@@ -38,8 +38,5 @@ tracing-wasm = "0.2.1"
 [profile.release]
 opt-level = 2 # fast and small wasm
 
-
-[patch.crates-io]
-
-[dev-dependencies]
+[build-dependencies]
 cargo-edit = "0.12.0"
