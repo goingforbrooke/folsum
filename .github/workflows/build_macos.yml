@@ -21,9 +21,9 @@ jobs:
           toolchain: stable
           targets: aarch64-apple-darwin
       - name: Build x86_64 binary
-        run: cargo build --release --target x86_64-apple-darwin
+        run: cargo build --all --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
-        run: cargo build --release --target aarch64-apple-darwin
+        run: cargo build --all --release --target aarch64-apple-darwin
       - name: Create a universal binary from the x86_64 and ARM64 binaries
         run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
       - name: Create *.app folder structure
