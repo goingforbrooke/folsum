@@ -20,8 +20,6 @@ jobs:
         with:
           toolchain: stable
           targets: aarch64-apple-darwin
-      - name: Install Rust dev dependencies (for `cargo-edit`'s `cargo set-version` and `cargo upgrade`)
-        run: cargo install --dev
       - name: Build x86_64 binary
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
