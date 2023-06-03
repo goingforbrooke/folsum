@@ -51,6 +51,8 @@ jobs:
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime directory_summarizer.app -v
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+      - name: Install `cargo-edit` for version bumping with `cargo set-version`
+        run: cargo install cargo-edit
       - name: Increment minor version in Cargo.toml
         run: cargo set-version --bump minor
       - name: Get SemVer version from Cargo.toml
