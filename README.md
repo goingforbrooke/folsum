@@ -43,3 +43,5 @@ Format inspired by [Make a README](https://www.makeareadme.com).
 [Blog post on how to sign binaries](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/)
 
 [Apple's documentation on how to create a certificate signing request on MacOS](https://developer.apple.com/help/account/create-certificates/create-a-certificate-signing-request)
+
+Builds are triggered on pushes to the `main` branch or any branch with the `cicd/` prefix.
