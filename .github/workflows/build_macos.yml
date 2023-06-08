@@ -78,7 +78,9 @@ jobs:
         id: get_current_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
       - name: Install `cargo-edit` for version bumping with `cargo set-version`
-        run: cargo install cargo-edit
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-edit
       - name: Increment minor version in Cargo.toml
         run: cargo set-version --bump minor
       - name: Get bumped SemVer version from Cargo.toml
