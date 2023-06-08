@@ -107,4 +107,4 @@ jobs:
             - Add feature X
             - Fix bug Y
       - name: Create info message about new release with URL
-        run: echo "::notice::Created new release ${{ steps.publish_release.outputs.id }} at ${{ steps.publish_release.outputs.html_url }}"
+        run: echo "::notice::Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}"
