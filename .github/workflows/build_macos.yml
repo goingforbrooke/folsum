@@ -109,4 +109,4 @@ jobs:
       - name: Create info message about new release with URL
         run: echo "::notice::Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}"
       - name: Create job summary about new release with URL
-        run: echo "::notice::Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_STEP_SUMMARY
