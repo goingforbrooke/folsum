@@ -36,12 +36,20 @@ Build for Windows:
 $ user@host: cross build --release --target x86_64-pc-windows-gnu
 ```
 
+## CI/CD
+
+The [MacOS build-release pipeline](https://github.com/goingforbrooke/directory_summarizer/blob/cicd/increment_minor/.github/workflows/build_macos.yml) is triggered by pushes to the [`main` branch and any branch that starts with `cicd/`](https://github.com/goingforbrooke/directory_summarizer/blob/1c7f07ecf0671ead726bbca869e4025d4b8131c8/.github/workflows/build_macos.yml#L5-L6). This creates a [universal binary](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary) for MacOS (`aarch64-apple-darwin` for Apple Silicon and `x86_64-apple-darwin` for Intel) and melds them with [`lipo`](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary#Update-the-Architecture-List-of-Custom-Makefiles).
+
+The resulting binary is placed in a [`*.app` bundle](https://developer.apple.com/documentation/bundleresources/placing_content_in_a_bundle), which is [codesigned and notarized](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/).
+
+Then the workflow increments the application's [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commits the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/directory_summarizer/releases).
+
 ## Misc.
 
 Format inspired by [Make a README](https://www.makeareadme.com).
 
-[Blog post on how to sign binaries](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/)
-
 [Apple's documentation on how to create a certificate signing request on MacOS](https://developer.apple.com/help/account/create-certificates/create-a-certificate-signing-request)
 
-Builds are triggered on pushes to the `main` branch or any branch with the `cicd/` prefix.
+[Reddit post on the difference between `.pkg`, `.dmg`, and `.app`](https://www.reddit.com/r/macsysadmin/comments/px1eae/difference_between_pkg_dmg_and_app_files/)
+
+[Possible `lipo` alternative written in Go](https://github.com/konoui/lipo)
