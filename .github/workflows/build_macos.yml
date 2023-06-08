@@ -90,6 +90,7 @@ jobs:
           file_pattern: Cargo.toml
           commit_message: Increment minor version from ${{ steps.get_current_semver.outputs.semver }} to ${{ steps.get_bumped_semver.outputs.semver }}
       - name: Publish a new release
+        id: publish_release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_bumped_semver.outputs.semver }}
@@ -105,3 +106,5 @@ jobs:
 
             - Add feature X
             - Fix bug Y
+      - name: Create info message about new release with URL
+        run: echo "::notice::Created new release ${{ steps.publish_release.outputs.id }} at ${{ steps.publish_release.outputs.html_url }}"
