@@ -47,4 +47,5 @@ copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
 category = "Forensic Tool"
 
 [dev-dependencies]
+cargo-bundle = "0.6.0"
 cargo-edit = "0.12.0"
