@@ -1,5 +1,6 @@
 [package]
 name = "directory_summarizer"
+description = "Summarize the contents of a directory with a GUI"
 default-run = "directory_summarizer"
 version = "1.6.0"
 authors = ["Brooke <12855764+goingforbrooke@users.noreply.github.com>"]
