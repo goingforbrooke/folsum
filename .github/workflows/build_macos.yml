@@ -74,21 +74,21 @@ jobs:
           xcrun stapler staple "directory_summarizer.app"
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+      - name: Get current SemVer version from Cargo.toml
+        id: get_current_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
       - name: Install `cargo-edit` for version bumping with `cargo set-version`
         run: cargo install cargo-edit
       - name: Increment minor version in Cargo.toml
         run: cargo set-version --bump minor
-      - name: Get current SemVer version from Cargo.toml
-        id: get_current_semver
+      - name: Get bumped SemVer version from Cargo.toml
+        id: get_bumped_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
       - name: Commit minor version bump
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           file_pattern: Cargo.toml
           commit_message: Increment minor version from ${{ steps.get_current_semver.outputs.semver }} to ${{ steps.get_bumped_semver.outputs.semver }}
-      - name: Get bumped SemVer version from Cargo.toml
-        id: get_bumped_semver
-        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
       - name: Publish a new release
         uses: ncipollo/release-action@v1
         with:
