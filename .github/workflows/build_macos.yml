@@ -100,7 +100,7 @@ jobs:
           body: |
             # New Release ${{ steps.get_bumped_semver.outputs.semver }}
 
-            This is a new release of Directory Summarizer.
+            This is a new release of Directory Summarizer triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
 
             ## Changelog
 
