@@ -44,7 +44,7 @@ opt-level = 2 # fast and small wasm
 [package.metadata.bundle]
 identifier = "com.bytesluice.directory_summarizer"
 copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
-category = "Forensic Tool"
+category = "public.app-category.productivity"
 
 [dev-dependencies]
 cargo-bundle = "0.6.0"
