@@ -24,16 +24,19 @@ jobs:
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
         run: cargo build --release --target aarch64-apple-darwin
-      - name: Create a universal binary from the x86_64 and ARM64 binaries
-        run: lipo -create -output directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+      # Cargo Bundle can't create universal binaries, so make one with `lipo` and put it where Cargo Bundle expects to find it (`target/release/`).
+      - name: Create a universal binary from the x86_64 and ARM64 binaries and put it in `target/release/`
+        run: lipo -create -output target/release/directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
       - name: Install `cargo-bundle` for creating `.app` directory structure and `.plist` with `cargo bundle`
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-bundle
-      - name: Create *.app folder structure
-        run: mkdir -p directory_summarizer.app/Contents/MacOS
-      - name: Move binary into the *.app folder
-        run: cp directory_summarizer directory_summarizer.app/Contents/MacOS/directory_summarizer
+      # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
+      - name: Create `*.app` directory structure and `.plist` file
+        env:
+          # Skip building binaries becuase they've already been build and combined.
+          CARGO_BUNDLE_SKIP_BUILD: "true"
+        run: cargo bundle --release --format osx
       - name: Codesign app bundle
         env: 
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
