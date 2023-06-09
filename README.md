@@ -14,27 +14,46 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ## Release
 
-Use [cross](https://github.com/cross-rs/cross) to create release versions for MacOS and Windows.
-
-Build for MacOS (Standard Processor):
+Build for MacOS (Intel x86_64):
 
 ```console
-$ user@host: cross build --release --target aarch64-apple-darwin
+$ user@host: cargo build --release --target x86_64-apple-darwin
 Finished release [optimized] target(s) in 0.06s
 ```
 
 Build for MacOS (ARM64/Apple Silicone):
 
 ```console
-$ user@host: cross build --release --target x86_64-apple-darwin
+$ user@host: cargo build --release --target aarch64-apple-darwin
 Finished release [optimized] target(s) in 0.08s
+```
+
+Build for MacOS (Intel x86_64 and ARM64/Apple Silicone):
+
+```console
+$ user@host: cargo build --release --target x86_64-apple-darwin --target aarch64-apple-darwin
+Finished release [optimized] target(s) in 0.08s
+```
+
+Create universal MacOS binary (MacOS only):
+
+```console
+$ user@host: lipo -create -output target/release/directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+```
+
+Check architectures on universal MacOS binary:
+
+```console
+$ user@host lipo -archs target/release/bundle/osx/directory_summarizer.app/Contents/MacOS/directory_summarizer
+x86_64 arm64
 ```
 
 Build for Windows:
 
 ```console
-$ user@host: cross build --release --target x86_64-pc-windows-gnu
+$ user@host: cargo build --release --target x86_64-pc-windows-gnu
 ```
+
 
 ## CI/CD
 
