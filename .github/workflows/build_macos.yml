@@ -37,6 +37,9 @@ jobs:
           # Skip building binaries becuase they've already been build and combined.
           CARGO_BUNDLE_SKIP_BUILD: "true"
         run: cargo bundle --release --format osx
+      # Move the `*.app` directory to the top level of the repo so it's easier to access for codesigning and notarization.
+      - name: Move bundled `*.app` directory to top level
+        run: mv target/release/bundle/osx/directory_summarizer.app .
       - name: Codesign app bundle
         env: 
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
