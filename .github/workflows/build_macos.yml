@@ -108,6 +108,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_bumped_semver.outputs.semver }}
+          # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate releases.
+          draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           artifacts: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
