@@ -91,7 +91,9 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-edit
-      - name: Increment minor version in Cargo.toml
+      - name: Increment minor version in Cargo.toml if on main branch
+        # Gate version bumping to only happen on main branch.
+        if: github.ref == 'refs/heads/main'
         run: cargo set-version --bump minor
       - name: Get bumped SemVer version from Cargo.toml
         id: get_bumped_semver
@@ -106,6 +108,8 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_bumped_semver.outputs.semver }}
+          # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate releases.
+          draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           artifacts: directory_summarizer.zip
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -118,7 +122,10 @@ jobs:
 
             - Add feature X
             - Fix bug Y
-      - name: Create info message about new release with URL
-        run: echo "::notice::Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}"
-      - name: Create job summary about new release with URL
-        run: echo "## Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_STEP_SUMMARY
+      - name: Generate "new release" message with hyperlink to release page
+        id: generate_release_message
+        run: echo "message=Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_OUTPUT
+      - name: Create info message about new release
+        run: echo "::notice::${{ steps.generate_release_message.outputs.message }}"
+      - name: Create job summary about new release
+        run: echo "## ${{ steps.generate_release_message.outputs.message }}" >> $GITHUB_STEP_SUMMARY

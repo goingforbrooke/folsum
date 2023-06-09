@@ -54,14 +54,19 @@ Build for Windows:
 $ user@host: cargo build --release --target x86_64-pc-windows-gnu
 ```
 
-
 ## CI/CD
 
-The [MacOS build-release pipeline](https://github.com/goingforbrooke/directory_summarizer/blob/cicd/increment_minor/.github/workflows/build_macos.yml) is triggered by pushes to the [`main` branch and any branch that starts with `cicd/`](https://github.com/goingforbrooke/directory_summarizer/blob/1c7f07ecf0671ead726bbca869e4025d4b8131c8/.github/workflows/build_macos.yml#L5-L6). This creates a [universal binary](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary) for MacOS (`aarch64-apple-darwin` for Apple Silicon and `x86_64-apple-darwin` for Intel) and melds them with [`lipo`](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary#Update-the-Architecture-List-of-Custom-Makefiles).
+The [MacOS build-release pipeline](https://github.com/goingforbrooke/directory_summarizer/blob/cicd/increment_minor/.github/workflows/build_macos.yml) is triggered by pushes to the [`main` branch and any branch that starts with `cicd/`](https://github.com/goingforbrooke/directory_summarizer/blob/1c7f07ecf0671ead726bbca869e4025d4b8131c8/.github/workflows/build_macos.yml#L5-L6).
 
-The resulting binary is placed in a [`*.app` bundle](https://developer.apple.com/documentation/bundleresources/placing_content_in_a_bundle), which is [codesigned and notarized](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/).
+The build creates a [universal binary](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary) for MacOS by creating a binary for each processor architecture (`aarch64-apple-darwin` for Apple Silicon and `x86_64-apple-darwin` for Intel). These binaries are melded with [`lipo`](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary#Update-the-Architecture-List-of-Custom-Makefiles) to create a MacOS universal binary. The `lipo` command is specific to MacOS runners, but there are [cheaper alternatives](https://github.com/rust-lang/cargo/issues/8875#issuecomment-1583958357).
 
-Then the workflow increments the application's [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commits the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/directory_summarizer/releases).
+We use [Cargo Bundle](https://github.com/burtonageo/cargo-bundle) to [create](https://github.com/burtonageo/cargo-bundle/blob/master/src/bundle/osx_bundle.rs) an [`*.app` bundle](https://developer.apple.com/documentation/bundleresources/placing_content_in_a_bundle) and plist file. Then we tell Cargo Bundle to skip building new binaries and place our universal binary (from the previous step) where Cargo Bundle expects to find it.
+
+The final `*.app` bundle is [codesigned and notarized](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/) so MacOS doesn't think that it's malware.
+
+If the commit was pushed to the `main` branch, then we use [Cargo Edit](https://github.com/killercup/cargo-edit) to increment the [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commit the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/directory_summarizer/releases).
+
+Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release instead of a regular release. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
 
 ## Misc.
 
