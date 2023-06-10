@@ -18,8 +18,8 @@ crate-type = ["cdylib", "rlib"]
 
 
 [dependencies]
-egui = "0.21.0"
-eframe = { version = "0.21.0", default-features = false, features = [
+egui = "0.22.0"
+eframe = { version = "0.22.0", default-features = false, features = [
     "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
@@ -30,7 +30,7 @@ serde = { version = "1.0.164", features = ["derive"] } # You only need this if y
 walkdir = "2.3.3"
 rfd = "0.11.4"
 itertools = "0.10.5"
-egui_extras = "0.18.0"
+egui_extras = "0.22.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
