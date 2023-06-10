@@ -82,7 +82,10 @@ impl eframe::App for TemplateApp {
         ctx.request_repaint();
 
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            // Add a menu bar to the top of the screen.
             egui::menu::bar(ui, |ui| {
+                // Don't include a File->Quit menu item when compiling for web.
+                #[cfg(not(target_arch = "wasm32"))]
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         frame.close();
