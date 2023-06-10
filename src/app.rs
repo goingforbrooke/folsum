@@ -85,7 +85,7 @@ impl eframe::App for TemplateApp {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        frame.close();
+                        frame.quit();
                     }
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
