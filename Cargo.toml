@@ -18,13 +18,13 @@ crate-type = ["cdylib", "rlib"]
 
 
 [dependencies]
-egui = "0.19.0"
-eframe = { version = "0.19.0", features = ["persistence"] }
+egui = "0.18.1"
+eframe = { version = "0.18.0", features = ["persistence"] }
 serde = { version = "1.0.164", features = ["derive"] } # You only need this if you want app persistence
 walkdir = "2.3.3"
-rfd = "0.10.0"
+rfd = "0.11.4"
 itertools = "0.10.5"
-egui_extras = "0.19.0"
+egui_extras = "0.18.0"
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -38,9 +38,6 @@ tracing-wasm = "0.2.1"
 
 [profile.release]
 opt-level = 2 # fast and small wasm
-
-
-[patch.crates-io]
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.directory_summarizer"
