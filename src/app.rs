@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use egui_extras::{Size, TableBuilder};
+use egui_extras::{Size, TableBuilder, Column};
 use itertools::Itertools;
 use rfd::FileDialog;
 use walkdir::WalkDir;
@@ -206,8 +206,8 @@ impl eframe::App for TemplateApp {
             TableBuilder::new(ui)
                 .resizable(true)
                 .striped(true)
-                .column(Size::initial(150.0).at_least(150.0))
-                .column(Size::remainder().at_least(60.0))
+                .column(Column::initial(150.0).at_least(150.0))
+                .column(Column::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
                         ui.heading("File Extension");
