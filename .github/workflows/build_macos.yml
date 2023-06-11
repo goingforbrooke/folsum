@@ -94,10 +94,10 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-edit
-      #- name: Increment minor version in Cargo.toml if on main branch
-      #  # Gate version bumping to only happen on main branch.
-      #  if: github.ref == 'refs/heads/main'
-      #  run: cargo set-version --bump minor
+      - name: Increment minor version in Cargo.toml if on main branch
+        # Gate version bumping to only happen on main branch.
+        if: github.ref == 'refs/heads/main'
+        run: cargo set-version --bump minor
       - name: Get bumped SemVer version from Cargo.toml
         id: get_bumped_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
