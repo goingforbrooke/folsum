@@ -12,8 +12,8 @@ fn main() {
         ..Default::default()
     };
     eframe::run_native(
-        "Directory Summarizer",
+        "FolSum",
         native_options,
-        Box::new(|cc| Box::new(directory_summarizer::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(folsum::TemplateApp::new(cc))),
     );
 }
