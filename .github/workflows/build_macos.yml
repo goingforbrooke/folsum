@@ -11,6 +11,9 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Set up sccache-cache
@@ -26,7 +29,7 @@ jobs:
         run: cargo build --release --target aarch64-apple-darwin
       # Cargo Bundle can't create universal binaries, so make one with `lipo` and put it where Cargo Bundle expects to find it (`target/release/`).
       - name: Create a universal binary from the x86_64 and ARM64 binaries and put it in `target/release/`
-        run: lipo -create -output target/release/directory_summarizer -arch x86_64 target/x86_64-apple-darwin/release/directory_summarizer -arch arm64 target/aarch64-apple-darwin/release/directory_summarizer
+        run: lipo -create -output target/release/${{ steps.get_repo_name.outputs.repo_name }} -arch x86_64 target/x86_64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }} -arch arm64 target/aarch64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }}
       - name: Install `cargo-bundle` for creating `.app` directory structure and `.plist` with `cargo bundle`
         uses: baptiste0928/cargo-install@v2
         with:
@@ -39,7 +42,7 @@ jobs:
         run: cargo bundle --release --format osx
       # Move the `*.app` directory to the top level of the repo so it's easier to access for codesigning and notarization.
       - name: Move bundled `*.app` directory to top level
-        run: mv target/release/bundle/osx/directory_summarizer.app .
+        run: mv target/release/bundle/osx/${{ steps.get_repo_name.outputs.repo_name }}.app .
       - name: Codesign app bundle
         env: 
           MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
@@ -58,7 +61,7 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
           # Codesign the app bundle with hardened runtime so it passes notarization.
-          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime directory_summarizer.app -v
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime ${{ steps.get_repo_name.outputs.repo_name }}.app -v
       - name: "Notarize app bundle"
         env:
           PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_APPLE_ID }}
@@ -73,7 +76,7 @@ jobs:
           # Compress app bundle to zip file for notarization (because we can't notarize app bundles directly).
 
           echo "Creating temporary notarization archive"
-          ditto -c -k --keepParent "directory_summarizer.app" "notarization.zip"
+          ditto -c -k --keepParent "${{ steps.get_repo_name.outputs.repo_name }}.app" "notarization.zip"
 
           # Send the notarization request to the Apple's Notarization service.
           echo "Notarizing compressed app bundle"
@@ -81,12 +84,12 @@ jobs:
 
           # "Attach the staple" to executable for offline MacOS validation.
           echo "Attach staple"
-          xcrun stapler staple "directory_summarizer.app"
+          xcrun stapler staple "${{ steps.get_repo_name.outputs.repo_name }}.app"
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
-        run: ditto -c -k --sequesterRsrc --keepParent directory_summarizer.app directory_summarizer.zip
+        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.get_repo_name.outputs.repo_name }}.zip
       - name: Get current SemVer version from Cargo.toml
         id: get_current_semver
-        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
       - name: Install `cargo-edit` for version bumping with `cargo set-version`
         uses: baptiste0928/cargo-install@v2
         with:
@@ -97,7 +100,7 @@ jobs:
         run: cargo set-version --bump minor
       - name: Get bumped SemVer version from Cargo.toml
         id: get_bumped_semver
-        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="directory_summarizer") | .version')" >> "$GITHUB_OUTPUT"
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
       - name: Commit minor version bump
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
@@ -111,12 +114,12 @@ jobs:
           # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate releases.
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
-          artifacts: directory_summarizer.zip
+          artifacts: ${{ steps.get_repo_name.outputs.repo_name }}.zip
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release ${{ steps.get_bumped_semver.outputs.semver }}
 
-            This is a new release of Directory Summarizer triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
+            This is a new release of FolSum triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
 
             ## Changelog
 
