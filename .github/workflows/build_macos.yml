@@ -11,6 +11,9 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
     steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Set up sccache-cache
