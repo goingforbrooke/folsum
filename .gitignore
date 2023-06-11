@@ -1,5 +1,5 @@
 .DS_Store
-directory_summarizer.code-workspace
+folsum.code-workspace
 /target
 test_dir/*
 .vscode/
