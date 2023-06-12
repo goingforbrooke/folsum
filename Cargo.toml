@@ -49,7 +49,7 @@ opt-level = 2 # fast and small wasm
 identifier = "com.bytesluice.folsum"
 copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
 category = "public.app-category.productivity"
-icon = ["images/icons/resized_icons/*.png"]
+resources = ["images/icons/resized_icons/*.png"]
 
 [dev-dependencies]
 cargo-bundle = "0.6.0"
