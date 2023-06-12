@@ -1538,6 +1538,7 @@ dependencies = [
  "rfd",
  "serde",
  "tauri-bundler",
+ "toml",
  "tracing-subscriber",
  "tracing-wasm",
  "walkdir",

@@ -56,3 +56,4 @@ cargo-edit = "0.12.0"
 
 [build-dependencies]
 tauri-bundler = "1.2.1"
+toml = "0.7.4"
