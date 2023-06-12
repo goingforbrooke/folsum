@@ -53,3 +53,6 @@ icon = ["images/icons/resized_icons/*.png"]
 
 [dev-dependencies]
 cargo-edit = "0.12.0"
+
+[build-dependencies]
+tauri-bundler = "1.2.1"
