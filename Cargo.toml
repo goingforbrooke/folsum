@@ -52,5 +52,4 @@ category = "public.app-category.productivity"
 icon = ["images/icons/resized_icons/*.png"]
 
 [dev-dependencies]
-cargo-bundle = "0.6.0"
 cargo-edit = "0.12.0"
