@@ -2,6 +2,7 @@
 # Run this with `folsum/images/icons/` as the working directory.
 
 # Source for pixel sizes: https://developer.apple.com/design/human-interface-guidelines/app-icons#macOS-app-icon-sizes
+# Source for expected pixel sizes: https://docs.rs/tauri-icns/latest/tauri_icns/enum.IconType.html#variant.RGBA32_128x128_2x
 
 # Input icon file
 input_icon="./folsum_icon_660.png"
