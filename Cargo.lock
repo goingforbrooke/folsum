@@ -3898,8 +3898,6 @@ checksum = "fd1ba337640d60c3e96bc6f0638a939b9c9a7f2c316a1598c279828b3d1dc8c5"
 [[package]]
 name = "tauri-bundler"
 version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c700b8552c388e086c4256add3d50abaaf73e61ebce952219ce4e0943dc80105"
 dependencies = [
  "anyhow",
  "ar",
@@ -3949,8 +3947,6 @@ dependencies = [
 [[package]]
 name = "tauri-utils"
 version = "1.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a6f9c2dafef5cbcf52926af57ce9561bd33bb41d7394f8bb849c0330260d864"
 dependencies = [
  "ctor",
  "glob",
