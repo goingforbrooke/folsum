@@ -3,7 +3,7 @@
 # Source for pixel sizes: https://developer.apple.com/design/human-interface-guidelines/app-icons#macOS-app-icon-sizes
 
 # Input icon file
-input_icon="./folsum_icon.png"
+input_icon="./folsum_icon_660.png"
 
 # Output directory for resized icons
 output_dir="resized_icons"
