@@ -12,21 +12,20 @@ output_dir="images/icons/resized_icons/"
 # Ensure that the output directory exists.
 mkdir ${output_dir}
 
-# Array of @1x pixel icon sizes (in pixels) for macOS
-sizes=(16 32 128 256 512)
+# Array of @1x (non-retina) pixel icon sizes for macOS.
+display_sizes=(16 32 128 256 512)
 
-# Loop through each @1x size and resize the icon
-for size in "${sizes[@]}"; do
-  output_file="$output_dir/folsum_icon_${size}px.png"
-  convert "$input_icon" -resize "${size}x${size}" "$output_file"
-done
+# Loop through each size and resize the icon.
+for display_size in "${display_sizes[@]}"; do
+  # Name the resized icon after its size.
+  output_file="$output_dir/folsum_icon_${display_size}px.png"
+  # Resize teh 
+  convert "$input_icon" -resize "${display_size}x${display_size}" "$output_file"
 
-# Array of @2x pixel icon sizes (in pixels) for macOS
-sizes=(32 64 128 256 512 1024)
-
-# Loop through each @2x size and resize the icon
-for size in "${sizes[@]}"; do
-  output_file="$output_dir/folsum_icon_${size}px@2x.png"
-  convert "$input_icon" -resize "${size}x${size}" "$output_file"
+  # Double the display size to get the equivalent retina size.
+  retina_size=$((display_size * 2))
+  # Use the display size to name the retina sized icon and add @2x the stem.
+  output_file="$output_dir/folsum_icon_${display_size}px@2x.png"
+  convert "$input_icon" -resize "${retina_size}x${retina_size}" "$output_file"
 done
 
