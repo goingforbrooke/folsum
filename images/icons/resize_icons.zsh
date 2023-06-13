@@ -1,4 +1,5 @@
 #!/bin/zsh
+# Run this with `folsum/images/icons/` as the working directory.
 
 # Source for pixel sizes: https://developer.apple.com/design/human-interface-guidelines/app-icons#macOS-app-icon-sizes
 
