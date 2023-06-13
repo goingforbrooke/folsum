@@ -37,7 +37,7 @@ jobs:
       # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
       - name: Create `*.app` directory structure and `.plist` file
         env:
-          # Skip building binaries becuase they've already been build and combined.
+          # Skip building binaries becuase they've already been built and combined.
           CARGO_BUNDLE_SKIP_BUILD: "true"
         run: cargo bundle --release --format osx
       # Move the `*.app` directory to the top level of the repo so it's easier to access for codesigning and notarization.
