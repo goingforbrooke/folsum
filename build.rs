@@ -64,8 +64,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     };
 
-    // Set the output directory to `target/release/tbundle`.
-    let output_dir: &Path = Path::new("target/release/tbundle");
+    // Create bundles in (new directory)`target/release/bundle`.
+    let output_dir: &Path = Path::new("target/release/");
     // Ensure that output directory exists.
     create_dir_all(output_dir).expect("Failed to create output directory");
 
