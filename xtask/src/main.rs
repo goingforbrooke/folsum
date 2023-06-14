@@ -28,7 +28,7 @@ fn main() {
     println!("folsum root: {:?}", folsum_root); 
 
     // Build binaries so we can put them into a `.app` bundle.
-    build(cargo_path, &folsum_root);
+    build(cargo_path, &project_root);
     
     // Bundle binaries.
     bundle(&folsum_root);
