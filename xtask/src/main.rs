@@ -6,7 +6,12 @@ use::toml::Value;
 use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary};
 use tauri_bundler::PackageType::{MacOsBundle};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
+    println!("Hello, world!");
+    bundle();
+}
+
+fn bundle() -> Result<(), Box<dyn std::error::Error>> {
     // Read Cargo.toml.
     let cargo_contents: String = read_to_string("Cargo.toml").expect("Failed to read Cargo.toml");
     // Parse Cargo.toml contents.
