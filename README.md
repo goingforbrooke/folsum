@@ -76,6 +76,11 @@ If the commit was pushed to the `main` branch, then we use [Cargo Edit](https://
 
 Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release instead of a regular release. Note that this doesn't override the top-level branch filter-- builds are only triggered by pushes to `main` or branches that start with `cicd`. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
 
+## Design Decisions
+
+### Xtask Design Decision
+On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like `build.rs` run before binary compilation, so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`. Post-build scripts are an [ongoing discussion]() in the Rust community and [xtask looks like the best solution](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) apart from Github Actions. Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bundle) or (continues to use) [Tauri Bundler](https://crates.io/crates/tauri-bundler), post-build scripts will be necessary. Tauri Bundler has more bundling features, but Cargo Bundle (from which Tauri Bundler is forked) is more Rust-centric because it uses `Cargo.toml` for bundle configuration and doesn't require Tauri's CLI to fill many of those values.
+
 ## Misc.
 
 Format inspired by [Make a README](https://www.makeareadme.com).
