@@ -34,13 +34,13 @@ fn main() {
     bundle(&folsum_root);
 }
 
-fn build(cargo_path: String, folsum_root: &PathBuf) {
+fn build(cargo_path: String, project_root: &PathBuf) {
     println!("cargo exe: {}", cargo_path);
-    println!("folsum root: {:?}", folsum_root);
+    println!("folsum root: {:?}", project_root);
     // Run `cargo build --release` in `folsum/folsum/`.
     println!("Starting build with `cago build --release`");
     let build_result: Output = Command::new(cargo_path)
-        .current_dir(folsum_root)
+        .current_dir(project_root)
         .args(&["build", "--release"])
         .output()
         .expect("Failed to cargo build FolSum");
