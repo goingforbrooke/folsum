@@ -2,7 +2,7 @@ use std::{
     env,
     fs::{read_to_string, create_dir_all},
     path::{Path, PathBuf},
-    process::{Command},
+    process::{Command, Output},
 };
 
 use::toml::Value;
@@ -34,7 +34,7 @@ fn main() {
 }
 
 fn build(cargo_path: String, folsum_root: &PathBuf) {
-    let build_result = Command::new(cargo_path)
+    let build_result: Output = Command::new(cargo_path)
         .current_dir(folsum_root)
         .args(&["build", "--release"])
         .output();
