@@ -8,7 +8,7 @@ use std::{
 
 use::toml::Value;
 
-use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary};
+use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary, Bundle};
 use tauri_bundler::PackageType::{MacOsBundle};
 
 fn main() {
@@ -31,7 +31,8 @@ fn main() {
     build(cargo_path, &project_root);
     
     // Bundle binaries.
-    bundle(&folsum_root);
+    let bundle_paths = bundle(&folsum_root);
+    println!("bundle paths: {:?}", bundle_paths);
 }
 
 fn build(cargo_path: String, project_root: &PathBuf) {
@@ -53,7 +54,7 @@ fn build(cargo_path: String, project_root: &PathBuf) {
     assert!(build_result.status.success());
 }
 
-fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn bundle(folsum_root: &PathBuf) -> Result<Vec<Bundle>, Box<dyn std::error::Error>> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
@@ -164,10 +165,9 @@ fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     println!("Built bundler settings");
 
     // Bundle the project.
-    let completed_bundles = bundle_project(bundler_settings);
+    let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
     println!("Bundled project");
-    completed_bundles?;
-    Ok(())
+    Ok(completed_bundles)
 }
 
 fn get_project_root() -> PathBuf {
