@@ -143,7 +143,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
         }
     }
     // Create binary settings for Tauri Bundler. Use the package name as the binary name and mark it as thing to be executed.
-    let binary_settings: BundleBinary = BundleBinary::new(package_name.to_string(), true)
+    let binary_settings: BundleBinary = BundleBinary::new(binary_name.to_string(), true)
         .set_src_path(Some(binary_path.into_os_string().into_string().unwrap()));
     println!("Defined binary settings");
 
