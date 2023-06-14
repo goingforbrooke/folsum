@@ -1,16 +1,19 @@
 use std::{
     env,
-    fs::{read_to_string, create_dir_all},
+    fs::{create_dir_all, read_to_string},
     io::{self, Write},
     path::{Path, PathBuf},
     process::{Command, Output},
 };
 
-use::log::{debug};
-use::toml::Value;
+use ::log::debug;
+use ::toml::Value;
 
-use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary, Bundle};
-use tauri_bundler::PackageType::{MacOsBundle};
+use tauri_bundler::PackageType::MacOsBundle;
+use tauri_bundler::{
+    bundle_project, Bundle, BundleBinary, BundleSettings, PackageSettings, Settings,
+    SettingsBuilder,
+};
 
 type DynError = Box<dyn std::error::Error>;
 
@@ -51,14 +54,14 @@ fn print_help() -> Result<(), DynError> {
 fn dist() -> Result<(), DynError> {
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
-    debug!("project root: {:?}", project_root); 
+    debug!("project root: {:?}", project_root);
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
-    debug!("folsum root: {:?}", folsum_root); 
+    debug!("folsum root: {:?}", folsum_root);
 
     // Build binaries so we can put them into a `.app` bundle.
     build(&project_root);
-    
+
     // Bundle binaries.
     let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
     debug!("Bundled binaries into .app bundle: {:?}", bundle_paths);
@@ -92,17 +95,25 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     // Read Cargo.toml.
     let cargo_contents: String = read_to_string(folsum_cargo).expect("Failed to read Cargo.toml");
     // Parse Cargo.toml contents.
-    let cargo_values: Value = cargo_contents.parse().expect("Failed to parse Cargo contents");
+    let cargo_values: Value = cargo_contents
+        .parse()
+        .expect("Failed to parse Cargo contents");
 
     // Extract package name.
-    let package_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract package name");
+    let package_name: &str = cargo_values["package"]["name"]
+        .as_str()
+        .expect("Failed to extract package name");
     // Extract package version.
-    let package_version: &str = cargo_values["package"]["version"].as_str().expect("Failed to extract package version");
+    let package_version: &str = cargo_values["package"]["version"]
+        .as_str()
+        .expect("Failed to extract package version");
     // Extract package description.
-    let package_description: &str = cargo_values["package"]["description"].as_str().expect("Failed to extract package description");
+    let package_description: &str = cargo_values["package"]["description"]
+        .as_str()
+        .expect("Failed to extract package description");
 
     // Create package settings for Tauri Bundler with package values extracted from Cargo.toml.
-    let package_settings: PackageSettings = PackageSettings{
+    let package_settings: PackageSettings = PackageSettings {
         product_name: package_name.to_string(),
         version: package_version.to_string(),
         description: package_description.to_string(),
@@ -112,23 +123,32 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     };
 
     // Extract bundle identifier.
-    let bundle_identifier: &str = cargo_values["package"]["metadata"]["bundle"]["identifier"].as_str().expect("Failed to extract bundle identifier");
+    let bundle_identifier: &str = cargo_values["package"]["metadata"]["bundle"]["identifier"]
+        .as_str()
+        .expect("Failed to extract bundle identifier");
 
     // Extract bundle icon directory.
-    let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"].as_str().expect("Failed to extract bundle icon directory");
+    let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"]
+        .as_str()
+        .expect("Failed to extract bundle icon directory");
     debug!("Extracted bundle icon directory: {}", extracted_icon_dir);
     let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
     debug!("Bundle icon directory: {:?}", icon_dir);
     // Get every PNG file in the bundle icon directory.
-    let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir).expect("Failed to read bundle icon directory").map(|entry| {
-        let dir_item: std::fs::DirEntry = entry.expect("Failed to read bundle icon directory entry");
-        let path: std::path::PathBuf = dir_item.path();
-        let path: &str = path.to_str().expect("Failed to convert bundle icon path to string");
-        path.to_string()
-    // Select only PNG files as icons.
-    }).filter(|path| {
-        path.ends_with(".png")
-    }).collect();
+    let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir)
+        .expect("Failed to read bundle icon directory")
+        .map(|entry| {
+            let dir_item: std::fs::DirEntry =
+                entry.expect("Failed to read bundle icon directory entry");
+            let path: std::path::PathBuf = dir_item.path();
+            let path: &str = path
+                .to_str()
+                .expect("Failed to convert bundle icon path to string");
+            path.to_string()
+            // Select only PNG files as icons.
+        })
+        .filter(|path| path.ends_with(".png"))
+        .collect();
     // If no bundle icons were found, then raise an error.
     if bundle_icons.is_empty() {
         panic!("No bundle icons found in bundle icon directory");
@@ -138,7 +158,9 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     debug!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
 
     // Extract bundle copyright.
-    let bundle_copyright: &str = cargo_values["package"]["metadata"]["bundle"]["copyright"].as_str().expect("Failed to extract bundle copyright");
+    let bundle_copyright: &str = cargo_values["package"]["metadata"]["bundle"]["copyright"]
+        .as_str()
+        .expect("Failed to extract bundle copyright");
 
     // Create bundle settings for Tauri Bundler with bundle values extracted from Cargo.toml.
     let bundle_settings: BundleSettings = BundleSettings {
@@ -150,7 +172,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Create bundles in (new directory)`target/release/bundle`.
     let output_dir: PathBuf = folsum_root.join("target/release/");
-    // Temp: Override output directory path with 
+    // Temp: Override output directory path with
     let output_dir: PathBuf = project_root.join("target/release/");
     debug!("Output directory: {:?}", output_dir);
 
@@ -159,7 +181,9 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Extract binary name.
     // todo: Use binary name from [[bin]] in Cargo.toml instead of assuming it's (the package_name) `folsum`.
-    let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract binary name");
+    let binary_name: &str = cargo_values["package"]["name"]
+        .as_str()
+        .expect("Failed to extract binary name");
     // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
     let binary_path: PathBuf = output_dir.join(binary_name);
 
@@ -168,7 +192,10 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
         true => debug!("Found binary at {:?}", binary_path),
         false => {
             if binary_path.exists() {
-                panic!("Path to the binary {:?} exists, but is not a file", binary_path);
+                panic!(
+                    "Path to the binary {:?} exists, but is not a file",
+                    binary_path
+                );
             } else {
                 panic!("Path to the binary {:?} does not exist", binary_path);
             }
@@ -193,7 +220,9 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
         .package_types(vec![MacOsBundle]);
     debug!("Defined all bundler settings");
 
-    let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
+    let bundler_settings: Settings = settings_builder
+        .build()
+        .expect("Failed to build bundler settings");
     debug!("Built bundler settings");
 
     // Bundle the project.
