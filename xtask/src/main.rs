@@ -33,10 +33,11 @@ fn main() {
 }
 
 fn build(cargo_path: String, folsum_root: &PathBuf) {
-    let build_status = Command::new(cargo_path)
+    let build_result = Command::new(cargo_path)
         .current_dir(folsum_root)
         .args(&["build", "--release"])
-        .status();
+        .output();
+    println!("build result: {:?}", build_result.unwrap().stdout);
 }
 
 fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
