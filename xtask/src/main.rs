@@ -24,6 +24,7 @@ fn main() {
     println!("project root: {:?}", project_root); 
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
+    println!("folsum root: {:?}", folsum_root); 
 
     // Build binaries so we can put them into a `.app` bundle.
     build(cargo_path, &folsum_root);
