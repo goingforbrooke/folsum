@@ -135,13 +135,6 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 
     let bundler_settings: Settings = settings_builder.build().expect("Failed to build settings");
 
-    //let mut settings_builder = SettingsBuilder::new()
-    //  .package_settings(PackageSettings)
-    //  .bundle_settings(self.get_bundle_settings(config, &enabled_features)?)
-    //  .binaries(self.get_binaries(config, &target)?)
-    //  .project_out_directory(out_dir)
-    //  .target(target);
-
     // Bundle the project.
     let completed_bundles = bundle_project(bundler_settings);
     completed_bundles?;
