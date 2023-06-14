@@ -144,7 +144,7 @@ fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     // Create binary settings for Tauri Bundler. Use the package name as the binary name and mark it as thing to be executed.
     let binary_settings: BundleBinary = BundleBinary::new(package_name.to_string(), true)
         .set_src_path(Some(binary_path.into_os_string().into_string().unwrap()));
-
+    println!("Defined binary settings");
 
     // Make a settings builder for Tauri Bundler.
     let settings_builder: SettingsBuilder = SettingsBuilder::new()
@@ -158,11 +158,14 @@ fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         .project_out_directory(&output_dir)
         // Set the package type to MacOsBundle.
         .package_types(vec![MacOsBundle]);
+    println!("Defined all bundler settings");
 
     let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
+    println!("Built bundler settings");
 
     // Bundle the project.
     let completed_bundles = bundle_project(bundler_settings);
+    println!("Bundled project");
     completed_bundles?;
     Ok(())
 }
