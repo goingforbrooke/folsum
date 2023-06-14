@@ -1,6 +1,6 @@
 .DS_Store
 folsum.code-workspace
 /target
-test_dir/*
+folsum/test_dir/*
 .vscode/
 tauri/
