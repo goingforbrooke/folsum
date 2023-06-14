@@ -14,6 +14,14 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ## Release
 
+### `xtask`
+
+```console
+$ user@host: cargo xtask build
+```
+
+### `cargo build`
+
 Build for MacOS (Intel x86_64):
 
 ```console
