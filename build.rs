@@ -69,16 +69,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Ensure that output directory exists.
     create_dir_all(output_dir).expect("Failed to create output directory");
 
+    // Extract binary name.
+    let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract package name");
+
     // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
-    let binary_path: PathBuf = ["target", "release", package_name].iter().collect();
+    let binary_path: PathBuf = ["target", "release", binary_name].iter().collect();
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
         true => println!("Found binary at {:?}", binary_path),
         false => {
             if binary_path.exists() {
-                panic!("Path to the binary exists, but is not a file");
+                panic!("Path to the binary {:?} exists, but is not a file", binary_path);
             } else {
-                panic!("Path to the binary does not exist");
+                panic!("Path to the binary {:?} does not exist", binary_path);
             }
         }
     }
