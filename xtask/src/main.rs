@@ -109,10 +109,10 @@ fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     create_dir_all(&output_dir).expect("Failed to create output directory for bundle");
 
     // Extract binary name.
-    let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract package name");
+    // todo: Use binary name from [[bin]] in Cargo.toml instead of assuming it's (the package_name) `folsum`.
+    let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract binary name");
 
     // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
-    // todo: Use binary name from [[bin]] in Cargo.toml instead of assuming it's (the package_name) `folsum`.
     let binary_path: PathBuf = output_dir.join(binary_name);
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
