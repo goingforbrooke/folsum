@@ -41,7 +41,7 @@ fn build(cargo_path: String, folsum_root: PathBuf) {
 }
 
 fn bundle(folsum_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    // Assume that FolSum's Cargo.toml is `folsum/folsum/Cargo.toml`.
+    // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
     // Read Cargo.toml.
