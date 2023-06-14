@@ -29,6 +29,9 @@ fn try_main() -> Result<(), DynError> {
     match task.as_deref() {
         // If "dist" was passed as the first command line argument, then build and bundle the application.
         Some("dist") => Ok(dist()?),
+        // If "help" was passed as the first command line argument, then describe availble tasks.
+        Some("help") => print_help(),
+        // If the first command line argument was unrecognized, then describe available tasks.
         _ => print_help(),
     }
 }
@@ -38,6 +41,7 @@ fn print_help() -> Result<(), DynError> {
         "Tasks:
 
         dist            builds application and man pages
+        help            prints this help message
         "
     );
     Ok(())
@@ -46,7 +50,7 @@ fn print_help() -> Result<(), DynError> {
 fn dist() -> Result<(), DynError> {
     // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    println!("cargo exe: {}", cargo_path);
+    println!("using `cargo` executable: {}", cargo_path);
     // Get the path to the `cargo` manifest directory in a reliable way.
     let cargo_manifest_dir: String = env::var("CARGO_MANIFEST_DIR").unwrap();
     println!("cargo manifest dir: {}", cargo_manifest_dir);
@@ -61,14 +65,11 @@ fn dist() -> Result<(), DynError> {
     
     // Bundle binaries.
     let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
-    println!("Bundled binaries");
-    println!("bundle paths: {:?}", bundle_paths);
+    println!("Bundled binaries into .app bundle: {:?}", bundle_paths);
     Ok(())
 }
 
 fn build(cargo_path: String, project_root: &PathBuf) {
-    println!("cargo exe: {}", cargo_path);
-    println!("project root: {:?}", project_root);
     // Run `cargo build --release` in `folsum/folsum/`.
     println!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
