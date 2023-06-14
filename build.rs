@@ -1,9 +1,9 @@
 use std::fs::{read_to_string, create_dir_all};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use::toml::Value;
 
-use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings};
+use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary};
 use tauri_bundler::PackageType::{MacOsBundle};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -69,12 +69,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Ensure that output directory exists.
     create_dir_all(output_dir).expect("Failed to create output directory");
 
+    // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
+    let binary_path: PathBuf = ["target", "release", package_name].iter().collect();
+    // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
+    match binary_path.is_file() {
+        true => println!("Found binary at {:?}", binary_path),
+        false => {
+            if binary_path.exists() {
+                panic!("Path to the binary exists, but is not a file");
+            } else {
+                panic!("Path to the binary does not exist");
+            }
+        }
+    }
+    // Create binary settings for Tauri Bundler. Use the package name as the binary name and mark it as thing to be executed.
+    let binary_settings: BundleBinary = BundleBinary::new(package_name.to_string(), true)
+        .set_src_path(Some(binary_path.into_os_string().into_string().unwrap()));
+
+
     // Make a settings builder for Tauri Bundler.
     let settings_builder: SettingsBuilder = SettingsBuilder::new()
         // Add package settings to settings builder.
         .package_settings(package_settings)
         // Add bundle settings to settings builder.
         .bundle_settings(bundle_settings)
+        // Add binary settings to the settings builder.
+        .binaries(vec![binary_settings])
         // Set the project output directory.
         .project_out_directory(output_dir)
         // Set the package type to MacOsBundle.
