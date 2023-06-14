@@ -78,8 +78,17 @@ Otherwise, if the commit was pushed to a branch starting with `cicd`, then we sk
 
 ## Design Decisions
 
-### Xtask Design Decision
-On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like `build.rs` run before binary compilation, so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`. Post-build scripts are an [ongoing discussion]() in the Rust community and [xtask looks like the best solution](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) apart from Github Actions. Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bundle) or (continues to use) [Tauri Bundler](https://crates.io/crates/tauri-bundler), post-build scripts will be necessary. Tauri Bundler has more bundling features, but Cargo Bundle (from which Tauri Bundler is forked) is more Rust-centric because it uses `Cargo.toml` for bundle configuration and doesn't require Tauri's CLI to fill many of those values.
+### Xtask for Builds
+
+On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like [`build.rs` run before compilation](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts), so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`. Post-build scripts are an [ongoing discussion](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) in the Rust community and [xtask looks like the best solution](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts) apart from Github Actions.
+
+### Tauri Bundler/Cargo Bundle for Bundling
+
+Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bundle) or (continues to use) [Tauri Bundler](https://crates.io/crates/tauri-bundler), post-build scripts will be necessary. Tauri Bundler is more mature with more supported platforms, but Cargo Bundle (from which Tauri Bundler is forked) is more Rust-centric. This is because Cargo Bunndle uses `Cargo.toml` for bundle configuration without using Tauri's CLI to fill missing values
+
+### Xtask and Tauri Bundler Together
+
+Since we're rolling our own build scripts in Rust, we use [Tauri Bundler](https://crates.io/crates/tauri-bundler)'s API, which is very close to [Cargo Bundle](https://crates.io/crates/cargo-bundle) API, sans `Cargo.toml` configuration extraction. We might've stuck with the (initial) Cargo Bundle implementation if we had figured out the icon sizing issues sooner. Insetad, we'll go with Tauri Bundler for now and slowly PR-patch our way back to Cargo Bundle.
 
 ## Misc.
 
