@@ -48,17 +48,15 @@ fn print_help() -> Result<(), DynError> {
 }
 
 fn dist() -> Result<(), DynError> {
-    // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
-    let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    println!("using `cargo` executable: {}", cargo_path);
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
     println!("project root: {:?}", project_root); 
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
     println!("folsum root: {:?}", folsum_root); 
+
     // Build binaries so we can put them into a `.app` bundle.
-    build(cargo_path, &project_root);
+    build(&project_root);
     
     // Bundle binaries.
     let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
@@ -66,7 +64,10 @@ fn dist() -> Result<(), DynError> {
     Ok(())
 }
 
-fn build(cargo_path: String, project_root: &PathBuf) {
+fn build(project_root: &PathBuf) {
+    // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
+    let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    println!("using `cargo` executable: {}", cargo_path);
     // Run `cargo build --release` in `folsum/folsum/`.
     println!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
