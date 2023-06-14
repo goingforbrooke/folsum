@@ -14,16 +14,20 @@ use tauri_bundler::PackageType::{MacOsBundle};
 type DynError = Box<dyn std::error::Error>;
 
 fn main() {
+    // If there was an error...
     if let Err(e) = try_main() {
+        // ... then print it to stderr...
         eprintln!("{}", e);
+        // ... and exit with a non-zero exit code.
         std::process::exit(-1);
     }
 }
 
-
 fn try_main() -> Result<(), DynError> {
+    // Extract the first command line argument.
     let task: Option<String> = env::args().nth(1);
     match task.as_deref() {
+        // If "dist" was passed as the first command line argument, then build and bundle the application.
         Some("dist") => Ok(dist()?),
         _ => print_help(),
     }
