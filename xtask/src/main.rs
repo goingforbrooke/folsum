@@ -51,9 +51,6 @@ fn dist() -> Result<(), DynError> {
     // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     println!("using `cargo` executable: {}", cargo_path);
-    // Get the path to the `cargo` manifest directory in a reliable way.
-    let cargo_manifest_dir: String = env::var("CARGO_MANIFEST_DIR").unwrap();
-    println!("cargo manifest dir: {}", cargo_manifest_dir);
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
     println!("project root: {:?}", project_root); 
