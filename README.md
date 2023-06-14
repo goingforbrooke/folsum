@@ -80,7 +80,11 @@ Otherwise, if the commit was pushed to a branch starting with `cicd`, then we sk
 
 ### Xtask for Builds
 
-On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like [`build.rs` run before compilation](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts), so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`. Post-build scripts are an [ongoing discussion](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) in the Rust community and [xtask looks like the best solution](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts) apart from Github Actions.
+On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like [`build.rs` run before compilation](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts), so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`.
+
+> Placing a file named build.rs in the root of a package will cause Cargo to compile that script and execute it just before building the package. -- [Rust docs](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts)
+
+Post-build scripts are an [ongoing discussion](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) in the Rust community and xtask looks like the best solutionhttps://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts apart from Github Actions. The xtask pattern is defined [here](https://github.com/matklad/cargo-xtask), but we used [this example](https://github.com/nickgerace/cargo-xtask-example) to implement it because it's more up-to-date.
 
 ### Tauri Bundler/Cargo Bundle for Bundling
 
@@ -88,7 +92,13 @@ Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bund
 
 ### Xtask and Tauri Bundler Together
 
-Since we're rolling our own build scripts in Rust, we use [Tauri Bundler](https://crates.io/crates/tauri-bundler)'s API, which is very close to [Cargo Bundle](https://crates.io/crates/cargo-bundle) API, sans `Cargo.toml` configuration extraction. We might've stuck with the (initial) Cargo Bundle implementation if we had figured out the icon sizing issues sooner. Insetad, we'll go with Tauri Bundler for now and slowly PR-patch our way back to Cargo Bundle.
+Since we're rolling our own build scripts in Rust, we use [Tauri Bundler](https://crates.io/crates/tauri-bundler)'s API, which is very close to [Cargo Bundle](https://crates.io/crates/cargo-bundle) API, sans `Cargo.toml` configuration extraction. We might've stuck with the (initial) Cargo Bundle implementation if we had figured out the icon sizing issues sooner. Instead, we'll go with Tauri Bundler for now and slowly PR-patch our way back to Cargo Bundle.
+
+Xtask requires no extra dependencies for implementing post-build actions. It uses what Cargo already offers. [In the author's words](https://github.com/nickgerace/cargo-xtask-example#why-cargo-xtask),
+
+> Using external build systems and scripting languages can be useful, but using these technologies can result in inaccessible contributing experiences and potentially locking out valid development environments.
+
+> Since cargo is the tried and true build system for Rust (tested on multiple tiered targets), we can get the best of both worlds by using a small wrapper around it. Thus, cargo xtask exists to fill the gap; allowing for repository automation without needing to install another dependency.
 
 ## Misc.
 
