@@ -6,6 +6,7 @@ use std::{
     process::{Command, Output},
 };
 
+use::log::{debug};
 use::toml::Value;
 
 use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary, Bundle};
@@ -17,7 +18,7 @@ fn main() {
     // If there was an error...
     if let Err(e) = try_main() {
         // ... then print it to stderr...
-        eprintln!("{}", e);
+        debug!("{}", e);
         // ... and exit with a non-zero exit code.
         std::process::exit(-1);
     }
@@ -37,7 +38,7 @@ fn try_main() -> Result<(), DynError> {
 }
 
 fn print_help() -> Result<(), DynError> {
-    eprintln!(
+    debug!(
         "Tasks:
 
         dist            builds application and man pages
@@ -50,33 +51,33 @@ fn print_help() -> Result<(), DynError> {
 fn dist() -> Result<(), DynError> {
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
-    println!("project root: {:?}", project_root); 
+    debug!("project root: {:?}", project_root); 
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
-    println!("folsum root: {:?}", folsum_root); 
+    debug!("folsum root: {:?}", folsum_root); 
 
     // Build binaries so we can put them into a `.app` bundle.
     build(&project_root);
     
     // Bundle binaries.
     let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
-    println!("Bundled binaries into .app bundle: {:?}", bundle_paths);
+    debug!("Bundled binaries into .app bundle: {:?}", bundle_paths);
     Ok(())
 }
 
 fn build(project_root: &PathBuf) {
     // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
-    println!("using `cargo` executable: {}", cargo_path);
+    debug!("using `cargo` executable: {}", cargo_path);
     // Run `cargo build --release` in `folsum/folsum/`.
-    println!("Starting build with `cargo build --release`");
+    debug!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
         .current_dir(project_root)
         .args(&["build", "--release"])
         .output()
         .expect("Failed to cargo build FolSum");
-    println!("build status: {}", build_result.status);
-    println!("Cargo build output:");
+    debug!("build status: {}", build_result.status);
+    debug!("Cargo build output:");
     // Pass the build command's stdout and stderr through to the parent process.
     io::stdout().write_all(&build_result.stdout).unwrap();
     io::stderr().write_all(&build_result.stderr).unwrap();
@@ -87,7 +88,7 @@ fn build(project_root: &PathBuf) {
 fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, DynError> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
-    println!("folsum cargo: {:?}", folsum_cargo);
+    debug!("folsum cargo: {:?}", folsum_cargo);
     // Read Cargo.toml.
     let cargo_contents: String = read_to_string(folsum_cargo).expect("Failed to read Cargo.toml");
     // Parse Cargo.toml contents.
@@ -115,9 +116,9 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Extract bundle icon directory.
     let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"].as_str().expect("Failed to extract bundle icon directory");
-    println!("Extracted bundle icon directory: {}", extracted_icon_dir);
+    debug!("Extracted bundle icon directory: {}", extracted_icon_dir);
     let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
-    println!("Bundle icon directory: {:?}", icon_dir);
+    debug!("Bundle icon directory: {:?}", icon_dir);
     // Get every PNG file in the bundle icon directory.
     let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir).expect("Failed to read bundle icon directory").map(|entry| {
         let dir_item: std::fs::DirEntry = entry.expect("Failed to read bundle icon directory entry");
@@ -134,7 +135,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     }
     // Sort bundle icons for predictability so it's easier to troubleshoot bundler icon errors.
     bundle_icons.sort();
-    println!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
+    debug!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
 
     // Extract bundle copyright.
     let bundle_copyright: &str = cargo_values["package"]["metadata"]["bundle"]["copyright"].as_str().expect("Failed to extract bundle copyright");
@@ -151,7 +152,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     let output_dir: PathBuf = folsum_root.join("target/release/");
     // Temp: Override output directory path with 
     let output_dir: PathBuf = project_root.join("target/release/");
-    println!("Output directory: {:?}", output_dir);
+    debug!("Output directory: {:?}", output_dir);
 
     // Ensure that the output directory exists.
     create_dir_all(&output_dir).expect("Failed to create output directory for bundle");
@@ -164,7 +165,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
-        true => println!("Found binary at {:?}", binary_path),
+        true => debug!("Found binary at {:?}", binary_path),
         false => {
             if binary_path.exists() {
                 panic!("Path to the binary {:?} exists, but is not a file", binary_path);
@@ -176,7 +177,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     // Create binary settings for Tauri Bundler. Use the package name as the binary name and mark it as thing to be executed.
     let binary_settings: BundleBinary = BundleBinary::new(binary_name.to_string(), true)
         .set_src_path(Some(binary_path.into_os_string().into_string().unwrap()));
-    println!("Defined binary settings: {:?}", binary_settings);
+    debug!("Defined binary settings: {:?}", binary_settings);
 
     // Make a settings builder for Tauri Bundler.
     let settings_builder: SettingsBuilder = SettingsBuilder::new()
@@ -190,14 +191,14 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
         .project_out_directory(&output_dir)
         // Set the package type to MacOsBundle.
         .package_types(vec![MacOsBundle]);
-    println!("Defined all bundler settings");
+    debug!("Defined all bundler settings");
 
     let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
-    println!("Built bundler settings");
+    debug!("Built bundler settings");
 
     // Bundle the project.
     let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
-    println!("Bundled project");
+    debug!("Bundled project");
     Ok(completed_bundles)
 }
 
