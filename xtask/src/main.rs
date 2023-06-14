@@ -1,3 +1,4 @@
+use std::{env};
 use std::fs::{read_to_string, create_dir_all};
 use std::path::{Path, PathBuf};
 
@@ -8,12 +9,33 @@ use tauri_bundler::PackageType::{MacOsBundle};
 
 fn main() {
     println!("Hello, world!");
-    bundle();
+
+    // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
+    let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    println!("cargo exe: {}", cargo_path);
+    // Get the path to the `cargo` manifest directory in a reliable way.
+    let cargo_manifest_dir: String = env::var("CARGO_MANIFEST_DIR").unwrap();
+    println!("cargo manifest dir: {}", cargo_manifest_dir);
+    // Get the path to FolSum's root directory in a reliable way.
+    let project_root: PathBuf = get_project_root();
+    println!("project root: {:?}", project_root); 
+
+    // Build binaries.
+    //build();
+
+    // Bundle binaries.
+    bundle(project_root);
 }
 
-fn bundle() -> Result<(), Box<dyn std::error::Error>> {
+fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
+    let folsum_root: PathBuf = project_root.join("folsum");
+    println!("folsum root: {:?}", folsum_root);
+    // Assume that FolSum's Cargo.toml is `folsum/folsum/Cargo.toml`.
+    let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
+    println!("folsum cargo: {:?}", folsum_cargo);
     // Read Cargo.toml.
-    let cargo_contents: String = read_to_string("Cargo.toml").expect("Failed to read Cargo.toml");
+    let cargo_contents: String = read_to_string(folsum_cargo).expect("Failed to read Cargo.toml");
     // Parse Cargo.toml contents.
     let cargo_values: Value = cargo_contents.parse().expect("Failed to parse Cargo contents");
 
@@ -38,8 +60,9 @@ fn bundle() -> Result<(), Box<dyn std::error::Error>> {
     let bundle_identifier: &str = cargo_values["package"]["metadata"]["bundle"]["identifier"].as_str().expect("Failed to extract bundle identifier");
 
     // Extract bundle icon directory.
-    let icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"].as_str().expect("Failed to extract bundle icon directory");
-    println!("Bundle icon directory: {}", icon_dir);
+    let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"].as_str().expect("Failed to extract bundle icon directory");
+    println!("Extracted bundle icon directory: {}", extracted_icon_dir);
+    let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
     // Get every PNG file in the bundle icon directory.
     let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir).expect("Failed to read bundle icon directory").map(|entry| {
         let dir_item: std::fs::DirEntry = entry.expect("Failed to read bundle icon directory entry");
@@ -121,4 +144,12 @@ fn bundle() -> Result<(), Box<dyn std::error::Error>> {
     let completed_bundles = bundle_project(bundler_settings);
     completed_bundles?;
     Ok(())
+}
+
+fn get_project_root() -> PathBuf {
+    Path::new(&env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(1)
+        .unwrap()
+        .to_path_buf()
 }
