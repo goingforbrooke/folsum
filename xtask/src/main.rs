@@ -195,7 +195,6 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
     println!("Built bundler settings");
-    println!("Bundler settings: {:?}", bundler_settings);
 
     // Bundle the project.
     let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
