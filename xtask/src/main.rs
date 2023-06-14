@@ -24,23 +24,22 @@ fn main() {
     println!("project root: {:?}", project_root); 
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
-    println!("folsum root: {:?}", folsum_root);
 
     // Build binaries so we can put them into a `.app` bundle.
-    build(cargo_path, folsum_root);
-
+    build(cargo_path, &folsum_root);
+    
     // Bundle binaries.
-    bundle(project_root);
+    bundle(&folsum_root);
 }
 
-fn build(cargo_path: String, folsum_root: PathBuf) {
+fn build(cargo_path: String, folsum_root: &PathBuf) {
     let build_status = Command::new(cargo_path)
         .current_dir(folsum_root)
         .args(&["build", "--release"])
         .status();
 }
 
-fn bundle(folsum_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
