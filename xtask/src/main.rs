@@ -119,17 +119,18 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Create bundles in (new directory)`target/release/bundle`.
     let output_dir: PathBuf = folsum_root.join("target/release/");
+    // Temp: Override output directory path with 
+    let output_dir: PathBuf = project_root.join("target/release/");
     println!("Output directory: {:?}", output_dir);
+
     // Ensure that the output directory exists.
     create_dir_all(&output_dir).expect("Failed to create output directory for bundle");
+
     // Extract binary name.
     // todo: Use binary name from [[bin]] in Cargo.toml instead of assuming it's (the package_name) `folsum`.
     let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract binary name");
     // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
     let binary_path: PathBuf = output_dir.join(binary_name);
-
-    // Temp: Override binary path with `cargo build --release` standard path (`folsum/target/release/folsum`).
-    let binary_path: PathBuf = project_root.join("target/release/folsum");
 
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
@@ -146,6 +147,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     let binary_settings: BundleBinary = BundleBinary::new(binary_name.to_string(), true)
         .set_src_path(Some(binary_path.into_os_string().into_string().unwrap()));
     println!("Defined binary settings");
+    println!("Binary settings: {:?}", binary_settings);
 
     // Make a settings builder for Tauri Bundler.
     let settings_builder: SettingsBuilder = SettingsBuilder::new()
@@ -163,6 +165,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
     println!("Built bundler settings");
+    println!("Bundler settings: {:?}", bundler_settings);
 
     // Bundle the project.
     let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
