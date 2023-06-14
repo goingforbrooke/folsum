@@ -11,9 +11,35 @@ use::toml::Value;
 use tauri_bundler::{SettingsBuilder, bundle_project, PackageSettings, BundleSettings, Settings, BundleBinary, Bundle};
 use tauri_bundler::PackageType::{MacOsBundle};
 
-fn main() {
-    println!("Hello, world!");
+type DynError = Box<dyn std::error::Error>;
 
+fn main() {
+    if let Err(e) = try_main() {
+        eprintln!("{}", e);
+        std::process::exit(-1);
+    }
+}
+
+
+fn try_main() -> Result<(), DynError> {
+    let task: Option<String> = env::args().nth(1);
+    match task.as_deref() {
+        Some("dist") => Ok(dist()?),
+        _ => print_help(),
+    }
+}
+
+fn print_help() -> Result<(), DynError> {
+    eprintln!(
+        "Tasks:
+
+        dist            builds application and man pages
+        "
+    );
+    Ok(())
+}
+
+fn dist() -> Result<(), DynError> {
     // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     println!("cargo exe: {}", cargo_path);
@@ -26,13 +52,14 @@ fn main() {
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
     println!("folsum root: {:?}", folsum_root); 
-
     // Build binaries so we can put them into a `.app` bundle.
     build(cargo_path, &project_root);
     
     // Bundle binaries.
-    let bundle_paths = bundle(&folsum_root, &project_root);
+    let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
+    println!("Bundled binaries");
     println!("bundle paths: {:?}", bundle_paths);
+    Ok(())
 }
 
 fn build(cargo_path: String, project_root: &PathBuf) {
@@ -54,7 +81,7 @@ fn build(cargo_path: String, project_root: &PathBuf) {
     assert!(build_result.status.success());
 }
 
-fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, Box<dyn std::error::Error>> {
+fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, DynError> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
