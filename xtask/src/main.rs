@@ -1,6 +1,9 @@
-use std::{env};
-use std::fs::{read_to_string, create_dir_all};
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    fs::{read_to_string, create_dir_all},
+    path::{Path, PathBuf},
+    process::{Command},
+};
 
 use::toml::Value;
 
@@ -19,18 +22,25 @@ fn main() {
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
     println!("project root: {:?}", project_root); 
+    // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
+    let folsum_root: PathBuf = project_root.join("folsum");
+    println!("folsum root: {:?}", folsum_root);
 
-    // Build binaries.
-    //build();
+    // Build binaries so we can put them into a `.app` bundle.
+    build(cargo_path, folsum_root);
 
     // Bundle binaries.
     bundle(project_root);
 }
 
-fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
-    let folsum_root: PathBuf = project_root.join("folsum");
-    println!("folsum root: {:?}", folsum_root);
+fn build(cargo_path: String, folsum_root: PathBuf) {
+    let build_status = Command::new(cargo_path)
+        .current_dir(folsum_root)
+        .args(&["build", "--release"])
+        .status();
+}
+
+fn bundle(folsum_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     // Assume that FolSum's Cargo.toml is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
