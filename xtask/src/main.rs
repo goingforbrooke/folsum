@@ -133,7 +133,7 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         // Set the package type to MacOsBundle.
         .package_types(vec![MacOsBundle]);
 
-    let bundler_settings: Settings = settings_builder.build().expect("Failed to build settings");
+    let bundler_settings: Settings = settings_builder.build().expect("Failed to build bundler settings");
 
     // Bundle the project.
     let completed_bundles = bundle_project(bundler_settings);
