@@ -1,6 +1,7 @@
 use std::{
     env,
     fs::{read_to_string, create_dir_all},
+    io::{self, Write},
     path::{Path, PathBuf},
     process::{Command, Output},
 };
@@ -34,11 +35,22 @@ fn main() {
 }
 
 fn build(cargo_path: String, folsum_root: &PathBuf) {
+    println!("cargo exe: {}", cargo_path);
+    println!("folsum root: {:?}", folsum_root);
+    // Run `cargo build --release` in `folsum/folsum/`.
+    println!("Starting build with `cago build --release`");
     let build_result: Output = Command::new(cargo_path)
         .current_dir(folsum_root)
         .args(&["build", "--release"])
-        .output();
-    println!("build result: {:?}", build_result.unwrap().stdout);
+        .output()
+        .expect("Failed to cargo build FolSum");
+    println!("build status: {}", build_result.status);
+    println!("Cargo build output:");
+    // Pass the build command's stdout and stderr through to the parent process.
+    io::stdout().write_all(&build_result.stdout).unwrap();
+    io::stderr().write_all(&build_result.stderr).unwrap();
+    // Ensure that the build succeeded.
+    assert!(build_result.status.success());
 }
 
 fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
@@ -153,6 +165,7 @@ fn bundle(folsum_root: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn get_project_root() -> PathBuf {
+    // Get the path to the project root, as defined by `Cargo.toml` in the project root (with the workspace members field).
     Path::new(&env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(1)
