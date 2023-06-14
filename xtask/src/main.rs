@@ -134,7 +134,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
     }
     // Sort bundle icons for predictability so it's easier to troubleshoot bundler icon errors.
     bundle_icons.sort();
-    println!("Found bundle icons:\n {}", bundle_icons.join(", \n"));
+    println!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
 
     // Extract bundle copyright.
     let bundle_copyright: &str = cargo_values["package"]["metadata"]["bundle"]["copyright"].as_str().expect("Failed to extract bundle copyright");
