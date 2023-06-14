@@ -63,6 +63,7 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"].as_str().expect("Failed to extract bundle icon directory");
     println!("Extracted bundle icon directory: {}", extracted_icon_dir);
     let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
+    println!("Bundle icon directory: {:?}", icon_dir);
     // Get every PNG file in the bundle icon directory.
     let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir).expect("Failed to read bundle icon directory").map(|entry| {
         let dir_item: std::fs::DirEntry = entry.expect("Failed to read bundle icon directory entry");
@@ -77,7 +78,7 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     if bundle_icons.is_empty() {
         panic!("No bundle icons found in bundle icon directory");
     }
-    // Sort bundle icons.
+    // Sort bundle icons for predictability so it's easier to troubleshoot bundler icon errors.
     bundle_icons.sort();
     println!("Found bundle icons:\n {}", bundle_icons.join(", \n"));
 
@@ -93,15 +94,16 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Create bundles in (new directory)`target/release/bundle`.
-    let output_dir: &Path = Path::new("target/release/");
-    // Ensure that output directory exists.
-    create_dir_all(output_dir).expect("Failed to create output directory");
+    let output_dir: PathBuf = folsum_root.join("target/release/");
+    // Ensure that the output directory exists.
+    create_dir_all(&output_dir).expect("Failed to create output directory for bundle");
 
     // Extract binary name.
     let binary_name: &str = cargo_values["package"]["name"].as_str().expect("Failed to extract package name");
 
     // Expect the (universal) binary (created by `lipo`) to be `target/release/folsum`.
-    let binary_path: PathBuf = ["target", "release", binary_name].iter().collect();
+    // todo: Use binary name from [[bin]] in Cargo.toml instead of assuming it's (the package_name) `folsum`.
+    let binary_path: PathBuf = output_dir.join(binary_name);
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
         true => println!("Found binary at {:?}", binary_path),
@@ -127,7 +129,7 @@ fn bundle(project_root: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         // Add binary settings to the settings builder.
         .binaries(vec![binary_settings])
         // Set the project output directory.
-        .project_out_directory(output_dir)
+        .project_out_directory(&output_dir)
         // Set the package type to MacOsBundle.
         .package_types(vec![MacOsBundle]);
 
