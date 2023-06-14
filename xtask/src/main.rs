@@ -38,7 +38,7 @@ fn build(cargo_path: String, project_root: &PathBuf) {
     println!("cargo exe: {}", cargo_path);
     println!("folsum root: {:?}", project_root);
     // Run `cargo build --release` in `folsum/folsum/`.
-    println!("Starting build with `cago build --release`");
+    println!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
         .current_dir(project_root)
         .args(&["build", "--release"])
