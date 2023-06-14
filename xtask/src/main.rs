@@ -31,7 +31,7 @@ fn main() {
     build(cargo_path, &project_root);
     
     // Bundle binaries.
-    let bundle_paths = bundle(&folsum_root);
+    let bundle_paths = bundle(&folsum_root, &project_root);
     println!("bundle paths: {:?}", bundle_paths);
 }
 
@@ -54,7 +54,7 @@ fn build(cargo_path: String, project_root: &PathBuf) {
     assert!(build_result.status.success());
 }
 
-fn bundle(folsum_root: &PathBuf) -> Result<Vec<Bundle>, Box<dyn std::error::Error>> {
+fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, Box<dyn std::error::Error>> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     println!("folsum cargo: {:?}", folsum_cargo);
@@ -129,7 +129,7 @@ fn bundle(folsum_root: &PathBuf) -> Result<Vec<Bundle>, Box<dyn std::error::Erro
     let binary_path: PathBuf = output_dir.join(binary_name);
 
     // Temp: Override binary path with `cargo build --release` standard path (`folsum/target/release/folsum`).
-    let binary_path: PathBuf = folsum_root.join("..").join("target/release/folsum");
+    let binary_path: PathBuf = project_root.join("target/release/folsum");
 
     // Ensure that the binary exists and that it's a file. Otherwise, panic decriptively.
     match binary_path.is_file() {
