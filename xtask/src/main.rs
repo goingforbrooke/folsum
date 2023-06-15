@@ -34,14 +34,20 @@ fn try_main() -> Result<(), DynError> {
     // Get the path to FolSum's root directory in a reliable way.
     let project_root: PathBuf = get_project_root();
     debug!("project root: {:?}", project_root);
+    // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
+    let folsum_root: PathBuf = project_root.join("folsum");
+    debug!("folsum root: {:?}", folsum_root);
+
 
     // Extract the first command line argument.
     let task: Option<String> = env::args().nth(1);
     match task.as_deref() {
         // If "build" was passed as the first command ine argument, then build the application.
         Some("build") => build(&project_root),
+        // If "bundle" was passed as the first command line argument, then bundle the application.
+        Some("bundle") => bundle(&folsum_root, &project_root),
         // If "dist" was passed as the first command line argument, then build and bundle the application.
-        Some("dist") => dist(&project_root),
+        Some("dist") => dist(&folsum_root, &project_root),
         // If "help" was passed as the first command line argument, then describe available tasks.
         Some("help") => print_help(),
         // If the first command line argument was unrecognized, then describe available tasks.
@@ -60,17 +66,13 @@ fn print_help() -> Result<(), DynError> {
     Ok(())
 }
 
-fn dist(project_root: &PathBuf) -> Result<(), DynError> {
-    // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
-    let folsum_root: PathBuf = project_root.join("folsum");
-    debug!("folsum root: {:?}", folsum_root);
-
+fn dist(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError> {
     // Build binaries so we can put them into a `.app` bundle.
     build(&project_root);
 
     // Bundle binaries.
-    let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
-    info!("Bundled binaries into .app bundle: {:?}", bundle_paths);
+    bundle(&folsum_root, &project_root);
+    info!("Bundled binaries into .app bundle");
     Ok(())
 }
 
@@ -95,7 +97,7 @@ fn build(project_root: &PathBuf) -> Result<(), DynError> {
     Ok(())
 }
 
-fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, DynError> {
+fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError> {
     // Assume that FolSum's `Cargo.toml` is `folsum/folsum/Cargo.toml`.
     let folsum_cargo: PathBuf = folsum_root.join("Cargo.toml");
     debug!("folsum cargo: {:?}", folsum_cargo);
@@ -234,8 +236,8 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Bundle the project.
     let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
-    info!("Bundled project");
-    Ok(completed_bundles)
+    info!("Bundled project: {:?}", completed_bundles);
+    Ok(())
 }
 
 fn get_project_root() -> PathBuf {
