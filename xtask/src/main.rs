@@ -142,27 +142,6 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
     debug!("Extracted bundle icon directory: {}", extracted_icon_dir);
     let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
     debug!("Bundle icon directory: {:?}", icon_dir);
-    // Get every PNG file in the bundle icon directory.
-    let mut bundle_icons: Vec<String> = std::fs::read_dir(icon_dir)
-        .expect("Failed to read bundle icon directory")
-        .map(|entry| {
-            let dir_item: std::fs::DirEntry =
-                entry.expect("Failed to read bundle icon directory entry");
-            let path: std::path::PathBuf = dir_item.path();
-            let path: &str = path
-                .to_str()
-                .expect("Failed to convert bundle icon path to string");
-            path.to_string()
-            // Select only PNG files as icons.
-        })
-        .filter(|path| path.ends_with(".png"))
-        .collect();
-    // If no bundle icons were found, then raise an error.
-    if bundle_icons.is_empty() {
-        panic!("No bundle icons found in bundle icon directory");
-    }
-    // Sort bundle icons for predictability so it's easier to troubleshoot bundler icon errors.
-    bundle_icons.sort();
     debug!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
 
     // Extract bundle copyright.
