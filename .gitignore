@@ -3,4 +3,3 @@ folsum.code-workspace
 target
 folsum/test_dir/*
 .vscode/
-tauri/
