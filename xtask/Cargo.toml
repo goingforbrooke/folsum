@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 env_logger = "0.10.0"
+log = "0.4.19"
 tauri-bundler = "1.2.1"
 toml = "0.7.4"
