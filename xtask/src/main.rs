@@ -38,7 +38,6 @@ fn try_main() -> Result<(), DynError> {
     let folsum_root: PathBuf = project_root.join("folsum");
     debug!("folsum root: {:?}", folsum_root);
 
-
     // Extract the first command line argument.
     let task: Option<String> = env::args().nth(1);
     match task.as_deref() {
