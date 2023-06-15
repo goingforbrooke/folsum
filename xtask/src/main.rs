@@ -31,11 +31,17 @@ fn main() {
 }
 
 fn try_main() -> Result<(), DynError> {
+    // Get the path to FolSum's root directory in a reliable way.
+    let project_root: PathBuf = get_project_root();
+    debug!("project root: {:?}", project_root);
+
     // Extract the first command line argument.
     let task: Option<String> = env::args().nth(1);
     match task.as_deref() {
+        // If "build" was passed as the first command ine argument, then build the application.
+        Some("build") => build(&project_root),
         // If "dist" was passed as the first command line argument, then build and bundle the application.
-        Some("dist") => Ok(dist()?),
+        Some("dist") => dist(&project_root),
         // If "help" was passed as the first command line argument, then describe availble tasks.
         Some("help") => print_help(),
         // If the first command line argument was unrecognized, then describe available tasks.
@@ -54,10 +60,7 @@ fn print_help() -> Result<(), DynError> {
     Ok(())
 }
 
-fn dist() -> Result<(), DynError> {
-    // Get the path to FolSum's root directory in a reliable way.
-    let project_root: PathBuf = get_project_root();
-    debug!("project root: {:?}", project_root);
+fn dist(project_root: &PathBuf) -> Result<(), DynError> {
     // Assume that FolSum's root directory is is the `folsum/folsum/` subdirectory.
     let folsum_root: PathBuf = project_root.join("folsum");
     debug!("folsum root: {:?}", folsum_root);
@@ -71,7 +74,7 @@ fn dist() -> Result<(), DynError> {
     Ok(())
 }
 
-fn build(project_root: &PathBuf) {
+fn build(project_root: &PathBuf) -> Result<(), DynError> {
     // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     debug!("using `cargo` executable: {}", cargo_path);
@@ -89,6 +92,7 @@ fn build(project_root: &PathBuf) {
     io::stderr().write_all(&build_result.stderr).unwrap();
     // Ensure that the build succeeded.
     assert!(build_result.status.success());
+    Ok(())
 }
 
 fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, DynError> {
