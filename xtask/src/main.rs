@@ -42,7 +42,7 @@ fn try_main() -> Result<(), DynError> {
         Some("build") => build(&project_root),
         // If "dist" was passed as the first command line argument, then build and bundle the application.
         Some("dist") => dist(&project_root),
-        // If "help" was passed as the first command line argument, then describe availble tasks.
+        // If "help" was passed as the first command line argument, then describe available tasks.
         Some("help") => print_help(),
         // If the first command line argument was unrecognized, then describe available tasks.
         _ => print_help(),
