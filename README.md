@@ -14,6 +14,14 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ## Release
 
+### `xtask`
+
+```console
+$ user@host: cargo xtask build
+```
+
+### `cargo build`
+
 Build for MacOS (Intel x86_64):
 
 ```console
@@ -67,6 +75,30 @@ The final `*.app` bundle is [codesigned and notarized](https://federicoterzi.com
 If the commit was pushed to the `main` branch, then we use [Cargo Edit](https://github.com/killercup/cargo-edit) to increment the [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commit the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/folsum/releases).
 
 Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release instead of a regular release. Note that this doesn't override the top-level branch filter-- builds are only triggered by pushes to `main` or branches that start with `cicd`. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
+
+## Design Decisions
+
+### Xtask for Builds
+
+On branch `internal/xtask_postbuild`, most of the project was moved from the root directory (`folsum/`) into a new subdirectory (`folsum/folsum/`) so the [xtask pattern](https://github.com/matklad/cargo-xtask/tree/master) can be used for post-build actions. Build scripts like [`build.rs` run before compilation](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts), so it's not possible to bundle (MacOS universal) binaries into a `.app` deliverable with `cargo build`.
+
+> Placing a file named build.rs in the root of a package will cause Cargo to compile that script and execute it just before building the package. -- [Rust docs](https://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts)
+
+Post-build scripts are an [ongoing discussion](https://github.com/rust-lang/cargo/issues/545#issuecomment-895293171) in the Rust community and xtask looks like the best solutionhttps://doc.rust-lang.org/cargo/reference/build-scripts.html#build-scripts apart from Github Actions. The xtask pattern is defined [here](https://github.com/matklad/cargo-xtask), but we used [this example](https://github.com/nickgerace/cargo-xtask-example) to implement it because it's more up-to-date.
+
+### Tauri Bundler/Cargo Bundle for Bundling
+
+Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bundle) or (continues to use) [Tauri Bundler](https://crates.io/crates/tauri-bundler), post-build scripts will be necessary. Tauri Bundler is more mature with more supported platforms, but Cargo Bundle (from which Tauri Bundler is forked) is more Rust-centric. This is because Cargo Bunndle uses `Cargo.toml` for bundle configuration without using Tauri's CLI to fill missing values
+
+### Xtask and Tauri Bundler Together
+
+Since we're rolling our own build scripts in Rust, we use [Tauri Bundler](https://crates.io/crates/tauri-bundler)'s API, which is very close to [Cargo Bundle](https://crates.io/crates/cargo-bundle) API, sans `Cargo.toml` configuration extraction. We might've stuck with the (initial) Cargo Bundle implementation if we had figured out the icon sizing issues sooner. Instead, we'll go with Tauri Bundler for now and slowly PR-patch our way back to Cargo Bundle.
+
+Xtask requires no extra dependencies for implementing post-build actions. It uses what Cargo already offers. [In the author's words](https://github.com/nickgerace/cargo-xtask-example#why-cargo-xtask),
+
+> Using external build systems and scripting languages can be useful, but using these technologies can result in inaccessible contributing experiences and potentially locking out valid development environments.
+
+> Since cargo is the tried and true build system for Rust (tested on multiple tiered targets), we can get the best of both worlds by using a small wrapper around it. Thus, cargo xtask exists to fill the gap; allowing for repository automation without needing to install another dependency.
 
 ## Misc.
 
