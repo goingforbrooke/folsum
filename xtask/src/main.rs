@@ -67,7 +67,7 @@ fn print_help() -> Result<(), DynError> {
 
 fn dist(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError> {
     // Build binaries so we can put them into a `.app` bundle.
-    build(&project_root);
+    build(&project_root)?;
 
     // Bundle binaries.
     bundle(&folsum_root, &project_root);
