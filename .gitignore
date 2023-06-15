@@ -3,3 +3,4 @@ folsum.code-workspace
 target
 folsum/test_dir/*
 .vscode/
+.rust-analyzer.toml
