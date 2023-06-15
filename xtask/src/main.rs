@@ -48,7 +48,7 @@ fn print_help() -> Result<(), DynError> {
         "Tasks:
 
         build           builds application
-        dist            builds application and man pages
+        dist            builds and bundles application (equivalent to running `build` and `bundle`)
         help            prints this help message
         "
     );
