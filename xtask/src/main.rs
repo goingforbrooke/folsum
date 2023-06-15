@@ -136,13 +136,13 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
         .expect("Failed to extract bundle identifier");
 
     // Extract bundle icons.
-    let icon_paths: &str = cargo_values["package"]["metadata"]["bundle"]["icon"]
-        .as_str()
-        .expect("Failed to extract bundle icon directory");
-    debug!("Extracted bundle icon directory: {}", icon_paths);
-    let icon_dir: PathBuf = folsum_root.join(icon_paths);
-    debug!("Bundle icon directory: {:?}", icon_dir);
-    debug!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
+    let bundle_icons: Vec<PathBuf> = cargo_values["package"]["metadata"]["bundle"]["icon"]
+        .as_array()
+        .expect("Failed to extract bundle icon paths")
+        .iter()
+        .map(|icon_path| folsum_root.join(icon_path.as_str().expect("Failed to extract bundle icon path")))
+        .collect();
+    debug!("Found bundle icons:\n{:?}", bundle_icons);
 
     // Extract bundle copyright.
     let bundle_copyright: &str = cargo_values["package"]["metadata"]["bundle"]["copyright"]
@@ -152,7 +152,8 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
     // Create bundle settings for Tauri Bundler with bundle values extracted from Cargo.toml.
     let bundle_settings: BundleSettings = BundleSettings {
         identifier: Some(bundle_identifier.to_string()),
-        icon: Some(bundle_icons),
+        // Convert each bundle icon path to a string.
+        icon: Some(bundle_icons.iter().map(|icon_path: &PathBuf| icon_path.to_str().unwrap().to_string()).collect()),
         copyright: Some(bundle_copyright.to_string()),
         ..Default::default()
     };
