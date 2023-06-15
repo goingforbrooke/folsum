@@ -83,7 +83,7 @@ fn build(project_root: &PathBuf) -> Result<(), DynError> {
     info!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
         .current_dir(project_root)
-        .args(&["build", "--release"])
+        .args(&["build", "--release", "--color", "always"])
         .output()
         .expect("Failed to cargo build FolSum");
     debug!("build status: {}", build_result.status);
