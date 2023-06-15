@@ -44,13 +44,12 @@ fn try_main() -> Result<(), DynError> {
 }
 
 fn print_help() -> Result<(), DynError> {
-    info!(
-        "Tasks:
+    info!("Tasks:
 
-        build           builds application
-        dist            builds and bundles application (equivalent to running `build` and `bundle`)
-        help            prints this help message
-        "
+           build           builds application
+           dist            builds and bundles application (equivalent to running `build` and `bundle`)
+           help            prints this help message
+           "
     );
     Ok(())
 }
