@@ -1,0 +1,5 @@
+# Consider setting the following environment variables:
+# `$ export CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true`
+# `$ export RUST_BACKTRACE=full`
+[build]
+command = "cargo build"

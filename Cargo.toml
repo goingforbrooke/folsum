@@ -1,55 +1,5 @@
-[package]
-name = "folsum"
-description = "Summarize the contents of a directory with a GUI"
-default-run = "folsum"
-version = "2.0.0"
-authors = ["Brooke <12855764+goingforbrooke@users.noreply.github.com>"]
-edition = "2021"
-rust-version = "1.65"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[[bin]]
-name = "folsum"
-path = "src/main.rs"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-
-
-[dependencies]
-egui = "0.22.0"
-eframe = { version = "0.22.0", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
-    "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
-] }
-
-serde = { version = "1.0.164", features = ["derive"] } # You only need this if you want app persistence
-walkdir = "2.3.3"
-rfd = "0.11.4"
-itertools = "0.10.5"
-egui_extras = "0.22.0"
-
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-subscriber = "0.3.17"
-
-# web:
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1.7"
-tracing-wasm = "0.2.1"
-
+[workspace]
+members = ["folsum", "xtask",]
 
 [profile.release]
 opt-level = 2 # fast and small wasm
-
-[package.metadata.bundle]
-identifier = "com.bytesluice.folsum"
-copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
-category = "public.app-category.productivity"
-
-[dev-dependencies]
-cargo-bundle = "0.6.0"
-cargo-edit = "0.12.0"
