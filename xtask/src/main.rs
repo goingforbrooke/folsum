@@ -70,7 +70,7 @@ fn dist(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError> {
     build(&project_root)?;
 
     // Bundle binaries.
-    bundle(&folsum_root, &project_root);
+    bundle(&folsum_root, &project_root)?;
     info!("Bundled binaries into .app bundle");
     Ok(())
 }
