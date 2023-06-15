@@ -20,7 +20,7 @@ type DynError = Box<dyn std::error::Error>;
 
 fn main() {
     // Default to `info` log level, but allow the user to override via `RUST_LOG` environment variable.
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("xtask=info")).init();
     // If there was an error...
     if let Err(e) = try_main() {
         // ... then print it to stderr...
