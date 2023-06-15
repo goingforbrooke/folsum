@@ -47,6 +47,7 @@ fn print_help() -> Result<(), DynError> {
     info!(
         "Tasks:
 
+        build           builds application
         dist            builds application and man pages
         help            prints this help message
         "
