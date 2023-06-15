@@ -179,7 +179,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
     };
 
     // Create bundles in (new directory)`target/release/bundle`.
-    let output_dir: PathBuf = folsum_root.join("target/release/");
+    //let output_dir: PathBuf = folsum_root.join("target/release/");
     // Temp: Override output directory path with
     let output_dir: PathBuf = project_root.join("target/release/");
     debug!("Output directory: {:?}", output_dir);
