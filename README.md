@@ -74,7 +74,7 @@ The final `*.app` bundle is [codesigned and notarized](https://federicoterzi.com
 
 If the commit was pushed to the `main` branch, then we use [Cargo Edit](https://github.com/killercup/cargo-edit) to increment the [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commit the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/folsum/releases).
 
-Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release instead of a regular release. Note that this doesn't override the top-level branch filter-- builds are only triggered by pushes to `main` or branches that start with `cicd`. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
+Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release (which won't be visible to others in the FolSum repo's "Releases" page because it's a draft release) instead of a regular release. Note that this doesn't override the top-level branch filter-- builds are only triggered by pushes to `main` or branches that start with `cicd`. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
 
 ## Design Decisions
 
