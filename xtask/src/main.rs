@@ -135,12 +135,12 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
         .as_str()
         .expect("Failed to extract bundle identifier");
 
-    // Extract bundle icon directory.
-    let extracted_icon_dir: &str = cargo_values["package"]["metadata"]["bundle"]["icon"]
+    // Extract bundle icons.
+    let icon_paths: &str = cargo_values["package"]["metadata"]["bundle"]["icon"]
         .as_str()
         .expect("Failed to extract bundle icon directory");
-    debug!("Extracted bundle icon directory: {}", extracted_icon_dir);
-    let icon_dir: PathBuf = folsum_root.join(extracted_icon_dir);
+    debug!("Extracted bundle icon directory: {}", icon_paths);
+    let icon_dir: PathBuf = folsum_root.join(icon_paths);
     debug!("Bundle icon directory: {:?}", icon_dir);
     debug!("Found bundle icons:\n{}", bundle_icons.join(", \n"));
 
