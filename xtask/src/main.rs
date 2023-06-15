@@ -67,7 +67,7 @@ fn dist() -> Result<(), DynError> {
 
     // Bundle binaries.
     let bundle_paths: Vec<Bundle> = bundle(&folsum_root, &project_root)?;
-    debug!("Bundled binaries into .app bundle: {:?}", bundle_paths);
+    info!("Bundled binaries into .app bundle: {:?}", bundle_paths);
     Ok(())
 }
 
@@ -76,14 +76,14 @@ fn build(project_root: &PathBuf) {
     let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     debug!("using `cargo` executable: {}", cargo_path);
     // Run `cargo build --release` in `folsum/folsum/`.
-    debug!("Starting build with `cargo build --release`");
+    info!("Starting build with `cargo build --release`");
     let build_result: Output = Command::new(cargo_path)
         .current_dir(project_root)
         .args(&["build", "--release"])
         .output()
         .expect("Failed to cargo build FolSum");
     debug!("build status: {}", build_result.status);
-    debug!("Cargo build output:");
+    info!("Cargo build output:");
     // Pass the build command's stdout and stderr through to the parent process.
     io::stdout().write_all(&build_result.stdout).unwrap();
     io::stderr().write_all(&build_result.stderr).unwrap();
@@ -230,7 +230,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<Vec<Bundle>, 
 
     // Bundle the project.
     let completed_bundles: Vec<Bundle> = bundle_project(bundler_settings)?;
-    debug!("Bundled project");
+    info!("Bundled project");
     Ok(completed_bundles)
 }
 
