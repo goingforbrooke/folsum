@@ -5,4 +5,4 @@ members = ["folsum", "xtask",]
 opt-level = 2 # fast and small wasm
 
 [patch.crates-io]
-tauri-bundler = { path = "folsum/tauri/tooling/bundler" }
+tauri-bundler = { path = "tauri/tooling/bundler" }
