@@ -49,6 +49,3 @@ icon = "images/icons/resized_icons/"
 
 [dev-dependencies]
 cargo-edit = "0.12.0"
-
-[patch.crates-io]
-tauri-bundler = { path = "tauri/tooling/bundler" }
