@@ -6,8 +6,9 @@ use std::{
     process::{Command, Output},
 };
 
-use ::log::debug;
-use ::toml::Value;
+use env_logger::Env;
+use log::{debug, info};
+use toml::Value;
 
 use tauri_bundler::PackageType::MacOsBundle;
 use tauri_bundler::{
@@ -18,6 +19,8 @@ use tauri_bundler::{
 type DynError = Box<dyn std::error::Error>;
 
 fn main() {
+    // Default to `info` log level, but allow the user to override via `RUST_LOG` environment variable.
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     // If there was an error...
     if let Err(e) = try_main() {
         // ... then print it to stderr...
@@ -41,7 +44,7 @@ fn try_main() -> Result<(), DynError> {
 }
 
 fn print_help() -> Result<(), DynError> {
-    debug!(
+    info!(
         "Tasks:
 
         dist            builds application and man pages
