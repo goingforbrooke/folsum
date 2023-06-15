@@ -94,6 +94,8 @@ Whether Folsum evolves to use [Cargo Bundle](https://crates.io/crates/cargo-bund
 
 Since we're rolling our own build scripts in Rust, we use [Tauri Bundler](https://crates.io/crates/tauri-bundler)'s API, which is very close to [Cargo Bundle](https://crates.io/crates/cargo-bundle) API, sans `Cargo.toml` configuration extraction. We might've stuck with the (initial) Cargo Bundle implementation if we had figured out the icon sizing issues sooner. Instead, we'll go with Tauri Bundler for now and slowly PR-patch our way back to Cargo Bundle.
 
+As of `v2.0.0`, the Actions CI pipeline uses Cargo Bundle (via CLI) and the (local) xtask pipeline uses Tauri Bundle (via API interface).
+
 Xtask requires no extra dependencies for implementing post-build actions. It uses what Cargo already offers. [In the author's words](https://github.com/nickgerace/cargo-xtask-example#why-cargo-xtask),
 
 > Using external build systems and scripting languages can be useful, but using these technologies can result in inaccessible contributing experiences and potentially locking out valid development environments.
