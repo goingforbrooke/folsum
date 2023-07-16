@@ -196,7 +196,7 @@ impl eframe::App for TemplateApp {
                         let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
                         for (extension_type, extension_count) in unlocked_extension_counts.iter() {
                             // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
-                            assert!(!extension_type.contains('\n'));
+                            assert!(!extension_type.contains('\n') && !extension_type.contains(','));
                             println!("{extension_type}: {extension_count}");
                         }
                     });
