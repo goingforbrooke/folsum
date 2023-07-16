@@ -121,6 +121,8 @@ impl eframe::App for TemplateApp {
                     ui.monospace(shown_path);
                 });
 
+                ui.separator();
+
                 if ui.button("Summarize").clicked() {
                     let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
                     // If the user picked a directory to summarize....
@@ -183,6 +185,8 @@ impl eframe::App for TemplateApp {
                         &unlocked_time_taken.as_millis()
                     ));
                 });
+
+                ui.separator();
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     egui::warn_if_debug_build(ui);
