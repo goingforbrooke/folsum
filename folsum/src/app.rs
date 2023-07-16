@@ -188,6 +188,18 @@ impl eframe::App for TemplateApp {
 
                 ui.separator();
 
+                if ui.button("Export to CSV").clicked() {
+                    // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
+                    let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
+                    thread::spawn(move || {
+                        // Lock the extension counts so we can read them into CSV format.
+                        let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
+                        for (extension_type, extension_count) in unlocked_extension_counts.iter() {
+                            println!("{extension_type}: {extension_count}");
+                        }
+                    });
+                };
+
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     egui::warn_if_debug_build(ui);
                     ui.horizontal(|ui| {
