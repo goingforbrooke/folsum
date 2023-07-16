@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -202,6 +204,10 @@ impl eframe::App for TemplateApp {
                             let csv_row = format!("{extension_type},{extension_count}\n");
                             csv_rows.push_str(&csv_row)
                         }
+                        // Create a CSV file to write the extension types and their counts to, overwriting it if it already exists.
+                        let mut csv_export = File::create("folsum_export.csv").expect("Failed to create CSV export file");
+                        // Write the CSV's content to the export file.
+                        csv_export.write_all(csv_rows.as_bytes()).expect("Failed to write contents to CSV export file")
                     });
                 };
 
