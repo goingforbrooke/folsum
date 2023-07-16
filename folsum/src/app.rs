@@ -26,7 +26,7 @@ pub struct TemplateApp {
     total_files: u32,
     #[serde(skip)]
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
-    picked_path: Arc<Mutex<Option<PathBuf>>>,
+    summarization_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
     // Note the time when summarization starts so it can be used to calculate the time taken.
     summarization_start: Arc<Mutex<Instant>>,
@@ -39,7 +39,7 @@ impl Default for TemplateApp {
         Self {
             extension_counts: Arc::new(Mutex::new(HashMap::new())),
             total_files: 0,
-            picked_path: Arc::new(Mutex::new(None)),
+            summarization_path: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
         }
@@ -72,7 +72,7 @@ impl eframe::App for TemplateApp {
         let Self {
             extension_counts,
             total_files,
-            picked_path,
+            summarization_path,
             time_taken,
             summarization_start,
             ..
@@ -107,12 +107,12 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
-                        *picked_path = Arc::new(Mutex::new(Some(path)));
+                        *summarization_path = Arc::new(Mutex::new(Some(path)));
                     }
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: &Option<PathBuf> = &*picked_path.lock().unwrap();
+                    let unlocked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
                     let shown_path: &str = match &*unlocked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
@@ -126,7 +126,7 @@ impl eframe::App for TemplateApp {
                 ui.separator();
 
                 if ui.button("Summarize").clicked() {
-                    let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
+                    let unlocked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
                     // If the user picked a directory to summarize....
                     if unlocked_path.is_some() {
                         // ...then recursively count file extensions in the chosen directory.
@@ -135,7 +135,7 @@ impl eframe::App for TemplateApp {
 
                         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                         let extension_counts_copy = Arc::clone(&extension_counts);
-                        let picked_path_copy = Arc::clone(&picked_path);
+                        let summarization_path_copy = Arc::clone(&summarization_path);
                         let start_copy = Arc::clone(&summarization_start);
                         let time_taken_copy = Arc::clone(&time_taken);
 
@@ -147,14 +147,14 @@ impl eframe::App for TemplateApp {
                             let mut unlocked_start_copy = start_copy.lock().unwrap();
                             *unlocked_start_copy = Instant::now();
 
-                            let unlocked_picked_path = picked_path_copy.lock().unwrap();
+                            let unlocked_summarization_path = summarization_path_copy.lock().unwrap();
                             // Clone the user's chosen path so we can release it's lock, allowing live table updates.
-                            let picked_path_copy = unlocked_picked_path.clone();
+                            let summarization_path_copy = unlocked_summarization_path.clone();
                             // Release the mutex lock on the chosen path so extension count table can update.
-                            drop(unlocked_picked_path);
+                            drop(unlocked_summarization_path);
 
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry in WalkDir::new(picked_path_copy.unwrap())
+                            for entry in WalkDir::new(summarization_path_copy.unwrap())
                                 .min_depth(1)
                                 .into_iter()
                                 .filter_map(Result::ok)
