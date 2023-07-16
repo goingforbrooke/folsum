@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use egui_extras::{Size, TableBuilder, Column};
+use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
 use rfd::FileDialog;
 use walkdir::WalkDir;
