@@ -73,8 +73,8 @@ impl eframe::App for TemplateApp {
             extension_counts,
             total_files,
             summarization_path,
-            time_taken,
             summarization_start,
+            time_taken,
             ..
         } = self;
 
