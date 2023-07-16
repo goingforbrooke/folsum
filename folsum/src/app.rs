@@ -26,6 +26,8 @@ pub struct TemplateApp {
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     #[serde(skip)]
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
+    // User's chosen directory and filename for CSV exports.
+    export_file: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -40,6 +42,7 @@ impl Default for TemplateApp {
             extension_counts: Arc::new(Mutex::new(HashMap::new())),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
+            export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
         }
@@ -73,6 +76,7 @@ impl eframe::App for TemplateApp {
             extension_counts,
             total_files,
             summarization_path,
+            export_file,
             summarization_start,
             time_taken,
             ..
@@ -191,6 +195,10 @@ impl eframe::App for TemplateApp {
                 ui.separator();
 
                 if ui.button("Export to CSV").clicked() {
+                    // Ask the user where they'd like to save the CSV export and what they'd like it to be called.
+                    if let Some(path) = FileDialog::new().save_file() {
+                        *export_file = Arc::new(Mutex::new(Some(path)));
+                    }
                     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
                     let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
                     thread::spawn(move || {
