@@ -192,12 +192,15 @@ impl eframe::App for TemplateApp {
                     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
                     let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
                     thread::spawn(move || {
+                        // Make a place to put extension counts that'll be written to the CSV file.
+                        let mut csv_rows = String::new();
                         // Lock the extension counts so we can read them into CSV format.
                         let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
                         for (extension_type, extension_count) in unlocked_extension_counts.iter() {
                             // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
                             assert!(!extension_type.contains('\n') && !extension_type.contains(','));
-                            println!("{extension_type}: {extension_count}");
+                            let csv_row = format!("{extension_type},{extension_count}\n");
+                            csv_rows.push_str(&csv_row)
                         }
                     });
                 };
