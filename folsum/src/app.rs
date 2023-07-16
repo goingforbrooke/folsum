@@ -195,6 +195,8 @@ impl eframe::App for TemplateApp {
                         // Lock the extension counts so we can read them into CSV format.
                         let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
                         for (extension_type, extension_count) in unlocked_extension_counts.iter() {
+                            // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
+                            assert!(!extension_type.contains('\n'));
                             println!("{extension_type}: {extension_count}");
                         }
                     });
