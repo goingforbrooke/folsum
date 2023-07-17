@@ -197,6 +197,7 @@ impl eframe::App for TemplateApp {
                 if ui.button("Export to CSV").clicked() {
                     // Ask the user where they'd like to save the CSV export and what they'd like it to be called.
                     if let Some(path) = FileDialog::new()
+                        // Add `.csv` to the end of the user's chosen name for the CSV export.
                         .add_filter("csv", &["csv"])
                         .set_title("Export extension counts to CSV file")
                         .save_file() {
