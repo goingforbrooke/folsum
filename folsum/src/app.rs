@@ -9,6 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{DateTime, Local};
+use dirs::home_dir;
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
 use rfd::FileDialog;
@@ -200,11 +201,20 @@ impl eframe::App for TemplateApp {
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
                     // Prepend the date (YY_MM_DD) to the filename.
                     let export_filename = format!("{formatted_date}_folsum_export");
-                    // Ask the user where they'd like to save the CSV export and what they'd like it to be called.
+                    // Open the "Save export file as" dialogj
+                    let starting_directory = match export_file.lock().unwrap().clone() {
+                        // Open the export dialog in the same dir as the previous export.
+                        Some(export_file) => export_file,
+                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
+                        None => home_dir().expect("Failed to get user's home directory")
+                    };
+                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
                     if let Some(path) = FileDialog::new()
                         // Add `.csv` to the end of the user's chosen name for the CSV export.
                         .add_filter("csv", &["csv"])
                         .set_title("Export extension counts to CSV file")
+                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                        .set_directory(starting_directory)
                         // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
                         .set_file_name(&export_filename)
                         .save_file() {
