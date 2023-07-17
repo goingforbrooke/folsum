@@ -212,8 +212,8 @@ impl eframe::App for TemplateApp {
                     }
                     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
                     let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
-                    // Copy the export file path so we can access it in a separate thread for CSV dumping.
-                    let export_file_copy: Arc<Mutex<Option<PathBuf>>> = Arc::clone(&export_file);
+                    // Copy the export file path's `Arc` so we can access it in a separate thread for CSV dumping.
+                    let export_file: Arc<Mutex<Option<PathBuf>>> = Arc::clone(&export_file);
                     thread::spawn(move || {
                         // Make a place to put extension counts that'll be written to the CSV file and include column headers.
                         let mut csv_rows = String::from("Occurrences, File Extension\n");
@@ -226,7 +226,7 @@ impl eframe::App for TemplateApp {
                             csv_rows.push_str(&csv_row)
                         }
                         // Lock the export file path so we can use it to create the CSV dump.
-                        let unlocked_export_file = export_file_copy.lock().unwrap();
+                        let unlocked_export_file = export_file.lock().unwrap();
                         // Clone user's chosen export path so we can release it's lock, allowing live table updates.
                         let export_file_copy = unlocked_export_file.clone().unwrap();
                         // Create a CSV file to write the extension types and their counts to, overwriting it if it already exists.
