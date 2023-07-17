@@ -12,7 +12,23 @@ This section is a work in progress, but for now, check out the [Releases Page](h
 
 Launch the program, select the directory that you'd like to summarize, and click "Summarize" in the left pane. A table with counts of each filetype will appear in the right pane.
 
-## Release
+## Contributing
+
+### Dependencies
+
+Adding dependencies with `xtask` looks a little different than normal.
+
+For example, to add the `chrono` crate as a dependency to Folsum, use `--package folsum`.
+
+```console
+$ user@host: cargo add --package folsum chrono
+```
+
+For example, to add the `chrono` crate as a dependency to the build tools, use `--package xtask`.
+
+```console
+$ user@host: cargo add --package xtask chrono
+```
 
 ### `xtask`
 
