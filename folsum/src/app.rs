@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::ffi::OsString;
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
+use chrono::{DateTime, Local};
+use dirs::home_dir;
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
 use rfd::FileDialog;
@@ -15,19 +19,21 @@ use walkdir::WalkDir;
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // Define default fields when deserializing old state.
 pub struct TemplateApp {
-    // Opt-out of member serialization with `#[serde(skip)]`.
-    #[serde(skip)]
     // Unique file extensions and the number of times each one was encountered.
+    #[serde(skip)]
     extension_counts: Arc<Mutex<HashMap<String, u32>>>,
-    #[serde(skip)]
     // Number of files summarized, which doesn't include files and directories that were skipped.
+    #[serde(skip)]
     total_files: u32,
-    #[serde(skip)]
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
-    picked_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
-    // Note the time when summarization starts so it can be used to calculate the time taken.
+    summarization_path: Arc<Mutex<Option<PathBuf>>>,
+    // User's chosen directory and filename for CSV exports.
+    export_file: Arc<Mutex<Option<PathBuf>>>,
+    // Time that summarization starts so it can be used to calculate the time taken.
+    #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
+    // Amount of time that it takes to summarize a directory.
     #[serde(skip)]
     time_taken: Arc<Mutex<Duration>>,
 }
@@ -37,7 +43,8 @@ impl Default for TemplateApp {
         Self {
             extension_counts: Arc::new(Mutex::new(HashMap::new())),
             total_files: 0,
-            picked_path: Arc::new(Mutex::new(None)),
+            summarization_path: Arc::new(Mutex::new(None)),
+            export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
         }
@@ -70,9 +77,10 @@ impl eframe::App for TemplateApp {
         let Self {
             extension_counts,
             total_files,
-            picked_path,
-            time_taken,
+            summarization_path,
+            export_file,
             summarization_start,
+            time_taken,
             ..
         } = self;
 
@@ -105,12 +113,12 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Open directory...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
-                        *picked_path = Arc::new(Mutex::new(Some(path)));
+                        *summarization_path = Arc::new(Mutex::new(Some(path)));
                     }
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: &Option<PathBuf> = &*picked_path.lock().unwrap();
+                    let unlocked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
                     let shown_path: &str = match &*unlocked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
@@ -121,8 +129,10 @@ impl eframe::App for TemplateApp {
                     ui.monospace(shown_path);
                 });
 
+                ui.separator();
+
                 if ui.button("Summarize").clicked() {
-                    let unlocked_path: &mut Option<PathBuf> = &mut *picked_path.lock().unwrap();
+                    let unlocked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
                     // If the user picked a directory to summarize....
                     if unlocked_path.is_some() {
                         // ...then recursively count file extensions in the chosen directory.
@@ -131,7 +141,7 @@ impl eframe::App for TemplateApp {
 
                         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                         let extension_counts_copy = Arc::clone(&extension_counts);
-                        let picked_path_copy = Arc::clone(&picked_path);
+                        let summarization_path_copy = Arc::clone(&summarization_path);
                         let start_copy = Arc::clone(&summarization_start);
                         let time_taken_copy = Arc::clone(&time_taken);
 
@@ -143,14 +153,14 @@ impl eframe::App for TemplateApp {
                             let mut unlocked_start_copy = start_copy.lock().unwrap();
                             *unlocked_start_copy = Instant::now();
 
-                            let unlocked_picked_path = picked_path_copy.lock().unwrap();
+                            let unlocked_summarization_path = summarization_path_copy.lock().unwrap();
                             // Clone the user's chosen path so we can release it's lock, allowing live table updates.
-                            let picked_path_copy = unlocked_picked_path.clone();
+                            let summarization_path_copy = unlocked_summarization_path.clone();
                             // Release the mutex lock on the chosen path so extension count table can update.
-                            drop(unlocked_picked_path);
+                            drop(unlocked_summarization_path);
 
                             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry in WalkDir::new(picked_path_copy.unwrap())
+                            for entry in WalkDir::new(summarization_path_copy.unwrap())
                                 .min_depth(1)
                                 .into_iter()
                                 .filter_map(Result::ok)
@@ -183,6 +193,58 @@ impl eframe::App for TemplateApp {
                         &unlocked_time_taken.as_millis()
                     ));
                 });
+
+                ui.separator();
+
+                if ui.button("Export to CSV").clicked() {
+                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+                    let formatted_date = date_today.format("%y_%m_%d").to_string();
+                    // Prepend the date (YY_MM_DD) to the filename.
+                    let export_filename = format!("{formatted_date}_folsum_export");
+                    // Open the "Save export file as" dialogj
+                    let starting_directory = match export_file.lock().unwrap().clone() {
+                        // Open the export dialog in the same dir as the previous export.
+                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
+                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
+                        None => home_dir().expect("Failed to get user's home directory")
+                    };
+                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
+                    if let Some(path) = FileDialog::new()
+                        // Add `.csv` to the end of the user's chosen name for the CSV export.
+                        .add_filter("csv", &["csv"])
+                        .set_title("Export extension counts to CSV file")
+                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                        .set_directory(starting_directory)
+                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
+                        .set_file_name(&export_filename)
+                        .save_file() {
+                        *export_file = Arc::new(Mutex::new(Some(path)));
+                    }
+                    // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
+                    let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
+                    // Copy the export file path's `Arc` so we can access it in a separate thread for CSV dumping.
+                    let export_file: Arc<Mutex<Option<PathBuf>>> = Arc::clone(&export_file);
+                    thread::spawn(move || {
+                        // Make a place to put extension counts that'll be written to the CSV file and include column headers.
+                        let mut csv_rows = String::from("Occurrences, File Extension\n");
+                        // Lock the extension counts so we can read them into CSV format.
+                        let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
+                        for (extension_type, extension_count) in unlocked_extension_counts.iter() {
+                            // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
+                            assert!(!extension_type.contains('\n') && !extension_type.contains(','));
+                            let csv_row = format!("{extension_type},{extension_count}\n");
+                            csv_rows.push_str(&csv_row)
+                        }
+                        // Lock the export file path so we can use it to create the CSV dump.
+                        let export_file = export_file.lock().unwrap();
+                        // Clone user's chosen export path so we can release it's lock, allowing live table updates.
+                        let export_file = export_file.clone().unwrap();
+                        // Create a CSV file to write the extension types and their counts to, overwriting it if it already exists.
+                        let mut csv_export = File::create(export_file).expect("Failed to create CSV export file");
+                        // Write the CSV's content to the export file.
+                        csv_export.write_all(csv_rows.as_bytes()).expect("Failed to write contents to CSV export file")
+                    });
+                };
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     egui::warn_if_debug_build(ui);
