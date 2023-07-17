@@ -4,4 +4,4 @@ target
 folsum/test_dir/*
 .vscode/
 .rust-analyzer.toml
-folsum_export.csv
+*folsum_export.csv
