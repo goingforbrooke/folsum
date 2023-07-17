@@ -204,7 +204,7 @@ impl eframe::App for TemplateApp {
                     // Open the "Save export file as" dialogj
                     let starting_directory = match export_file.lock().unwrap().clone() {
                         // Open the export dialog in the same dir as the previous export.
-                        Some(export_file) => export_file,
+                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
                         // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
                         None => home_dir().expect("Failed to get user's home directory")
                     };
