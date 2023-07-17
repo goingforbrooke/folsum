@@ -205,6 +205,7 @@ impl eframe::App for TemplateApp {
                         // Add `.csv` to the end of the user's chosen name for the CSV export.
                         .add_filter("csv", &["csv"])
                         .set_title("Export extension counts to CSV file")
+                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
                         .set_file_name(&export_filename)
                         .save_file() {
                         *export_file = Arc::new(Mutex::new(Some(path)));
