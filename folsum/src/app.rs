@@ -196,7 +196,9 @@ impl eframe::App for TemplateApp {
 
                 if ui.button("Export to CSV").clicked() {
                     // Ask the user where they'd like to save the CSV export and what they'd like it to be called.
-                    if let Some(path) = FileDialog::new().save_file() {
+                    if let Some(path) = FileDialog::new()
+                        .add_filter("csv", &["csv"])
+                        .save_file() {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
                     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
