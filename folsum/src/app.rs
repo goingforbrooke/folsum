@@ -6,8 +6,9 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
+use chrono::{DateTime, Local};
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
 use rfd::FileDialog;
@@ -195,12 +196,16 @@ impl eframe::App for TemplateApp {
                 ui.separator();
 
                 if ui.button("Export to CSV").clicked() {
+                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+                    let formatted_date = date_today.format("%y_%m_%d").to_string();
+                    // Prepend the date (YY_MM_DD) to the filename.
+                    let export_filename = format!("{formatted_date}_folsum_export");
                     // Ask the user where they'd like to save the CSV export and what they'd like it to be called.
                     if let Some(path) = FileDialog::new()
                         // Add `.csv` to the end of the user's chosen name for the CSV export.
                         .add_filter("csv", &["csv"])
                         .set_title("Export extension counts to CSV file")
-                        .set_file_name("folsum_export")
+                        .set_file_name(&export_filename)
                         .save_file() {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
