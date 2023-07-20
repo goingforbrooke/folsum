@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
 use iced::executor;
 use iced::widget::{button, column, container, progress_bar, scrollable, text, Column, Text};
 use iced::{
@@ -15,6 +18,7 @@ pub fn main() -> iced::Result {
 struct Example {
     downloads: Vec<Download>,
     last_id: usize,
+    extension_counts: Arc<Mutex<HashMap<String, u32>>>,
 }
 
 #[derive(Debug, Clone)]
