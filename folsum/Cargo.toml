@@ -23,7 +23,6 @@ serde = { version = "1.0.164", features = ["derive"] } # You only need this if y
 walkdir = "2.3.3"
 rfd = "0.11.4"
 itertools = "0.10.5"
-egui_extras = "0.22.0"
 chrono = "0.4.26"
 dirs = "5.0.1"
 
