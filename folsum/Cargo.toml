@@ -18,12 +18,6 @@ crate-type = ["cdylib", "rlib"]
 
 
 [dependencies]
-eframe = { version = "0.22.0", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
-    "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
-] }
 
 serde = { version = "1.0.164", features = ["derive"] } # You only need this if you want app persistence
 walkdir = "2.3.3"
