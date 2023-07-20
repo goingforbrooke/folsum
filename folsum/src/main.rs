@@ -39,6 +39,7 @@ impl Application for Example {
             Example {
                 downloads: vec![Download::new(0)],
                 last_id: 0,
+                extension_counts: Arc::new(Mutex::new(HashMap::new())),
             },
             Command::none(),
         )
