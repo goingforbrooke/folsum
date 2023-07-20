@@ -2,11 +2,13 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use iced::executor;
-use iced::widget::{button, column, container, progress_bar, scrollable, text, Column, Text};
+use iced::widget::{button, column, container, progress_bar, scrollable, text, Column};
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
+
+use itertools::Itertools;
 
 mod download;
 
@@ -89,6 +91,17 @@ impl Application for Example {
         .spacing(20)
         .align_items(Alignment::End);
 
+        let unlocked_exts = self.extension_counts.lock().unwrap();
+        // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
+        let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
+        // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
+        ext_info.sort_by(|a, b| b.1.cmp(a.1));
+
+        let mut row_contents = Vec::new();
+        for (extension_name, times_seen) in ext_info.iter() {
+            row_contents.push(format!("{extension_name}: {times_seen}"));
+        }
+
         let table_rows = scrollable(
             column![
                 text(format!("row one")),
@@ -98,6 +111,7 @@ impl Application for Example {
                 text(format!("row five"))
             ]
         );
+
 
         let content = column![downloads, table_rows];
 
