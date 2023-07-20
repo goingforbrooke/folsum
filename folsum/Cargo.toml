@@ -18,7 +18,6 @@ crate-type = ["cdylib", "rlib"]
 
 
 [dependencies]
-
 serde = { version = "1.0.164", features = ["derive"] } # You only need this if you want app persistence
 walkdir = "2.3.3"
 rfd = "0.11.4"
