@@ -14,6 +14,7 @@ rfd = "0.11.4"
 itertools = "0.10.5"
 chrono = "0.4.26"
 dirs = "5.0.1"
+reqwest = "0.11.18"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
