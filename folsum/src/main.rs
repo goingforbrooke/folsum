@@ -1,5 +1,5 @@
 use iced::executor;
-use iced::widget::{button, column, container, progress_bar, text, Column};
+use iced::widget::{button, column, container, progress_bar, scrollable, text, Column, Text};
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
@@ -84,7 +84,19 @@ impl Application for Example {
         .spacing(20)
         .align_items(Alignment::End);
 
-        container(downloads)
+        let table_rows = scrollable(
+            column![
+                text(format!("row one")),
+                text(format!("row two")),
+                text(format!("row three")),
+                text(format!("row four")),
+                text(format!("row five"))
+            ]
+        );
+
+        let content = column![downloads, table_rows];
+
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
