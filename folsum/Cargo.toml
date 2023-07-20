@@ -39,7 +39,6 @@ tracing-wasm = "0.2.1"
 identifier = "com.bytesluice.folsum"
 copyright = "Copyright (c) Brooke Deuson 2023. All rights reserved."
 category = "public.app-category.productivity"
-#icon = "images/icons/resized_icons/"
 icon = ["images/icons/resized_icons/folsum_icon_128px.png",
         "images/icons/resized_icons/folsum_icon_128px@2x.png",
         "images/icons/resized_icons/folsum_icon_16px.png",
