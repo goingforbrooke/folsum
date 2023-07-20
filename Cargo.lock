@@ -1549,7 +1549,6 @@ dependencies = [
  "console_error_panic_hook",
  "dirs 5.0.1",
  "eframe",
- "egui",
  "egui_extras",
  "itertools",
  "rfd",
