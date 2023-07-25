@@ -7,8 +7,7 @@ use std::sync::{Arc, Mutex};
 
 // Iced GUI libraries.
 use iced::executor;
-use iced::mouse::Button;
-use iced::widget::{button, container, text, Column};
+use iced::widget::{button, container, text, Column, Row, scrollable};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 
@@ -94,19 +93,26 @@ impl Application for Example {
         // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
         ext_info.sort_by(|a, b| b.1.cmp(a.1));
 
-        let table_rows = Column::with_children(
-            ext_info.iter()
-                    .map(|(extension_name, times_seen)| text(format!("{extension_name}: {times_seen}")))
-                    .map(Element::from)
-                    .collect()
-        ).push(button("Summarize").on_press(Message::StartSummarizing));
+        let table_rows = scrollable(
+            Column::with_children(
+                ext_info.iter()
+                        .map(|(extension_name, times_seen)| text(format!("{extension_name}: {times_seen}")))
+                        .map(Element::from)
+                        .collect()
+            )
+        );
 
+        let summarize_button = button("Summarize").on_press(Message::StartSummarizing);
 
-        container(table_rows)
+        let control_pane = Column::new().push(summarize_button);
+
+        let window_content = Row::new()
+            .push(control_pane)
+            .push(table_rows);
+
+        container(window_content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
-            .center_y()
             .padding(20)
             .into()
     }
