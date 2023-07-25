@@ -1,15 +1,25 @@
+// Standard library libraries.
 use std::collections::HashMap;
+use std::env;
+use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::sync::{Arc, Mutex};
 
+// Iced GUI libraries.
 use iced::executor;
-use iced::widget::{button, column, container, progress_bar, scrollable, text, Column};
+use iced::widget::{button, column, container, progress_bar, text, Column};
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
 
+
 use itertools::Itertools;
 
+// Third-party libraries.
+use walkdir::WalkDir;
+
+// Local modules.
 mod download;
 
 pub fn main() -> iced::Result {
@@ -91,31 +101,48 @@ impl Application for Example {
         .spacing(20)
         .align_items(Alignment::End);
 
+
+        // Reset file extension counts to zero.
+        *self.extension_counts.lock().unwrap() = HashMap::new();
+        // Copy the Arcs of persistent members so they can be accessed by a separate thread.
+        let extension_counts_copy = Arc::clone(&self.extension_counts);
+        let default_extension = OsString::from("No extension");
+        // Recursively iterate through each subdirectory and don't add subdirectories to the result.
+        for entry in WalkDir::new(env::current_dir().unwrap())
+            .min_depth(1)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|e| !e.file_type().is_dir())
+        {
+            // Extract the file extension from the file's name.
+            let file_ext: &OsStr =
+                entry.path().extension().unwrap_or(&default_extension);
+            let show_ext: String = String::from(file_ext.to_string_lossy());
+            // Lock the extension counts variable so we can add a file to it.
+            let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
+            // Add newly encountered file extensions to known file extensions with a counter of 0.
+            let counter: &mut u32 =
+                unlocked_counts_copy.entry(show_ext).or_insert(0);
+            // Increment the counter for known file extensions by one.
+            *counter += 1;
+            // Update the summarization time stopwatch.
+        }
+
         let unlocked_exts = self.extension_counts.lock().unwrap();
         // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
         let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
         // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
         ext_info.sort_by(|a, b| b.1.cmp(a.1));
 
-        let mut row_contents = Vec::new();
-        for (extension_name, times_seen) in ext_info.iter() {
-            row_contents.push(format!("{extension_name}: {times_seen}"));
-        }
-
-        let table_rows = scrollable(
-            column![
-                text(format!("row one")),
-                text(format!("row two")),
-                text(format!("row three")),
-                text(format!("row four")),
-                text(format!("row five"))
-            ]
+        let table_rows = Column::with_children(
+            ext_info.iter()
+                    .map(|(extension_name, times_seen)| text(format!("{extension_name}: {times_seen}")))
+                    .map(Element::from)
+                    .collect()
         );
 
 
-        let content = column![downloads, table_rows];
-
-        container(content)
+        container(table_rows)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
