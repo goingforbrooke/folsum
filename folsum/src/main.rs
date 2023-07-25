@@ -7,11 +7,9 @@ use std::sync::{Arc, Mutex};
 
 // Iced GUI libraries.
 use iced::executor;
-use iced::widget::{button, column, container, progress_bar, text, Column};
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
-};
+use iced::mouse::Button;
+use iced::widget::{button, container, text, Column};
+use iced::{Application, Command, Element, Length, Settings, Theme};
 
 
 use itertools::Itertools;
@@ -28,16 +26,12 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug)]
 struct Example {
-    downloads: Vec<Download>,
-    last_id: usize,
     extension_counts: Arc<Mutex<HashMap<String, u32>>>,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Add,
-    Download(usize),
-    DownloadProgressed((usize, download::Progress)),
+    StartSummarizing,
 }
 
 impl Application for Example {
@@ -49,8 +43,6 @@ impl Application for Example {
     fn new(_flags: ()) -> (Example, Command<Message>) {
         (
             Example {
-                downloads: vec![Download::new(0)],
-                last_id: 0,
                 extension_counts: Arc::new(Mutex::new(HashMap::new())),
             },
             Command::none(),
@@ -58,26 +50,36 @@ impl Application for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Download progress - Iced")
+        String::from("FolSum")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Add => {
-                self.last_id += 1;
-
-                self.downloads.push(Download::new(self.last_id));
-            }
-            Message::Download(index) => {
-                if let Some(download) = self.downloads.get_mut(index) {
-                    download.start();
-                }
-            }
-            Message::DownloadProgressed((id, progress)) => {
-                if let Some(download) =
-                    self.downloads.iter_mut().find(|download| download.id == id)
+            Message::StartSummarizing => {
+                // Reset file extension counts to zero.
+                *self.extension_counts.lock().unwrap() = HashMap::new();
+                // Copy the Arcs of persistent members so they can be accessed by a separate thread.
+                let extension_counts_copy = Arc::clone(&self.extension_counts);
+                let default_extension = OsString::from("No extension");
+                // Recursively iterate through each subdirectory and don't add subdirectories to the result.
+                for entry in WalkDir::new(env::current_dir().unwrap())
+                    .min_depth(1)
+                    .into_iter()
+                    .filter_map(Result::ok)
+                    .filter(|e| !e.file_type().is_dir())
                 {
-                    download.progress(progress);
+                    // Extract the file extension from the file's name.
+                    let file_ext: &OsStr =
+                        entry.path().extension().unwrap_or(&default_extension);
+                    let show_ext: String = String::from(file_ext.to_string_lossy());
+                    // Lock the extension counts variable so we can add a file to it.
+                    let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
+                    // Add newly encountered file extensions to known file extensions with a counter of 0.
+                    let counter: &mut u32 =
+                        unlocked_counts_copy.entry(show_ext).or_insert(0);
+                    // Increment the counter for known file extensions by one.
+                    *counter += 1;
+                    // Update the summarization time stopwatch.
                 }
             }
         };
@@ -85,49 +87,7 @@ impl Application for Example {
         Command::none()
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        Subscription::batch(self.downloads.iter().map(Download::subscription))
-    }
-
     fn view(&self) -> Element<Message> {
-        let downloads = Column::with_children(
-            self.downloads.iter().map(Download::view).collect(),
-        )
-        .push(
-            button("Add another download")
-                .on_press(Message::Add)
-                .padding(10),
-        )
-        .spacing(20)
-        .align_items(Alignment::End);
-
-
-        // Reset file extension counts to zero.
-        *self.extension_counts.lock().unwrap() = HashMap::new();
-        // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let extension_counts_copy = Arc::clone(&self.extension_counts);
-        let default_extension = OsString::from("No extension");
-        // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-        for entry in WalkDir::new(env::current_dir().unwrap())
-            .min_depth(1)
-            .into_iter()
-            .filter_map(Result::ok)
-            .filter(|e| !e.file_type().is_dir())
-        {
-            // Extract the file extension from the file's name.
-            let file_ext: &OsStr =
-                entry.path().extension().unwrap_or(&default_extension);
-            let show_ext: String = String::from(file_ext.to_string_lossy());
-            // Lock the extension counts variable so we can add a file to it.
-            let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
-            // Add newly encountered file extensions to known file extensions with a counter of 0.
-            let counter: &mut u32 =
-                unlocked_counts_copy.entry(show_ext).or_insert(0);
-            // Increment the counter for known file extensions by one.
-            *counter += 1;
-            // Update the summarization time stopwatch.
-        }
-
         let unlocked_exts = self.extension_counts.lock().unwrap();
         // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
         let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
@@ -139,7 +99,7 @@ impl Application for Example {
                     .map(|(extension_name, times_seen)| text(format!("{extension_name}: {times_seen}")))
                     .map(Element::from)
                     .collect()
-        );
+        ).push(button("Summarize").on_press(Message::StartSummarizing));
 
 
         container(table_rows)
@@ -148,110 +108,6 @@ impl Application for Example {
             .center_x()
             .center_y()
             .padding(20)
-            .into()
-    }
-}
-
-#[derive(Debug)]
-struct Download {
-    id: usize,
-    state: State,
-}
-
-#[derive(Debug)]
-enum State {
-    Idle,
-    Downloading { progress: f32 },
-    Finished,
-    Errored,
-}
-
-impl Download {
-    pub fn new(id: usize) -> Self {
-        Download {
-            id,
-            state: State::Idle,
-        }
-    }
-
-    pub fn start(&mut self) {
-        match self.state {
-            State::Idle { .. }
-            | State::Finished { .. }
-            | State::Errored { .. } => {
-                self.state = State::Downloading { progress: 0.0 };
-            }
-            _ => {}
-        }
-    }
-
-    pub fn progress(&mut self, new_progress: download::Progress) {
-        if let State::Downloading { progress } = &mut self.state {
-            match new_progress {
-                download::Progress::Started => {
-                    *progress = 0.0;
-                }
-                download::Progress::Advanced(percentage) => {
-                    *progress = percentage;
-                }
-                download::Progress::Finished => {
-                    self.state = State::Finished;
-                }
-                download::Progress::Errored => {
-                    self.state = State::Errored;
-                }
-            }
-        }
-    }
-
-    pub fn subscription(&self) -> Subscription<Message> {
-        match self.state {
-            State::Downloading { .. } => {
-                download::file(self.id, "https://speed.hetzner.de/100MB.bin?")
-                    .map(Message::DownloadProgressed)
-            }
-            _ => Subscription::none(),
-        }
-    }
-
-    pub fn view(&self) -> Element<Message> {
-        let current_progress = match &self.state {
-            State::Idle { .. } => 0.0,
-            State::Downloading { progress } => *progress,
-            State::Finished { .. } => 100.0,
-            State::Errored { .. } => 0.0,
-        };
-
-        let progress_bar = progress_bar(0.0..=100.0, current_progress);
-
-        let control: Element<_> = match &self.state {
-            State::Idle => button("Start the download!")
-                .on_press(Message::Download(self.id))
-                .into(),
-            State::Finished => {
-                column!["Download finished!", button("Start again")]
-                    .spacing(10)
-                    .align_items(Alignment::Center)
-                    .into()
-            }
-            State::Downloading { .. } => {
-                text(format!("Downloading... {current_progress:.2}%")).into()
-            }
-            State::Errored => column![
-                "Something went wrong :(",
-                button("Try again").on_press(Message::Download(self.id)),
-            ]
-            .spacing(10)
-            .align_items(Alignment::Center)
-            .into(),
-        };
-
-        Column::new()
-            .spacing(10)
-            .padding(10)
-            .align_items(Alignment::Center)
-            .push(progress_bar)
-            .push(control)
             .into()
     }
 }
