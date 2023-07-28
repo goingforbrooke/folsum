@@ -20,12 +20,13 @@ use walkdir::WalkDir;
 mod download;
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    FolsumGui::run(Settings::default())
 }
 
 #[derive(Debug)]
-struct Example {
+struct FolsumGui {
     extension_counts: Arc<Mutex<HashMap<String, u32>>>,
+    state: SummarizationState,
 }
 
 #[derive(Debug, Clone)]
@@ -33,15 +34,15 @@ pub enum Message {
     StartSummarizing,
 }
 
-impl Application for Example {
+impl Application for FolsumGui {
     type Message = Message;
     type Theme = Theme;
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Example, Command<Message>) {
+    fn new(_flags: ()) -> (FolsumGui, Command<Message>) {
         (
-            Example {
+            FolsumGui {
                 extension_counts: Arc::new(Mutex::new(HashMap::new())),
             },
             Command::none(),
