@@ -1369,7 +1369,6 @@ dependencies = [
  "chrono",
  "dirs",
  "iced",
- "iced_native",
  "itertools",
  "reqwest",
  "rfd",
