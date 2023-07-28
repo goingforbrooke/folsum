@@ -16,7 +16,6 @@ chrono = "0.4.26"
 dirs = "5.0.1"
 reqwest = "0.11.18"
 iced = { version = "0.9.0", features = ["tokio"] }
-iced_native = "0.10.3"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
