@@ -69,14 +69,12 @@ impl Application for FolsumGui {
                     .filter(|e| !e.file_type().is_dir())
                 {
                     // Extract the file extension from the file's name.
-                    let file_ext: &OsStr =
-                        entry.path().extension().unwrap_or(&default_extension);
+                    let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
                     let show_ext: String = String::from(file_ext.to_string_lossy());
                     // Lock the extension counts variable so we can add a file to it.
                     let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
                     // Add newly encountered file extensions to known file extensions with a counter of 0.
-                    let counter: &mut u32 =
-                        unlocked_counts_copy.entry(show_ext).or_insert(0);
+                    let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
                     // Increment the counter for known file extensions by one.
                     *counter += 1;
                     // Update the summarization time stopwatch.
