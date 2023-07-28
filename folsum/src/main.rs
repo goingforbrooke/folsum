@@ -20,12 +20,15 @@ use walkdir::WalkDir;
 mod download;
 
 pub fn main() -> iced::Result {
+    // Start the GUI.
     FolsumGui::run(Settings::default())
 }
 
 #[derive(Debug)]
 struct FolsumGui {
+    // Track the number of times that each file extension is seen.
     extension_counts: Arc<Mutex<HashMap<String, u32>>>,
+    // Keep track of whether a directory's being summarized.
     state: SummarizationState,
 }
 
@@ -38,6 +41,7 @@ impl Application for FolsumGui {
     type Message = Message;
     type Theme = Theme;
     type Executor = executor::Default;
+    // Data needed to initialize the GUI Application.
     type Flags = ();
 
     fn new(_flags: ()) -> (FolsumGui, Command<Message>) {
@@ -50,6 +54,7 @@ impl Application for FolsumGui {
     }
 
     fn title(&self) -> String {
+        // Set the window title to FolSum.
         String::from("FolSum")
     }
 
@@ -60,25 +65,8 @@ impl Application for FolsumGui {
                 *self.extension_counts.lock().unwrap() = HashMap::new();
                 // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                 let extension_counts_copy = Arc::clone(&self.extension_counts);
-                let default_extension = OsString::from("No extension");
-                // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                for entry in WalkDir::new(env::current_dir().unwrap())
-                    .min_depth(1)
-                    .into_iter()
-                    .filter_map(Result::ok)
-                    .filter(|e| !e.file_type().is_dir())
-                {
-                    // Extract the file extension from the file's name.
-                    let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
-                    let show_ext: String = String::from(file_ext.to_string_lossy());
-                    // Lock the extension counts variable so we can add a file to it.
-                    let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
-                    // Add newly encountered file extensions to known file extensions with a counter of 0.
-                    let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
-                    // Increment the counter for known file extensions by one.
-                    *counter += 1;
-                    // Update the summarization time stopwatch.
-                }
+                // Lock the extension counts variable so we can read it.
+                let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
             }
         };
 
