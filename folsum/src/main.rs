@@ -163,7 +163,18 @@ impl Application for FolsumGui {
             )
         );
 
-        let summarize_button = button("Summarize").on_press(Message::StartSummarizing);
+        let summarize_button = match self.state {
+            // If nothing's being summarized...
+            SummarizationState::Idle => {
+                // ... then make a button that'll start summarization.
+                button("Summarize").on_press(Message::StartSummarizing)
+            },
+            // If something's being summarized...
+            SummarizationState::Summarizing => {
+                // ... then make a button that'll stop summarization.
+                button("Cancel").on_press(Message::StopSummarizing)
+            }
+        };
 
         let control_pane = Column::new().push(summarize_button);
 
