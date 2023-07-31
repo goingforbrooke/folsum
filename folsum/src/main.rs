@@ -45,6 +45,7 @@ pub enum SummarizationState {
 pub enum Message {
     StartSummarizing,
     DisplayCounts(Instant),
+    StopSummarizing,
 }
 
 impl Application for FolsumGui {
@@ -130,6 +131,9 @@ impl Application for FolsumGui {
                 let extension_counts_copy = Arc::clone(&self.extension_counts);
                 // Lock the extension counts variable so we can read it.
                 //let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
+            }
+            Message::StopSummarizing => {
+                self.state = SummarizationState::Idle;
             }
         };
 
