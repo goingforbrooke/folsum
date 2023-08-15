@@ -22,6 +22,7 @@ use walkdir::WalkDir;
 
 // Local modules.
 //mod download;
+mod summarize;
 
 pub fn main() -> iced::Result {
     // Start the GUI.
