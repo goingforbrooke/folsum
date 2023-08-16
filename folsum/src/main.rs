@@ -3,30 +3,23 @@ use std::collections::HashMap;
 use std::env::current_dir;
 use std::ffi::OsStr;
 use std::ffi::OsString;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::thread;
-use std::time::{Duration, Instant};
 
 // Iced GUI libraries.
 use iced::executor;
 use iced::widget::{button, container, text, Column, Row, scrollable};
-use iced::{Application, Command, Element, Length, Settings, Theme, time, Subscription};
+use iced::{Application, Command, Element, Length, Settings, Theme, Subscription};
 use iced::futures::channel::mpsc;
 
 use iced::subscription::{self, channel};
 use iced::futures::sink::SinkExt;
 use iced::futures::stream::StreamExt;
 
-use dirs::home_dir;
-
-
 use itertools::Itertools;
 
 // Third-party libraries.
 use walkdir::WalkDir;
-
-// Local modules.
-//mod download;
 
 pub fn main() -> iced::Result {
     // Start the GUI.
