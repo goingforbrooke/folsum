@@ -11,6 +11,11 @@ use std::time::{Duration, Instant};
 use iced::executor;
 use iced::widget::{button, container, text, Column, Row, scrollable};
 use iced::{Application, Command, Element, Length, Settings, Theme, time, Subscription};
+use iced::futures::channel::mpsc;
+
+use iced::subscription::{self, channel};
+use iced::futures::sink::SinkExt;
+use iced::futures::stream::StreamExt;
 
 use dirs::home_dir;
 
@@ -39,14 +44,16 @@ struct FolsumGui {
 
 #[derive(Debug)]
 pub enum SummarizationState {
+    // Starting
     Idle,
+    // Ready
     Summarizing,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     StartSummarizing,
-    DisplayCounts(Instant),
+    DisplayCounts(Event),
     StopSummarizing,
 }
 
@@ -162,7 +169,7 @@ impl Application for FolsumGui {
                     println!("update: Summarizing while already summarizing");
                 }
             }
-            Message::DisplayCounts(now) => {
+            Message::DisplayCounts(_) => {
                 println!("update: message: displaycounts: Summarize button clicked");
                 // Copy the Arcs of persistent members so they can be accessed by a separate thread.
                 let extension_counts_copy = Arc::clone(&self.extension_counts);
@@ -187,18 +194,7 @@ impl Application for FolsumGui {
 
     fn subscription(&self) -> Subscription<Message> {
         println!("subscription called");
-        match *self.state.read().unwrap() {
-            // If nothing's being summarized, then there are no summarization updates to subscribe to.
-            SummarizationState::Idle => {
-                println!("Subscription: Idle");
-                Subscription::none()
-            },
-            // If a directory's being summarized, then wait ten milliseconds before doing anything, produce a message that file extension counts have been updated, then wait ten milliseconds.
-            SummarizationState::Summarizing { .. } => {
-                println!("Subscription: Summarizing");
-                time::every(Duration::from_millis(10)).map(Message::DisplayCounts)
-            }
-        }
+        some_worker().map(Message::DisplayCounts)
     }
 
     fn view(&self) -> Element<Message> {
@@ -243,4 +239,66 @@ impl Application for FolsumGui {
             .padding(20)
             .into()
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+
+// Define the kinds of processing events that can occur.
+#[derive(Debug, Clone)]
+pub enum Event {
+    Ready(mpsc::Sender<Input>),
+    WorkFinished,
+}
+
+// Define the kinds of input events that can occur.
+pub enum Input {
+    DoSomeWork,
+}
+
+// Define the kinds of states that the worker thread can be in.
+enum State {
+    Starting,
+    Ready(mpsc::Receiver<Input>),
+}
+
+pub fn some_worker() -> Subscription<Event> {
+    struct SomeWorker;
+
+    channel(std::any::TypeId::of::<SomeWorker>(), 100, |mut output| async move {
+        let mut state = State::Starting;
+
+        println!("starting worker loop");
+        loop {
+            match &mut state {
+                State::Starting => {
+                    println!("worker loop: Starting");
+                    // Create channel
+                    let (sender, receiver) = mpsc::channel(100);
+
+                    // Send the sender back to the application
+                    output.send(Event::Ready(sender)).await;
+
+                    // We are ready to receive messages
+                    state = State::Ready(receiver);
+                }
+                State::Ready(receiver) => {
+                    println!("worker loop: Ready");
+                    // Read next input sent from `Application`
+                    let input = receiver.select_next_some().await;
+
+                    match input {
+                        Input::DoSomeWork => {
+                            println!("worker loop: Input::DoSomeWork");
+                            // Do some async work...
+
+                            // Finally, we can optionally produce a message to tell the
+                            // `Application` the work is done
+                            output.send(Event::WorkFinished).await;
+                        }
+                    }
+                }
+            }
+        }
+    })
 }
