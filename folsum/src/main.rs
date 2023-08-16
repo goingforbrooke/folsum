@@ -142,13 +142,12 @@ pub enum WorkerInput {
     StopSummarizing,
 }
 
-
 pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
     struct SomeWorker;
     // Reset file extension counts to zero.
     *extension_counts.write().unwrap() = HashMap::new();
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-    let extension_counts_copy = Arc::clone(&extension_counts);
+    let extension_counts_copy = extension_counts.clone();
     println!("cloned extension counts copy");
 
     // Start summarizing the given directory in a new thread.
