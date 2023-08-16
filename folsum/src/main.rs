@@ -149,8 +149,6 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
     *extension_counts.write().unwrap() = HashMap::new();
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let extension_counts_copy = Arc::clone(&extension_counts);
-    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-    let extension_counts_copy = Arc::clone(&extension_counts);
     println!("cloned extension counts copy");
 
     // Start summarizing the given directory in a new thread.
