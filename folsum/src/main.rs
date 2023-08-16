@@ -196,8 +196,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                                             let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
                                             // Increment the counter for known file extensions by one.
                                             *counter += 1;
-                                            // Drop the lock on extension counts so the GUI thread can read it.
-                                            drop(unlocked_counts_copy);
+
                                             //println!("Added file");
                                         }; //for loop ends
                                     }
