@@ -34,7 +34,7 @@ struct FolsumGui {
 #[derive(Debug, Clone)]
 pub enum GUIMessage {
     StartSummarizing,
-    UpdateCounts,
+    UpdateCounts(WorkerEvent),
     StopSummarizing,
 }
 
