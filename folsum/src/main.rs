@@ -11,7 +11,7 @@ use iced::widget::{button, container, text, Column, Row, scrollable};
 use iced::{Application, Command, Element, Length, Settings, Theme, Subscription};
 use iced::futures::channel::mpsc;
 
-use iced::subscription::{self, channel};
+use iced::subscription::channel;
 use iced::futures::sink::SinkExt;
 use iced::futures::stream::StreamExt;
 
