@@ -146,68 +146,74 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
     struct SomeWorker;
     // Reset file extension counts to zero.
     *extension_counts.write().unwrap() = HashMap::new();
+
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let extension_counts_copy = extension_counts.clone();
     println!("cloned extension counts copy");
 
     // Start summarizing the given directory in a new thread.
-    channel(std::any::TypeId::of::<SomeWorker>(), 100, |mut output| async move {
-        println!("in thread, doing things");
-        let default_extension = OsString::from("No extension");
-        let mut state = WorkerState::Starting;
+    channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
+        // Copy the Arcs of persistent members so they can be accessed by a separate thread.
+        let extension_counts_copy = extension_counts_copy.clone();
+        println!("cloned extension counts copy");
+        async move {
+            println!("in thread, doing things");
+            let default_extension = OsString::from("No extension");
+            let mut state = WorkerState::Starting;
 
-        println!("starting worker loop");
-        loop {
-            match &mut state {
-                WorkerState::Starting => {
-                    println!("worker loop: Starting");
-                    // Create channel
-                    let (sender, receiver) = mpsc::channel(100);
+            println!("starting worker loop");
+            loop {
+                match &mut state {
+                    WorkerState::Starting => {
+                        println!("worker loop: Starting");
+                        // Create channel
+                        let (sender, receiver) = mpsc::channel(100);
 
-                    // Send the sender back to the application
-                    output.send(WorkerEvent::SenderReadyForMessages(sender)).await;
+                        // Send the sender back to the application
+                        output.send(WorkerEvent::SenderReadyForMessages(sender)).await;
 
-                    // We are ready to receive messages
-                    state = WorkerState::ReceiverReadyForMessages(receiver);
-                }
-                WorkerState::ReceiverReadyForMessages(receiver) => {
-                    println!("worker loop: Ready");
-                    // Read next input sent from `Application`
-                    let input = receiver.select_next_some().await;
+                        // We are ready to receive messages
+                        state = WorkerState::ReceiverReadyForMessages(receiver);
+                    }
+                    WorkerState::ReceiverReadyForMessages(receiver) => {
+                        println!("worker loop: Ready");
+                        // Read next input sent from `Application`
+                        let input = receiver.select_next_some().await;
 
-                    match input {
-                        WorkerInput::StartSummarizing => {
-                            println!("worker loop: WorkerInput::StartSummarizing");
-                            // Do some async work...
-                            println!("reset extension counts to zero");
-                            // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-                            for entry_result in WalkDir::new(current_dir().unwrap()).min_depth(1).into_iter() {
-                                match entry_result {
-                                    Ok(entry) => {
-                                        if !entry.file_type().is_dir() {
-                                            //println!("Processing file: {:?}", entry.path());
-                                            // Extract the file extension from the file's name.
-                                            let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
-                                            let show_ext: String = String::from(file_ext.to_string_lossy());
-                                            // Write-lock the extension counts variable so we can add a file to it.
-                                            let mut unlocked_counts_copy = extension_counts_copy.write().unwrap();
-                                            // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                            let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
-                                            // Increment the counter for known file extensions by one.
-                                            *counter += 1;
-                                            //println!("Added file");
-                                        }; //for loop ends
-                                    }
-                                    Err(e) => {
-                                        println!("Error processing file: {:?}", e)
+                        match input {
+                            WorkerInput::StartSummarizing => {
+                                println!("worker loop: WorkerInput::StartSummarizing");
+                                // Do some async work...
+                                println!("reset extension counts to zero");
+                                // Recursively iterate through each subdirectory and don't add subdirectories to the result.
+                                for entry_result in WalkDir::new(current_dir().unwrap()).min_depth(1).into_iter() {
+                                    match entry_result {
+                                        Ok(entry) => {
+                                            if !entry.file_type().is_dir() {
+                                                //println!("Processing file: {:?}", entry.path());
+                                                // Extract the file extension from the file's name.
+                                                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
+                                                let show_ext: String = String::from(file_ext.to_string_lossy());
+                                                // Write-lock the extension counts variable so we can add a file to it.
+                                                let mut unlocked_counts_copy = extension_counts_copy.write().unwrap();
+                                                // Add newly encountered file extensions to known file extensions with a counter of 0.
+                                                let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
+                                                // Increment the counter for known file extensions by one.
+                                                *counter += 1;
+                                                //println!("Added file");
+                                            }; //for loop ends
+                                        }
+                                        Err(e) => {
+                                            println!("Error processing file: {:?}", e)
+                                        }
                                     }
                                 }
+                                // Finally, we can optionally produce a message to tell the
+                                // `Application` the work is done
+                                output.send(WorkerEvent::WorkFinished).await;
                             }
-                            // Finally, we can optionally produce a message to tell the
-                            // `Application` the work is done
-                            output.send(WorkerEvent::WorkFinished).await;
-                        }
-                        WorkerInput::StopSummarizing => {
+                            WorkerInput::StopSummarizing => {
+                            }
                         }
                     }
                 }
