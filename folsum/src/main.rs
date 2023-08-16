@@ -69,7 +69,7 @@ impl Application for FolsumGui {
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
             }
-            GUIMessage::UpdateCounts(WorkerEvent) => {
+            GUIMessage::UpdateCounts(_WorkerEvent) => {
                 println!("update: message: UpdateCounts");
             }
         };
