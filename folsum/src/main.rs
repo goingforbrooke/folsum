@@ -80,7 +80,7 @@ impl Application for FolsumGui {
     fn subscription(&self) -> Subscription<GUIMessage> {
         println!("subscription called");
         // Start the worker thread and interpret update events as count update triggers.
-        some_worker(&self.extension_counts).map(GUIMessage::UpdateCounts)
+        some_worker(self.extension_counts).map(GUIMessage::UpdateCounts)
     }
 
     fn view(&self) -> Element<GUIMessage> {
@@ -143,7 +143,7 @@ pub enum WorkerInput {
 }
 
 
-pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
+pub fn some_worker(extension_counts: Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
     struct SomeWorker;
     // Reset file extension counts to zero.
     *extension_counts.write().unwrap() = HashMap::new();
