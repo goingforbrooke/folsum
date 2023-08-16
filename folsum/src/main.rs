@@ -143,7 +143,7 @@ pub enum WorkerInput {
 }
 
 
-pub fn some_worker(&extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
+pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
     struct SomeWorker;
     // Reset file extension counts to zero.
     *extension_counts.write().unwrap() = HashMap::new();
