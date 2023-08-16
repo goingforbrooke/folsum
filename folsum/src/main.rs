@@ -27,7 +27,6 @@ use walkdir::WalkDir;
 
 // Local modules.
 //mod download;
-mod summarize;
 
 pub fn main() -> iced::Result {
     // Start the GUI.
@@ -46,7 +45,7 @@ struct FolsumGui {
 pub enum SummarizationState {
     // Starting
     Idle,
-    // Ready
+    // Ready to receive messages.
     Summarizing,
 }
 
@@ -194,6 +193,7 @@ impl Application for FolsumGui {
 
     fn subscription(&self) -> Subscription<Message> {
         println!("subscription called");
+        // Start the worker thread and start listening for Input events.
         some_worker().map(Message::DisplayCounts)
     }
 
@@ -247,19 +247,22 @@ impl Application for FolsumGui {
 // Define the kinds of processing events that can occur.
 #[derive(Debug, Clone)]
 pub enum Event {
-    Ready(mpsc::Sender<Input>),
+    // Channel is spawned and sending a "DoWork" Input will start processing.
+    ReadyForMessages(mpsc::Sender<Input>),
+    // Summarization's complete.
     WorkFinished,
 }
 
 // Define the kinds of input events that can occur.
 pub enum Input {
+    // Start summarizing.
     DoSomeWork,
 }
 
 // Define the kinds of states that the worker thread can be in.
 enum State {
     Starting,
-    Ready(mpsc::Receiver<Input>),
+    ReadyForMessages(mpsc::Receiver<Input>),
 }
 
 pub fn some_worker() -> Subscription<Event> {
@@ -277,12 +280,12 @@ pub fn some_worker() -> Subscription<Event> {
                     let (sender, receiver) = mpsc::channel(100);
 
                     // Send the sender back to the application
-                    output.send(Event::Ready(sender)).await;
+                    output.send(Event::ReadyForMessages(sender)).await;
 
                     // We are ready to receive messages
-                    state = State::Ready(receiver);
+                    state = State::ReadyForMessages(receiver);
                 }
-                State::Ready(receiver) => {
+                State::ReadyForMessages(receiver) => {
                     println!("worker loop: Ready");
                     // Read next input sent from `Application`
                     let input = receiver.select_next_some().await;
