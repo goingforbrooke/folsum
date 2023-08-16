@@ -241,7 +241,7 @@ impl Application for FolsumGui {
 #[derive(Debug, Clone)]
 pub enum Event {
     // Channel is spawned and sending a "DoWork" Input will start processing.
-    ReadyForMessages(mpsc::Sender<Input>),
+    SenderReadyForMessages(mpsc::Sender<Input>),
     // Summarization's complete.
     WorkFinished,
 }
@@ -255,7 +255,7 @@ pub enum Input {
 // Define the kinds of states that the worker thread can be in.
 enum State {
     Starting,
-    ReadyForMessages(mpsc::Receiver<Input>),
+    ReceiverReadyForMessages(mpsc::Receiver<Input>),
 }
 
 pub fn some_worker() -> Subscription<Event> {
@@ -273,12 +273,12 @@ pub fn some_worker() -> Subscription<Event> {
                     let (sender, receiver) = mpsc::channel(100);
 
                     // Send the sender back to the application
-                    output.send(Event::ReadyForMessages(sender)).await;
+                    output.send(Event::SenderReadyForMessages(sender)).await;
 
                     // We are ready to receive messages
-                    state = State::ReadyForMessages(receiver);
+                    state = State::ReceiverReadyForMessages(receiver);
                 }
-                State::ReadyForMessages(receiver) => {
+                State::ReceiverReadyForMessages(receiver) => {
                     println!("worker loop: Ready");
                     // Read next input sent from `Application`
                     let input = receiver.select_next_some().await;
