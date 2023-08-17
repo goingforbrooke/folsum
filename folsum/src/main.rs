@@ -51,6 +51,7 @@ impl Application for FolsumGui {
         (
             FolsumGui {
                 extension_counts: Arc::new(RwLock::new(HashMap::new())),
+                // Initialize the application with no worker thread sender because the thread isn't alive yet.
                 sender: None,
             },
             Command::none(),
