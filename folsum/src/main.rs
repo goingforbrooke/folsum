@@ -69,7 +69,9 @@ impl Application for FolsumGui {
         match message {
             // If the user wants to start summarizing...
             GUIMessage::StartSummarizing => {
-                println!("update: received message: StartSummarizing")
+                println!("update: received message: StartSummarizing");
+                let thing = self.sender.as_mut().expect("Worker thread sender isn't initialized yet").send(GUIMessage::StartSummarizing);
+                println!("{:?}", thing);
             }
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
@@ -161,7 +163,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
     channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let extension_counts_copy = extension_counts_copy.clone();
-        println!("cloned extension counts copy for async future");
+        println!("cloned extension counts copy for async");
         async move {
             println!("in thread, doing things");
             let default_extension = OsString::from("No extension");
