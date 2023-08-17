@@ -30,7 +30,7 @@ pub fn main() -> iced::Result {
 struct FolsumGui {
     // Track the number of times that each file extension is seen.
     extension_counts: Arc<RwLock<HashMap<String, u32>>>,
-    sender: Option<Sender<WorkerInput>>,
+    sender: Option<Sender<GUIMessage>>,
 }
 
 #[derive(Debug, Clone)]
@@ -74,8 +74,8 @@ impl Application for FolsumGui {
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
             }
-            GUIMessage::UpdateCounts(WorkerEvent) => match WorkerEvent {
-                // If the worker thread has launched and is ready for conrol messages...
+            GUIMessage::UpdateCounts(worker_event) => match worker_event {
+                // If the worker thread has launched and is ready for control messages...
                 WorkerEvent::SenderReadyForMessages(sender) => {
                     // ... then make the sending side of the summarization thread available to other parts of the GUI.
                     self.sender = Some(sender);
@@ -136,25 +136,16 @@ impl Application for FolsumGui {
 // Define the kinds of states that the worker thread can be in.
 enum WorkerState {
     Starting,
-    ReceiverReadyForMessages(mpsc::Receiver<WorkerInput>),
+    ReceiverReadyForMessages(mpsc::Receiver<GUIMessage>),
 }
 
 // Define the kinds of processing events that can be emitted by the worker thread.
 #[derive(Debug, Clone)]
 pub enum WorkerEvent {
-    // Channel is spawned and sending a "DoWork" WorkerInput will start processing.
-    SenderReadyForMessages(mpsc::Sender<WorkerInput>),
+    // Channel is spawned and sending a "DoWork" GUIMessage will start processing.
+    SenderReadyForMessages(mpsc::Sender<GUIMessage>),
     // Summarization's complete.
     WorkFinished,
-}
-
-// Define the kinds of input events that can occur.
-#[derive(Debug)]
-pub enum WorkerInput {
-    // Start summarizing.
-    StartSummarizing,
-    // Stop summarizing.
-    StopSummarizing,
 }
 
 pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
@@ -186,7 +177,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                         let (sender, receiver) = mpsc::channel(100);
 
                         // Send the sender back to the application
-                        output.send(WorkerEvent::SenderReadyForMessages(sender)).await;
+                        let _ = output.send(WorkerEvent::SenderReadyForMessages(sender)).await;
 
                         // We are ready to receive messages
                         state = WorkerState::ReceiverReadyForMessages(receiver);
@@ -200,8 +191,8 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                         println!("{:?}", input);
 
                         match input {
-                            WorkerInput::StartSummarizing => {
-                                println!("worker loop: WorkerInput::StartSummarizing");
+                            GUIMessage::StartSummarizing => {
+                                println!("worker loop: GUIMessage::StartSummarizing");
                                 // Do some async work...
                                 println!("reset extension counts to zero");
                                 // Recursively iterate through each subdirectory and don't add subdirectories to the result.
@@ -229,9 +220,13 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                                 }
                                 // Finally, we can optionally produce a message to tell the
                                 // `Application` the work is done
-                                output.send(WorkerEvent::WorkFinished).await;
+                                let _  = output.send(WorkerEvent::WorkFinished).await;
                             }
-                            WorkerInput::StopSummarizing => {
+                            GUIMessage::StopSummarizing => {
+                                println!("worker loop: GUIMessage::StopSummarizing(_)")
+                            }
+                            GUIMessage::UpdateCounts(_) => {
+                                println!("worker loop: GUIMessage::UpdateCounts(_)")
                             }
                         }
                     }
