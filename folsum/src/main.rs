@@ -164,13 +164,13 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
 
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let extension_counts_copy = extension_counts.clone();
-    println!("cloned extension counts copy");
+    println!("cloned extension counts copy for thread");
 
     // Start summarizing the given directory in a new thread.
     channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let extension_counts_copy = extension_counts_copy.clone();
-        println!("cloned extension counts copy");
+        println!("cloned extension counts copy for async future");
         async move {
             println!("in thread, doing things");
             let default_extension = OsString::from("No extension");
