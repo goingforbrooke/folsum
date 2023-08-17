@@ -139,7 +139,7 @@ enum WorkerState {
     ReceiverReadyForMessages(mpsc::Receiver<WorkerInput>),
 }
 
-// Define the kinds of processing events that can occur.
+// Define the kinds of processing events that can be emitted by the worker thread.
 #[derive(Debug, Clone)]
 pub enum WorkerEvent {
     // Channel is spawned and sending a "DoWork" WorkerInput will start processing.
