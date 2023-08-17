@@ -95,7 +95,7 @@ impl Application for FolsumGui {
     fn subscription(&self) -> Subscription<GUIMessage> {
         println!("subscription called");
         // Start the worker thread and interpret update events as count update triggers.
-        some_worker(&self.extension_counts).map(GUIMessage::UpdateCounts)
+        summarize_directory(&self.extension_counts).map(GUIMessage::UpdateCounts)
     }
 
     fn view(&self) -> Element<GUIMessage> {
@@ -155,19 +155,17 @@ pub enum WorkerEvent {
     WorkFinished,
 }
 
-pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
+pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
     struct SomeWorker;
-    // Reset file extension counts to zero.
-    *extension_counts.write().unwrap() = HashMap::new();
-
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let extension_counts_copy = extension_counts.clone();
     println!("cloned extension counts copy for thread");
-
     // Start summarizing the given directory in a new thread.
     channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let extension_counts_copy = extension_counts_copy.clone();
+        // Reset file extension counts to zero.
+        *extension_counts_copy.write().unwrap() = HashMap::new();
         println!("cloned extension counts copy for async");
         async move {
             println!("in thread, doing things");
