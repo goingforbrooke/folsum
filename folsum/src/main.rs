@@ -190,7 +190,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
 
                         // We are ready to receive messages
                         state = WorkerState::ReceiverReadyForMessages(receiver);
-                        println!("worker loop: Ready to receive messages");
+                        println!("set worker loop state to ReadyForMessages");
                     }
                     WorkerState::ReceiverReadyForMessages(receiver) => {
                         println!("worker loop state: ReadyForMessages");
