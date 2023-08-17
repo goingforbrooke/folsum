@@ -135,6 +135,7 @@ pub enum WorkerEvent {
 }
 
 // Define the kinds of input events that can occur.
+#[derive(Debug)]
 pub enum WorkerInput {
     // Start summarizing.
     StartSummarizing,
@@ -163,6 +164,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
 
             println!("starting worker loop");
             loop {
+                println!("top of loop");
                 match &mut state {
                     WorkerState::Starting => {
                         println!("worker loop: Starting");
@@ -174,11 +176,14 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
 
                         // We are ready to receive messages
                         state = WorkerState::ReceiverReadyForMessages(receiver);
+                        println!("worker loop: Ready to receive messages");
                     }
                     WorkerState::ReceiverReadyForMessages(receiver) => {
-                        println!("worker loop: Ready");
+                        println!("worker loop state: ReadyForMessages");
                         // Read next input sent from `Application`
                         let input = receiver.select_next_some().await;
+                        println!("INPUT");
+                        println!("{:?}", input);
 
                         match input {
                             WorkerInput::StartSummarizing => {
@@ -200,7 +205,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                                                 let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
                                                 // Increment the counter for known file extensions by one.
                                                 *counter += 1;
-                                                //println!("Added file");
+                                                println!("Added file");
                                             }; //for loop ends
                                         }
                                         Err(e) => {
