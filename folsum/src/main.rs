@@ -170,12 +170,12 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
         async move {
             println!("in thread, doing things");
             let default_extension = OsString::from("No extension");
-            let mut state = WorkerState::Starting;
+            let mut worker_state = WorkerState::Starting;
 
             println!("starting worker loop");
             loop {
                 println!("top of loop");
-                match &mut state {
+                match &mut worker_state {
                     WorkerState::Starting => {
                         println!("worker loop: Starting");
                         // Create channel
@@ -185,11 +185,11 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                         let _ = output.send(WorkerEvent::SenderReadyForMessages(sender)).await;
 
                         // We are ready to receive messages
-                        state = WorkerState::ReceiverReadyForMessages(receiver);
-                        println!("set worker loop state to ReadyForMessages");
+                        worker_state = WorkerState::ReceiverReadyForMessages(receiver);
+                        println!("set worker loop worker_state to ReadyForMessages");
                     }
                     WorkerState::ReceiverReadyForMessages(receiver) => {
-                        println!("worker loop state: ReadyForMessages");
+                        println!("worker loop worker_state: ReadyForMessages");
                         // Read next input sent from `Application`
                         let input = receiver.select_next_some().await;
                         println!("INPUT");
