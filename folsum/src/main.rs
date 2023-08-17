@@ -7,6 +7,7 @@ use std::sync::{Arc, RwLock};
 
 // Iced GUI libraries.
 use iced::executor;
+use iced::futures::channel::mpsc::Sender;
 use iced::widget::{button, container, text, Column, Row, scrollable};
 use iced::{Application, Command, Element, Length, Settings, Theme, Subscription};
 use iced::futures::channel::mpsc;
@@ -29,6 +30,7 @@ pub fn main() -> iced::Result {
 struct FolsumGui {
     // Track the number of times that each file extension is seen.
     extension_counts: Arc<RwLock<HashMap<String, u32>>>,
+    sender: Option<Sender<WorkerInput>>,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +51,7 @@ impl Application for FolsumGui {
         (
             FolsumGui {
                 extension_counts: Arc::new(RwLock::new(HashMap::new())),
+                sender: None,
             },
             Command::none(),
         )
@@ -65,12 +68,22 @@ impl Application for FolsumGui {
         match message {
             // If the user wants to start summarizing...
             GUIMessage::StartSummarizing => {
+                println!("update: received message: StartSummarizing")
             }
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
             }
-            GUIMessage::UpdateCounts(_WorkerEvent) => {
-                println!("update: message: UpdateCounts");
+            GUIMessage::UpdateCounts(WorkerEvent) => match WorkerEvent {
+                // If the worker thread has launched and is ready for conrol messages...
+                WorkerEvent::SenderReadyForMessages(sender) => {
+                    // ... then make the sending side of the summarization thread available to other parts of the GUI.
+                    self.sender = Some(sender);
+                    println!("update: worker thread is ready. Sender half is now available for use")
+                }
+                // If the worker thread has finished summarizing all file extensions...
+                WorkerEvent::WorkFinished => {
+                    println!("update: received message: WorkFinished")
+                }
             }
         };
 
