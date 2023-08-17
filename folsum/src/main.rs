@@ -30,7 +30,7 @@ pub fn main() -> iced::Result {
 struct FolsumGui {
     // Track the number of times that each file extension is seen.
     extension_counts: Arc<RwLock<HashMap<String, u32>>>,
-    sender: Option<Sender<GUIMessage>>,
+    sender: Option<Sender<WorkerInput>>,
 }
 
 #[derive(Debug, Clone)]
@@ -70,8 +70,7 @@ impl Application for FolsumGui {
             // If the user wants to start summarizing...
             GUIMessage::StartSummarizing => {
                 println!("update: received message: StartSummarizing");
-                let thing = self.sender.as_mut().expect("Worker thread sender isn't initialized yet").send(GUIMessage::StartSummarizing);
-                println!("{:?}", thing);
+                let _ = self.sender.as_mut().expect("Worker thread sender isn't initialized yet").send(WorkerInput::StartSummarizing);
             }
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
@@ -138,14 +137,20 @@ impl Application for FolsumGui {
 // Define the kinds of states that the worker thread can be in.
 enum WorkerState {
     Starting,
-    ReceiverReadyForMessages(mpsc::Receiver<GUIMessage>),
+    ReceiverReadyForMessages(mpsc::Receiver<WorkerInput>),
+}
+
+#[derive(Debug)]
+pub enum WorkerInput {
+    StartSummarizing,
+    StopSummarizing,
 }
 
 // Define the kinds of processing events that can be emitted by the worker thread.
 #[derive(Debug, Clone)]
 pub enum WorkerEvent {
     // Channel is spawned and sending a "DoWork" GUIMessage will start processing.
-    SenderReadyForMessages(mpsc::Sender<GUIMessage>),
+    SenderReadyForMessages(mpsc::Sender<WorkerInput>),
     // Summarization's complete.
     WorkFinished,
 }
@@ -193,7 +198,7 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                         println!("{:?}", input);
 
                         match input {
-                            GUIMessage::StartSummarizing => {
+                            WorkerInput::StartSummarizing => {
                                 println!("worker loop: GUIMessage::StartSummarizing");
                                 // Do some async work...
                                 println!("reset extension counts to zero");
@@ -224,11 +229,8 @@ pub fn some_worker(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subs
                                 // `Application` the work is done
                                 let _  = output.send(WorkerEvent::WorkFinished).await;
                             }
-                            GUIMessage::StopSummarizing => {
+                            WorkerInput::StopSummarizing => {
                                 println!("worker loop: GUIMessage::StopSummarizing(_)")
-                            }
-                            GUIMessage::UpdateCounts(_) => {
-                                println!("worker loop: GUIMessage::UpdateCounts(_)")
                             }
                         }
                     }
