@@ -70,7 +70,7 @@ impl Application for FolsumGui {
             // If the user wants to start summarizing...
             GUIMessage::StartSummarizing => {
                 println!("update: received message: StartSummarizing");
-                let _ = self.sender.as_mut().expect("Worker thread sender isn't initialized yet").send(WorkerInput::StartSummarizing);
+                let _ = self.sender.as_mut().expect("Worker thread sender isn't initialized yet").send(WorkerInput::StartWork);
             }
             GUIMessage::StopSummarizing => {
                 println!("update: message: StopSummarizing");
@@ -142,8 +142,8 @@ enum WorkerState {
 
 #[derive(Debug)]
 pub enum WorkerInput {
-    StartSummarizing,
-    StopSummarizing,
+    StartWork,
+    StopWork,
 }
 
 // Define the kinds of processing events that can be emitted by the worker thread.
@@ -162,6 +162,7 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
     println!("cloned extension counts copy for thread");
     // Start summarizing the given directory in a new thread.
     channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
+        let mut worker_state = WorkerState::Starting;
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let extension_counts_copy = extension_counts_copy.clone();
         // Reset file extension counts to zero.
@@ -170,7 +171,6 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
         async move {
             println!("in thread, doing things");
             let default_extension = OsString::from("No extension");
-            let mut worker_state = WorkerState::Starting;
 
             println!("starting worker loop");
             loop {
@@ -196,7 +196,7 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                         println!("{:?}", input);
 
                         match input {
-                            WorkerInput::StartSummarizing => {
+                            WorkerInput::StartWork => {
                                 println!("worker loop: GUIMessage::StartSummarizing");
                                 // Do some async work...
                                 println!("reset extension counts to zero");
@@ -227,7 +227,7 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                                 // `Application` the work is done
                                 let _  = output.send(WorkerEvent::WorkFinished).await;
                             }
-                            WorkerInput::StopSummarizing => {
+                            WorkerInput::StopWork => {
                                 println!("worker loop: GUIMessage::StopSummarizing(_)")
                             }
                         }
