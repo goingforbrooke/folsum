@@ -1348,7 +1348,6 @@ dependencies = [
  "chrono",
  "iced",
  "itertools",
- "rayon",
  "reqwest",
  "rfd",
  "serde",
