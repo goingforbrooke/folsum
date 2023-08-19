@@ -15,6 +15,7 @@ itertools = "0.10.5"
 chrono = "0.4.26"
 reqwest = "0.11.18"
 iced = { version = "0.9.0", features = ["tokio"] }
+rayon = "1.7.0"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
