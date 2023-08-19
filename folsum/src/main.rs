@@ -177,7 +177,7 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                 println!("top of loop");
                 match &mut worker_state {
                     WorkerState::Starting => {
-                        println!("worker loop: Starting");
+                        println!("summarize_directory: WorkerState::Starting");
                         // Create channel
                         let (sender, receiver) = mpsc::channel(100);
 
