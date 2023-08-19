@@ -82,6 +82,10 @@ impl Application for FolsumGui {
                     self.sender = Some(sender);
                     println!("update: worker thread is ready. Sender half is now available for use")
                 }
+                // If the worker thread found a new extension (or added to the count of an existing one)...
+                WorkerEvent::FoundExtension => {
+                    println!("update: FoundExtension")
+                }
                 // If the worker thread has finished summarizing all file extensions...
                 WorkerEvent::WorkFinished => {
                     println!("update: received message: WorkFinished")
@@ -151,6 +155,8 @@ pub enum WorkerInput {
 pub enum WorkerEvent {
     // Channel is spawned and sending a "DoWork" GUIMessage will start processing.
     SenderReadyForMessages(mpsc::Sender<WorkerInput>),
+    // The worker thread added a new extension or increased the count of an existing one, so the GUI should update.
+    FoundExtension,
     // Summarization's complete.
     WorkFinished,
 }
@@ -209,13 +215,16 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                                                 // Extract the file extension from the file's name.
                                                 let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
                                                 let show_ext: String = String::from(file_ext.to_string_lossy());
-                                                // Write-lock the extension counts variable so we can add a file to it.
-                                                let mut unlocked_counts_copy = extension_counts_copy.write().unwrap();
-                                                // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                                let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
-                                                // Increment the counter for known file extensions by one.
-                                                *counter += 1;
-                                                println!("Added file");
+                                                {
+                                                    // Write-lock the extension counts variable so we can add a file to it.
+                                                    let mut unlocked_counts_copy = extension_counts_copy.write().unwrap();
+                                                    // Add newly encountered file extensions to known file extensions with a counter of 0.
+                                                    let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
+                                                    // Increment the counter for known file extensions by one.
+                                                    *counter += 1;
+                                                    println!("Added file");
+                                                }
+                                                let _  = output.send(WorkerEvent::FoundExtension).await;
                                             }; //for loop ends
                                         }
                                         Err(e) => {
