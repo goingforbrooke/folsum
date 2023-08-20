@@ -11,9 +11,9 @@ fn main() {
         drag_and_drop_support: true,
         ..Default::default()
     };
-    eframe::run_native(
-        "Directory Summarizer",
+    let _eframe_instance =  eframe::run_native(
+        "FolSum",
         native_options,
-        Box::new(|cc| Box::new(directory_summarizer::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(folsum::TemplateApp::new(cc))),
     );
 }

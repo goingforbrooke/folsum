@@ -1,5 +1,7 @@
 .DS_Store
-directory_summarizer.code-workspace
-/target
-test_dir/*
+folsum.code-workspace
+target
+folsum/test_dir/*
 .vscode/
+.rust-analyzer.toml
+*folsum_export.csv
