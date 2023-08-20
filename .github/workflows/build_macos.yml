@@ -95,10 +95,26 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-edit
-      - name: Increment minor version in Cargo.toml if on main branch
+      - name: Get the last branch that was merged into the `dev` branch
+        id: get_last_dev_merge
+        # Assume that the branch was merged with `--no-ff`.
+        run: echo "branch_name=$(git log dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Decide whether to bump the minor or patch version
+        id: decide_bump_type
+        run: | 
+          # If the last branch merged with `dev` starts with "fix/"...
+          if [[ ${{ steps.get_last_dev_merge.outputs.branch_name }} == fix/* ]]; then
+            # ... then increment the patch version.
+            echo “bump_type=patch" >> "$GITHUB_OUTPUT”
+          else
+            # Otherwise, assume that the minor version needs incrementation.
+            echo “bump_type=minor" >> "$GITHUB_OUTPUT”
+          fi
+      - name: Increment minor/patch version
         # Gate version bumping to only happen on main branch.
         if: github.ref == 'refs/heads/main'
-        run: cargo set-version --bump minor
+        # Use Cargo Edit to increment the minor/patch version in Cargo.toml.
+        run: cargo set-version --bump ${{ steps.decide_bump_type.outputs.bump_type }}
       - name: Get bumped SemVer version from Cargo.toml
         id: get_bumped_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
