@@ -29,7 +29,7 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 struct FolsumGui {
     // Track the number of times that each file extension is seen.
-    extension_counts: Arc<RwLock<HashMap<String, u32>>>,
+    extension_counts: HashMap<String, u32>,
     sender: Option<Sender<WorkerInput>>,
 }
 
@@ -50,7 +50,7 @@ impl Application for FolsumGui {
     fn new(_flags: ()) -> (FolsumGui, Command<GUIMessage>) {
         (
             FolsumGui {
-                extension_counts: Arc::new(RwLock::new(HashMap::new())),
+                extension_counts: HashMap::new(),
                 // Initialize the application with no worker thread sender because the thread isn't alive yet.
                 sender: None,
             },
@@ -80,15 +80,20 @@ impl Application for FolsumGui {
                 WorkerEvent::SenderReadyForMessages(sender) => {
                     // ... then make the sending side of the summarization thread available to other parts of the GUI.
                     self.sender = Some(sender);
-                    println!("update: worker thread is ready. Sender half is now available for use")
+                    println!("update: worker thread is ready. Sender half is now available for use");
                 }
                 // If the worker thread found a new extension (or added to the count of an existing one)...
-                WorkerEvent::FoundExtension => {
-                    println!("update: FoundExtension")
+                WorkerEvent::FoundExtension(extension_name) => {
+                    println!("update: FoundExtension");
+                    // Add newly encountered file extensions to known file extensions with a counter of 0.
+                    let counter: &mut u32 = self.extension_counts.entry(extension_name).or_insert(0);
+                    // Increment the counter for known file extensions by one.
+                    *counter += 1;
+                    println!("added file extension to counts")
                 }
                 // If the worker thread has finished summarizing all file extensions...
                 WorkerEvent::WorkFinished => {
-                    println!("update: received message: WorkFinished")
+                    println!("update: received message: WorkFinished");
                 }
             }
         };
@@ -99,14 +104,13 @@ impl Application for FolsumGui {
     fn subscription(&self) -> Subscription<GUIMessage> {
         println!("subscription called");
         // Start the worker thread and interpret update events as count update triggers.
-        summarize_directory(&self.extension_counts).map(GUIMessage::UpdateCounts)
+        summarize_directory().map(GUIMessage::UpdateCounts)
     }
 
     fn view(&self) -> Element<GUIMessage> {
         println!("view called");
-        let unlocked_exts = self.extension_counts.read().unwrap();
         // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
-        let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
+        let mut ext_info: Vec<(&String, &u32)> = self.extension_counts.iter().sorted().collect();
         // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
         ext_info.sort_by(|a, b| b.1.cmp(a.1));
 
@@ -156,24 +160,17 @@ pub enum WorkerEvent {
     // Channel is spawned and sending a "DoWork" GUIMessage will start processing.
     SenderReadyForMessages(mpsc::Sender<WorkerInput>),
     // The worker thread added a new extension or increased the count of an existing one, so the GUI should update.
-    FoundExtension,
+    FoundExtension(String),
     // Summarization's complete.
     WorkFinished,
 }
 
-pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>) -> Subscription<WorkerEvent> {
+pub fn summarize_directory() -> Subscription<WorkerEvent> {
     struct SomeWorker;
-    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-    let extension_counts_copy = extension_counts.clone();
-    println!("cloned extension counts copy for thread");
     // Start summarizing the given directory in a new thread.
     channel(std::any::TypeId::of::<SomeWorker>(), 100, move |mut output| { 
         let mut worker_state = WorkerState::Starting;
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let extension_counts_copy = extension_counts_copy.clone();
-        // Reset file extension counts to zero.
-        *extension_counts_copy.write().unwrap() = HashMap::new();
-        println!("cloned extension counts copy for async");
         async move {
             println!("in thread, doing things");
             let default_extension = OsString::from("No extension");
@@ -215,16 +212,8 @@ pub fn summarize_directory(extension_counts: &Arc<RwLock<HashMap<String, u32>>>)
                                                 // Extract the file extension from the file's name.
                                                 let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
                                                 let show_ext: String = String::from(file_ext.to_string_lossy());
-                                                {
-                                                    // Write-lock the extension counts variable so we can add a file to it.
-                                                    let mut unlocked_counts_copy = extension_counts_copy.write().unwrap();
-                                                    // Add newly encountered file extensions to known file extensions with a counter of 0.
-                                                    let counter: &mut u32 = unlocked_counts_copy.entry(show_ext).or_insert(0);
-                                                    // Increment the counter for known file extensions by one.
-                                                    *counter += 1;
-                                                    println!("Added file");
-                                                }
-                                                let _  = output.send(WorkerEvent::FoundExtension).await;
+                                                println!("found file");
+                                                let _  = output.send(WorkerEvent::FoundExtension(show_ext)).await;
                                             }; //for loop ends
                                         }
                                         Err(e) => {
