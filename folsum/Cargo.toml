@@ -17,6 +17,13 @@ eframe = { version = "0.22.0", default-features = false, features = [
 ] }
 log = "0.4"
 
+walkdir = "2.3.3"
+rfd = "0.11.4"
+itertools = "0.11.0"
+egui_extras = "0.22.0"
+chrono = "0.4.26"
+dirs = "5.0.1"
+
 # Serde for app persistence.
 serde = { version = "1.0.183", features = ["derive"] }
 
@@ -34,14 +41,6 @@ opt-level = 2 # fast and small wasm
 # Optimize all dependencies, even in debug builds:
 [profile.dev.package."*"]
 opt-level = 2
-
-
-walkdir = "2.3.3"
-rfd = "0.11.4"
-itertools = "0.11.0"
-egui_extras = "0.22.0"
-chrono = "0.4.26"
-dirs = "5.0.1"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
