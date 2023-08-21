@@ -226,7 +226,7 @@ impl eframe::App for TemplateApp {
                     let export_file: Arc<Mutex<Option<PathBuf>>> = Arc::clone(&export_file);
                     thread::spawn(move || {
                         // Make a place to put extension counts that'll be written to the CSV file and include column headers.
-                        let mut csv_rows = String::from("Occurrences, File Extension\n");
+                        let mut csv_rows = String::from("File Extension, Occurrences\n");
                         // Lock the extension counts so we can read them into CSV format.
                         let unlocked_extension_counts = extension_counts_copy.lock().unwrap();
                         for (extension_type, extension_count) in unlocked_extension_counts.iter() {
