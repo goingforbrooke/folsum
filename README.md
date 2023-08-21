@@ -14,6 +14,18 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ## Contributing
 
+### Branch Naming Conventions
+
+| ❓ | Name | Purpose | CI/CD Trigger |
+| ------------- | ------------- | ------------- | ------------- |
+| 📦 | `main` | Make [releases](https://github.com/goingforbrooke/folsum/releases) | [Increment minor/patch version and publish a standard release](https://github.com/goingforbrooke/folsum/blob/cicd/increment_minor/.github/workflows/build_macos.yml) |
+| 🛠️ | `dev` | Development | Bump minor version after merge to `main` |
+| ✨ | `feat/*` | Add features  | Bump minor version after merge to `main` |
+| 🪲 | `fix/*` | Fix bugs | Bump patch version after merge to `dev`, then `main` |
+| 👷🏼‍️ | `cicd/*` | Develop and test CI/CD pipelines | Skip bumping minor/patch version and publish a draft release |
+| 📚 | `doc/*` | Change `README.md` | Bump minor version after merge to `main` |
+| 🧹 | `internal/*` | Refactoring and quality of life improvements | Bump minor version after merge to `main` |
+
 ### Dependencies
 
 Adding dependencies with `xtask` looks a little different than normal.
@@ -88,7 +100,9 @@ We use [Cargo Bundle](https://github.com/burtonageo/cargo-bundle) to [create](ht
 
 The final `*.app` bundle is [codesigned and notarized](https://federicoterzi.com/blog/automatic-code-signing-and-notarization-for-macos-apps-using-github-actions/) so MacOS doesn't think that it's malware.
 
-If the commit was pushed to the `main` branch, then we use [Cargo Edit](https://github.com/killercup/cargo-edit) to increment the [SemVer](https://semver.org) minor version in `Cargo.toml` by one and commit the change to the repo. The new version number's used to tag the commit and name the [release](https://github.com/goingforbrooke/folsum/releases).
+If the commit was pushed to the `main` branch, then we bump the minor version or the patch version. The type of bump depends on whether the last branch merged to `dev` starts with `fix/*`. If it does, then we use [Cargo Edit](https://github.com/killercup/cargo-edit) to increment the [SemVer](https://semver.org) patch version in `Cargo.toml` by one. Otherwise, we default to incrementing the minor version in `Cargo.toml` by one.
+
+Whether the minor or patch version was incremented, the change to `Cargo.toml`'s committed to the repo. Then we tag the commit with the new version number and use that tag to name the new [release](https://github.com/goingforbrooke/folsum/releases). It's imperative that the version changes for each release because release names must be unique. This ensures that previous releases aren't overwritten.
 
 Otherwise, if the commit was pushed to a branch starting with `cicd`, then we skip incrementing the minor version. In addition, pushes to any non-`main` branch (including those starting with `cicd`) will create a "draft" release (which won't be visible to others in the FolSum repo's "Releases" page because it's a draft release) instead of a regular release. Note that this doesn't override the top-level branch filter-- builds are only triggered by pushes to `main` or branches that start with `cicd`. These draft releases won't fail when the release name (defined by the non-incremented SemVer tag) already exists. This makes it easy to hack on the CI/CD pipeline without messing up production builds.
 

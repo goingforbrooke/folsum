@@ -16,6 +16,9 @@ jobs:
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
       - name: Set up sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Install Rust toolchain with M1 chip support
@@ -95,15 +98,33 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-edit
-      - name: Increment minor version in Cargo.toml if on main branch
-        # Gate version bumping to only happen on main branch.
-        if: github.ref == 'refs/heads/main'
-        run: cargo set-version --bump minor
+      - name: Get the last branch that was merged into the `dev` branch
+        id: get_last_dev_merge
+        # Assume that the branch was merged with `--no-ff`.
+        run: echo "branch_name=$(git log origin/dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Decide whether to bump the minor or patch version
+        id: decide_bump_type
+        run: | 
+          # If the last branch merged with `dev` starts with "fix/"...
+          if [[ "${{ steps.get_last_dev_merge.outputs.branch_name }}" == fix/* ]]; then
+            # ... then increment the patch version.
+            echo "bump_type=patch"  >> "$GITHUB_OUTPUT"
+          else
+            # Otherwise, assume that the minor version needs incrementation.
+            echo "bump_type=minor" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Increment minor/patch version
+        # Gate version bumping to only happen on main branch and CI/CD branches.
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cicd')
+        # Use Cargo Edit to increment the minor/patch version of the project (and not xtask) in Cargo.toml.
+        run: cargo set-version --bump ${{ steps.decide_bump_type.outputs.bump_type }} --package ${{ steps.get_repo_name.outputs.repo_name }}
       - name: Get bumped SemVer version from Cargo.toml
         id: get_bumped_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
       - name: Commit minor version bump
         uses: stefanzweifel/git-auto-commit-action@v4
+        # Gate version bumping to only happen on main branch because CI/CD branch pushes are just for testing.
+        if: github.ref == 'refs/heads/main'
         with:
           file_pattern: Cargo.toml
           commit_message: Increment minor version from ${{ steps.get_current_semver.outputs.semver }} to ${{ steps.get_bumped_semver.outputs.semver }}
@@ -112,7 +133,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.get_bumped_semver.outputs.semver }}
-          # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate releases.
+          # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate release names.
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           artifacts: ${{ steps.get_repo_name.outputs.repo_name }}.zip
