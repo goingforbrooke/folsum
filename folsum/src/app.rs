@@ -12,6 +12,7 @@ use chrono::{DateTime, Local};
 use dirs::home_dir;
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
+#[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 use walkdir::WalkDir;
 
@@ -196,6 +197,7 @@ impl eframe::App for TemplateApp {
 
                 ui.separator();
 
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
