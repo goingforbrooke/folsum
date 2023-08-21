@@ -19,21 +19,29 @@ log = "0.4"
 
 # Serde for app persistence.
 serde = { version = "1.0.183", features = ["derive"] }
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.10"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies, even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
+
+
 walkdir = "2.3.3"
 rfd = "0.11.4"
 itertools = "0.11.0"
 egui_extras = "0.22.0"
 chrono = "0.4.26"
 dirs = "5.0.1"
-
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-tracing-subscriber = "0.3.17"
-
-# web:
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-console_error_panic_hook = "0.1.7"
-tracing-wasm = "0.2.1"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
