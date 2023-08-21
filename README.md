@@ -14,6 +14,18 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ## Contributing
 
+### Branch Naming Conventions
+
+| ❓ | Name | Purpose | CI/CD Trigger |
+| ------------- | ------------- | ------------- | ------------- |
+| 📦 | `main` | Make [releases](https://github.com/goingforbrooke/folsum/releases) | [Increment minor/patch version and publish a standard release](https://github.com/goingforbrooke/folsum/blob/cicd/increment_minor/.github/workflows/build_macos.yml) |
+| 🛠️ | `dev` | Development | Bump minor version after merge to `main` |
+| ✨ | `feat/*` | Add features  | Bump minor version after merge to `main` |
+| 🪲 | `fix/*` | Fix bugs | Bump patch version after merge to `dev`, then `main` |
+| 👷🏼‍️ | `cicd/*` | Develop and test CI/CD pipelines | Skip bumping minor/patch version and publish a draft release |
+| 📚 | `doc/*` | Change `README.md` | Bump minor version after merge to `main` |
+| 🧹 | `internal/*` | Refactoring and quality of life improvements | Bump minor version after merge to `main` |
+
 ### Dependencies
 
 Adding dependencies with `xtask` looks a little different than normal.
