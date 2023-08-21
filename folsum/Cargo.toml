@@ -17,7 +17,8 @@ eframe = { version = "0.22.0", default-features = false, features = [
 ] }
 log = "0.4"
 
-serde = { version = "1.0.183", features = ["derive"] } # You only need this if you want app persistence
+# Serde for app persistence.
+serde = { version = "1.0.183", features = ["derive"] }
 walkdir = "2.3.3"
 rfd = "0.11.4"
 itertools = "0.11.0"
