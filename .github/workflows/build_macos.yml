@@ -101,7 +101,7 @@ jobs:
       - name: Get the last branch that was merged into the `dev` branch
         id: get_last_dev_merge
         # Assume that the branch was merged with `--no-ff`.
-        run: echo "branch_name=$(git log dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
+        run: echo "branch_name=$(git log origin/dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
       - name: Decide whether to bump the minor or patch version
         id: decide_bump_type
         run: | 
