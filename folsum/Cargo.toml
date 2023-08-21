@@ -15,6 +15,7 @@ eframe = { version = "0.22.0", default-features = false, features = [
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
+log = "0.4"
 
 serde = { version = "1.0.183", features = ["derive"] } # You only need this if you want app persistence
 walkdir = "2.3.3"
