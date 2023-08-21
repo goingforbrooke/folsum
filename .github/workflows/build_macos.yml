@@ -114,7 +114,7 @@ jobs:
             echo "bump_type=minor" >> "$GITHUB_OUTPUT"
           fi
       - name: Increment minor/patch version
-        # Gate version bumping to only happen on main branch.
+        # Gate version bumping to only happen on main branch and CI/CD branches.
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cicd')
         # Use Cargo Edit to increment the minor/patch version in Cargo.toml.
         run: cargo set-version --bump ${{ steps.decide_bump_type.outputs.bump_type }}
