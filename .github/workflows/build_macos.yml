@@ -16,6 +16,9 @@ jobs:
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
       - name: Set up sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: Install Rust toolchain with M1 chip support
