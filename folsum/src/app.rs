@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::OsStr;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
