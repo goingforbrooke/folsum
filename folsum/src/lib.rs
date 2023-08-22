@@ -1,4 +1,4 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
-mod app;
-pub use app::FolsumGui;
+mod gui;
+pub use gui::FolsumGui;
