@@ -6,14 +6,15 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{DateTime, Local};
 use dirs::home_dir;
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
+#[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 use walkdir::WalkDir;
+use web_time::{Duration, Instant, SystemTime};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -196,12 +197,13 @@ impl eframe::App for TemplateApp {
 
                 ui.separator();
 
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
                     // Prepend the date (YY_MM_DD) to the filename.
                     let export_filename = format!("{formatted_date}_folsum_export");
-                    // Open the "Save export file as" dialogj
+                    // Open the "Save export file as" dialog.
                     let starting_directory = match export_file.lock().unwrap().clone() {
                         // Open the export dialog in the same dir as the previous export.
                         Some(export_file) => export_file.parent().unwrap().to_path_buf(),
