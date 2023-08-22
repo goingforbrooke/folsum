@@ -203,7 +203,7 @@ impl eframe::App for TemplateApp {
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
                     // Prepend the date (YY_MM_DD) to the filename.
                     let export_filename = format!("{formatted_date}_folsum_export");
-                    // Open the "Save export file as" dialogj
+                    // Open the "Save export file as" dialog.
                     let starting_directory = match export_file.lock().unwrap().clone() {
                         // Open the export dialog in the same dir as the previous export.
                         Some(export_file) => export_file.parent().unwrap().to_path_buf(),
