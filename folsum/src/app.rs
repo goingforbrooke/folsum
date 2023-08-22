@@ -6,7 +6,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime};
 
 use chrono::{DateTime, Local};
 use dirs::home_dir;
@@ -15,6 +14,7 @@ use itertools::Itertools;
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 use walkdir::WalkDir;
+use web_time::{Duration, Instant, SystemTime};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
