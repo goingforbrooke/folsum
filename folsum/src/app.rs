@@ -24,7 +24,7 @@ use web_time::SystemTime;
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // Define default fields when deserializing old state.
-pub struct TemplateApp {
+pub struct FolsumGui {
     // Unique file extensions and the number of times each one was encountered.
     #[serde(skip)]
     extension_counts: Arc<Mutex<HashMap<String, u32>>>,
@@ -44,7 +44,7 @@ pub struct TemplateApp {
     time_taken: Arc<Mutex<Duration>>,
 }
 
-impl Default for TemplateApp {
+impl Default for FolsumGui {
     fn default() -> Self {
         Self {
             extension_counts: Arc::new(Mutex::new(HashMap::new())),
@@ -57,7 +57,7 @@ impl Default for TemplateApp {
     }
 }
 
-impl TemplateApp {
+impl FolsumGui {
     // Called once before the first frame.
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Customized the look at feel of egui using `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
@@ -72,7 +72,7 @@ impl TemplateApp {
     }
 }
 
-impl eframe::App for TemplateApp {
+impl eframe::App for FolsumGui {
     // Called by the framework to save state before shutdown.
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, eframe::APP_KEY, self);
