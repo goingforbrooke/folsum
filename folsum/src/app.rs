@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
