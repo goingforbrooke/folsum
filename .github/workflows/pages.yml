@@ -18,6 +18,10 @@ permissions:
 jobs:
   build-github-pages:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # Run job in `folsum/folsum/` because `trunk` doesn't have a path parameter.
+        working-directory: folsum
     steps:
       - uses: actions/checkout@v2 # repo checkout
       - uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
