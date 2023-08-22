@@ -30,7 +30,7 @@ jobs:
         uses: Swatinem/rust-cache@v1
       - name: Download and install Trunk binary
         run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-; pwd; ls;
-        # Install Trunk in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
+        # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Build # build
         # "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
@@ -38,13 +38,15 @@ jobs:
         # this is necessary for github pages where the site is deployed to username.github.io/repo_name and all files must be requested
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
+        # Create webfiles in `/home/runner/work/folsum/folsum/folsum/dist/`.
         run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"; pwd; ls;
-        # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
+        # Run build command in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist
+          # Expect webfiles to be in `/home/runner/work/folsum/folsum/folsum/dist/`.
+          folder: folsum/dist/
           # this option will not maintain any history of your previous pages deployment
           # set to false if you want all page build to be committed to your gh-pages branch history
           single-commit: true
