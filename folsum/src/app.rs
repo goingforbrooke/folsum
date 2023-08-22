@@ -79,7 +79,7 @@ impl eframe::App for TemplateApp {
     }
 
     // Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             extension_counts,
             total_files,
@@ -103,7 +103,7 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        frame.close();
+                        _frame.close();
                     }
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
