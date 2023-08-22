@@ -29,7 +29,7 @@ jobs:
       - name: Rust Cache # cache the rust build artefacts
         uses: Swatinem/rust-cache@v1
       - name: Download and install Trunk binary
-        run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-; pwd; ls;
+        run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
         # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Build # build
@@ -39,7 +39,7 @@ jobs:
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
         # Create webfiles in `/home/runner/work/folsum/folsum/folsum/dist/`.
-        run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}"; pwd; ls;
+        run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}";
         # Run build command in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Deploy
