@@ -1,19 +1,25 @@
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
+#[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+#[cfg(not(target_arch = "wasm32"))]
 use chrono::{DateTime, Local};
+#[cfg(not(target_arch = "wasm32"))]
 use dirs::home_dir;
 use egui_extras::{TableBuilder, Column};
 use itertools::Itertools;
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 use walkdir::WalkDir;
-use web_time::{Duration, Instant, SystemTime};
+use web_time::{Duration, Instant};
+#[cfg(not(target_arch = "wasm32"))]
+use web_time::SystemTime;
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -73,11 +79,12 @@ impl eframe::App for TemplateApp {
     }
 
     // Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             extension_counts,
             total_files,
             summarization_path,
+            #[cfg(not(target_arch = "wasm32"))]
             export_file,
             summarization_start,
             time_taken,
@@ -96,7 +103,7 @@ impl eframe::App for TemplateApp {
                 #[cfg(not(target_arch = "wasm32"))]
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
-                        frame.close();
+                        _frame.close();
                     }
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
