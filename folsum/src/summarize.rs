@@ -132,6 +132,7 @@ mod tests {
         }
         println!("mocked contents: {:?}", mock_directory);
         println!("summarized contents: {:?}", unlocked_extension_counts);
+        // todo: Clean up test directories whether tests fail or succeed.
         // Cleanup: Recursively remove mocked subdirectories.
         let _delete_result = fs::remove_dir_all(&test_dir);
     }
