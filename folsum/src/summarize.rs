@@ -69,7 +69,7 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     // Test-related dependencies.
     use std::collections::HashMap;
     use std::fs;

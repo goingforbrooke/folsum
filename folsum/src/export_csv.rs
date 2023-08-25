@@ -35,3 +35,16 @@ pub fn export_csv(export_file: &Arc<Mutex<Option<PathBuf>>>, extension_counts: &
     });
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+
+    // Test helpers.
+    use crate::summarize::tests::generate_mock_directory;
+
+    #[test]
+    fn test_csv_export() {
+        // Mock some subdirectories that contain various files with different extensions.
+        let answer_key = generate_mock_directory(&test_dir).unwrap();
+    }
+}
