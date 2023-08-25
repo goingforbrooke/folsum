@@ -86,7 +86,9 @@ mod tests {
         let mut current_path = test_dir.clone();
         // Create a test directory in the current directory.
         fs::create_dir(&current_path)?;
+        // Define the file extensions that'll be used to create (empty) test files.
         let extensions = vec!["py", "pdf", "doc", "zip", "xml"];
+        // Keep track of how many files of each extension are created.
         let mut extension_counts: HashMap<String, u32> = HashMap::new();
         // Create subdirectories with a depth of ten.
         for subdir_depth in 1..=10 {
@@ -115,7 +117,7 @@ mod tests {
         // Mock some subdirectories that contain various files with different extensions.
         let mock_directory = generate_mock_directory(&test_dir).unwrap();
 
-        // Mock global state mutated by `summarize_directory`.
+        // Mock global state that's mutated by `summarize_directory`.
         let extension_counts = Arc::new(Mutex::new(HashMap::new()));
         let summarization_path = Arc::new(Mutex::new(Some(test_dir.clone())));
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
