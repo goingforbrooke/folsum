@@ -125,13 +125,8 @@ mod tests {
         thread::sleep(Duration::from_secs(1));
         let unlocked_extension_counts = extension_counts.lock().unwrap();
         for (found_extension, counts) in unlocked_extension_counts.iter() {
-            println!("ext: {}", found_extension);
-            println!("attempt: {}", counts);
-            println!("answer: {}", &mock_directory[found_extension]);
             assert_eq!(&mock_directory[found_extension], counts);
         }
-        println!("mocked contents: {:?}", mock_directory);
-        println!("summarized contents: {:?}", unlocked_extension_counts);
         // todo: Clean up test directories whether tests fail or succeed.
         // Cleanup: Recursively remove mocked subdirectories.
         let _delete_result = fs::remove_dir_all(&test_dir);
