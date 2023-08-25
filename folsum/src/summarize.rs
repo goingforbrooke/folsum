@@ -113,6 +113,7 @@ mod tests {
 
     #[test]
     fn test_summarization() {
+        // Create the test directory in `./test-dir`.
         let test_dir = PathBuf::from("test_dir");
         // Mock some subdirectories that contain various files with different extensions.
         let mock_directory = generate_mock_directory(&test_dir).unwrap();
@@ -123,6 +124,7 @@ mod tests {
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
+        // Summarize the test directory so we can compare its output with the answer key.
         let _summarization_result = summarize_directory(&summarization_path,
                                                         &extension_counts,
                                                         &summarization_start,
