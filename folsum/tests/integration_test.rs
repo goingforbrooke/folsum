@@ -32,7 +32,7 @@ fn test_summarization_and_export() {
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
     let unlocked_extension_counts = extension_counts.lock().unwrap();
-    // For each file extension, ensure that the number of files found 
+    // For each file extension, ensure that the number of files found matches the actual number of files.
     for (found_extension, counts) in unlocked_extension_counts.iter() {
         assert_eq!(&actual_extensions[found_extension], counts);
     }
