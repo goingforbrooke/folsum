@@ -116,7 +116,7 @@ mod tests {
         // Create the test directory in `./test-dir`.
         let test_dir = PathBuf::from("test_dir");
         // Mock some subdirectories that contain various files with different extensions.
-        let mock_directory = generate_mock_directory(&test_dir).unwrap();
+        let answer_key = generate_mock_directory(&test_dir).unwrap();
 
         // Mock global state that's mutated by `summarize_directory`.
         let extension_counts = Arc::new(Mutex::new(HashMap::new()));
@@ -133,7 +133,7 @@ mod tests {
         thread::sleep(Duration::from_secs(1));
         let unlocked_extension_counts = extension_counts.lock().unwrap();
         for (found_extension, counts) in unlocked_extension_counts.iter() {
-            assert_eq!(&mock_directory[found_extension], counts);
+            assert_eq!(&answer_key[found_extension], counts);
         }
         // todo: Clean up test directories whether tests fail or succeed.
         // Cleanup: Recursively remove mocked subdirectories.
