@@ -82,7 +82,6 @@ mod tests {
     use crate::summarize_directory;
 
 
-
     #[test]
     fn test_summarization() {
         // Create the test directory in `./test-dir`.
