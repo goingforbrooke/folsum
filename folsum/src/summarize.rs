@@ -132,7 +132,7 @@ mod tests {
         // Wait a bit so the summarization thread has a chance to do it's thing.
         thread::sleep(Duration::from_secs(1));
         let unlocked_extension_counts = extension_counts.lock().unwrap();
-        // For each file extension, ensure that the number of files found with that extension is accurate.
+        // For each file extension, ensure that the number of files found 
         for (found_extension, counts) in unlocked_extension_counts.iter() {
             assert_eq!(&answer_key[found_extension], counts);
         }
@@ -140,5 +140,4 @@ mod tests {
         // Cleanup: Recursively remove mocked subdirectories.
         let _delete_result = fs::remove_dir_all(&test_dir);
     }
-
 }
