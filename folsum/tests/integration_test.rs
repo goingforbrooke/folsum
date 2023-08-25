@@ -47,6 +47,11 @@ fn test_summarization_and_export() {
     let _result = folsum::export_csv(&mocked_export_file, &extension_counts);
     // Extract the content of the exported CSV.
     let exported_counts = read_csv_to_hashmap(export_file);
+    // For each file extension, ensure that the number of files found 
+    for (summarized_extension, counts) in exported_counts.unwrap().iter() {
+        // For each exported file extension, ensure that the number of files found matches the actual number of files.
+        assert_eq!(&actual_extensions[summarized_extension], counts);
+    }
     
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
