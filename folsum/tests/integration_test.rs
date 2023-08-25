@@ -16,7 +16,7 @@ fn test_summarization_and_export() {
     // Create the test directory in `./test-dir`.
     let test_dir = PathBuf::from("test_dir");
     // Mock some subdirectories that contain various files with different extensions.
-    let extension_answers = generate_mock_directory(&test_dir).unwrap();
+    let actual_extensions = generate_mock_directory(&test_dir).unwrap();
 
     // Mock global state that's mutated by `summarize_directory`.
     let extension_counts = Arc::new(Mutex::new(HashMap::new()));
@@ -34,7 +34,7 @@ fn test_summarization_and_export() {
     let unlocked_extension_counts = extension_counts.lock().unwrap();
     // For each file extension, ensure that the number of files found 
     for (found_extension, counts) in unlocked_extension_counts.iter() {
-        assert_eq!(&extension_answers[found_extension], counts);
+        assert_eq!(&actual_extensions[found_extension], counts);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
