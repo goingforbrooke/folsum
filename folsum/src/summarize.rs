@@ -88,11 +88,14 @@ mod tests {
         fs::create_dir(&current_path)?;
         let extensions = vec!["py", "pdf", "doc", "zip", "xml"];
         let mut extension_counts: HashMap<String, u32> = HashMap::new();
+        // Create subdirectories with a depth of ten.
         for subdir_depth in 1..=10 {
+            // Name each subdirectory for its depth.
             current_path.push(format!("subdir_{}", subdir_depth));
             fs::create_dir(&current_path)?;
+            // Create a number of empty files in each subdirectory equal to the subdirectory depth.
             for counter in 1..subdir_depth {
-                // Pick the file extension for this dummy file based off of how deep the subdir is.
+                // Pick a file extension for this file based off of how deep the subdirectory is.
                 let extension = &extensions[counter % extensions.len()];
                 let filename = format!("file_{}.{}", counter, extension);
                 let file_path = current_path.join(filename);
@@ -102,6 +105,7 @@ mod tests {
                 *extension_counts.entry(extension.to_string()).or_insert(0) += 1;
             }
         }
+        // Return the number of files created for each extension as a test "answer key."
         Ok(extension_counts)
     }
 
