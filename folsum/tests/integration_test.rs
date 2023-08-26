@@ -63,7 +63,7 @@ fn read_csv_to_hashmap(export_file: PathBuf) -> io::Result<HashMap<String, u32>>
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
-    // For each line in the CSV export...
+    // Skip the first line in the CSV file because it's headers.
     for line in reader.lines().skip(1) {
         let line = line?;
         // Separate each line on commas.
