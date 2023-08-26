@@ -64,7 +64,7 @@ fn read_csv_to_hashmap(export_file: PathBuf) -> io::Result<HashMap<String, u32>>
     let reader = BufReader::new(file);
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
     // For each line in the CSV export...
-    for line in reader.lines() {
+    for line in reader.lines().skip(1) {
         let line = line?;
         // Separate each line on commas.
         let mut parts = line.splitn(2, ',');
