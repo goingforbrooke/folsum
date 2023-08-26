@@ -64,10 +64,10 @@ fn read_csv_to_hashmap(export_file: PathBuf) -> io::Result<HashMap<String, u32>>
     let reader = BufReader::new(file);
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
     // Skip the first line in the CSV file because it's headers.
-    for line in reader.lines().skip(1) {
-        let line = line?;
+    for csv_line in reader.lines().skip(1) {
+        let csv_line = csv_line?;
         // Separate each line on commas.
-        let mut parts = line.splitn(2, ',');
+        let mut parts = csv_line.splitn(2, ',');
         // Assume that the extension name is the first part of the line.
         let extension_name = parts.next().unwrap().to_string();
         // Assume that the number of times the extension was seen is the first part of the line.
