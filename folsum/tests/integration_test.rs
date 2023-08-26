@@ -64,7 +64,7 @@ fn test_summarization_and_export() {
 }
 
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
-    let file = File::open(export_file)?;
+    let file = File::open(export_file).unwrap();
     let mut reader = BufReader::new(file);
     let mut reader_buffer = String::new();
     let csv_headers = reader.read_line(&mut reader_buffer)?.to_string();
