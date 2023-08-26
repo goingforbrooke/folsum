@@ -59,6 +59,17 @@ fn test_summarization_and_export() {
     let _delete_result = fs::remove_dir_all(&test_dir);
 }
 
+fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
+    let file = File::open(export_file)?;
+    let mut reader = BufReader::new(file);
+    let mut reader_buffer = String::new();
+    let csv_headers = reader.read_line(&mut reader_buffer)?.to_string();
+    let mut parts = csv_headers.splitn(2, ',');
+    let first_header = parts.next().unwrap();
+    let second_header = parts.next().unwrap();
+    Ok((first_header.to_string(), second_header.to_string()))
+}
+
 fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
