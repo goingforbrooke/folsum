@@ -45,7 +45,7 @@ fn test_summarization_and_export() {
     // Export summarization results of the mocked directory to CSV.
     let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
     // Extract the content of the exported CSV.
-    let exported_counts = read_csv_to_hashmap(export_file.clone());
+    let exported_counts = read_csv_contents(export_file.clone());
     // For each file extension, ensure that the number of files found 
     for (summarized_extension, counts) in exported_counts.unwrap().iter() {
         // For each exported file extension, ensure that the number of files found matches the actual number of files.
@@ -59,7 +59,7 @@ fn test_summarization_and_export() {
     let _delete_result = fs::remove_dir_all(&test_dir);
 }
 
-fn read_csv_to_hashmap(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
+fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
