@@ -1,9 +1,9 @@
-.DS_Store
-folsum.code-workspace
-target
-folsum/test_dir/*
-.vscode/
-.rust-analyzer.toml
-*folsum_export.csv
 dist/
 export_test.csv
+folsum.code-workspace
+folsum/test_dir/*
+*folsum_export.csv
+.rust-analyzer.toml
+target
+.DS_Store
+.vscode/
