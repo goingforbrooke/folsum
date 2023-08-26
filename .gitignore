@@ -6,3 +6,4 @@ folsum/test_dir/*
 .rust-analyzer.toml
 *folsum_export.csv
 dist/
+export_test.csv
