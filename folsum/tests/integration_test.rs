@@ -44,6 +44,7 @@ fn test_summarization_and_export() {
     let mocked_export_file = Arc::new(Mutex::new(Some(export_file.clone())));
     // Export summarization results of the mocked directory to CSV.
     let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
+    // todo: Check if the CSV export file exists first.
     // Extract header row from exported CSV.
     let exported_headers = read_csv_headers(export_file.clone()).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
