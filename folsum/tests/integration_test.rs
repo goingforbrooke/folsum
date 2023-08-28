@@ -45,6 +45,8 @@ fn test_summarization_and_export() {
     // Export summarization results of the mocked directory to CSV.
     let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
     // todo: Check if the CSV export file exists first.
+    // Wait a sec for the export to run so the export file exists before we try reading from it.
+    thread::sleep(Duration::from_secs(1));
     // Extract header row from exported CSV.
     let exported_headers = read_csv_headers(export_file.clone()).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
