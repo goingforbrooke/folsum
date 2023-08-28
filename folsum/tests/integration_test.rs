@@ -98,7 +98,7 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
     Ok(extension_counts)
 }
 
-pub fn generate_mock_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
+fn generate_mock_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
     let mut current_path = test_dir.clone();
     // Create a test directory in the current directory.
     fs::create_dir(&current_path)?;
