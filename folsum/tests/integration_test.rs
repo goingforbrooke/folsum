@@ -69,12 +69,13 @@ fn test_summarization_and_export() {
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
     let file = File::open(export_file).unwrap();
     let mut reader = BufReader::new(file);
-    let mut csv_headers = String::new();
+    let mut column_headers = String::new();
     // Read a line of text into the buffer.
-    let _read_attempt = reader.read_line(&mut csv_headers)?;
-    let mut parts = csv_headers.splitn(2, ',');
-    let first_header = parts.next().unwrap();
-    let second_header = parts.next().unwrap();
+    let _read_attempt = reader.read_line(&mut column_headers)?;
+    // Remove newline character from end of line.
+    let mut parts = column_headers.splitn(2, ',');
+    let first_header = parts.next().unwrap().trim();
+    let second_header = parts.next().unwrap().trim();
     Ok((first_header.to_string(), second_header.to_string()))
 }
 
