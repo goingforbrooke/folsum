@@ -100,12 +100,12 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
 
 fn generate_mock_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
     let mut current_path = test_dir.clone();
+    // Keep track of how many files of each extension are created.
+    let mut extension_counts: HashMap<String, u32> = HashMap::new();
     // Create a test directory in the current directory.
     fs::create_dir(&current_path)?;
     // Define the file extensions that'll be used to create (empty) test files.
     let extensions = vec!["py", "pdf", "doc", "zip", "xml"];
-    // Keep track of how many files of each extension are created.
-    let mut extension_counts: HashMap<String, u32> = HashMap::new();
     // Create subdirectories with a depth of ten.
     for subdir_depth in 1..=10 {
         // Name each subdirectory for its depth.
