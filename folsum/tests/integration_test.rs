@@ -128,7 +128,7 @@ fn create_test_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, 
 
 fn cleanup_test_directory(test_dir: &PathBuf) -> std::io::Result<()> {
     let directory_path = test_dir.clone();
-    // Recursively remove mocked subdirectories.
+    // Recursively delete mocked subdirectories.
     let _delete_result = fs::remove_dir_all(&directory_path);
     Ok(())
 }
