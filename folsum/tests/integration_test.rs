@@ -16,7 +16,7 @@ fn test_summarization_and_export() {
     // Create the test directory in `./test-dir`.
     let test_dir = PathBuf::from("test_dir");
     // Mock some subdirectories that contain various files with different extensions.
-    let actual_extensions = generate_mock_directory(&test_dir).unwrap();
+    let actual_extensions = create_test_directory(&test_dir).unwrap();
 
     // Mock global state that's mutated by `summarize_directory`.
     let extension_counts = Arc::new(Mutex::new(HashMap::new()));
@@ -97,7 +97,7 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
     Ok(extension_counts)
 }
 
-fn generate_mock_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
+fn create_test_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
     let mut current_path = test_dir.clone();
     // Keep track of how many files of each extension are created.
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
