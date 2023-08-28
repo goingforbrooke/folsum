@@ -62,8 +62,7 @@ fn test_summarization_and_export() {
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
     // todo: Clean up mocked test directory whether tests fail or succeed.
-    // Cleanup: Recursively remove mocked subdirectories.
-    let _delete_result = fs::remove_dir_all(&test_dir);
+    let _cleanup_result = cleanup_test_directory(&test_dir);
 }
 
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
@@ -125,4 +124,11 @@ fn generate_mock_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String
     }
     // Return the number of files created for each extension as a test "answer key."
     Ok(extension_counts)
+}
+
+fn cleanup_test_directory(test_dir: &PathBuf) -> std::io::Result<()> {
+    let directory_path = test_dir.clone();
+    // Recursively remove mocked subdirectories.
+    let _delete_result = fs::remove_dir_all(&directory_path);
+    Ok(())
 }
