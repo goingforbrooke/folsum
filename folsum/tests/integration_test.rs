@@ -12,6 +12,7 @@ use folsum;
 
 #[test]
 fn test_summarization_and_export() {
+    // Test Summarization /////////////////////////////////////////////////////////////////////////
     // Create nested directories with empty test files.
     let actual_extensions = TestFiles::new().unwrap();
 
@@ -30,6 +31,7 @@ fn test_summarization_and_export() {
     thread::sleep(Duration::from_secs(1));
     // Test: Check if the file count for each summarized extension is accurate.
     verify_extension_counts(&extension_counts.lock().unwrap(), &actual_extensions);
+    // Test CSV Export ////////////////////////////////////////////////////////////////////////////
     let export_filename = &ExportFile::new().filename;
     // Mock the export filename as if the investigator named the file `export_test`.
     let mocked_export_file = Arc::new(Mutex::new(Some(export_filename.clone())));
