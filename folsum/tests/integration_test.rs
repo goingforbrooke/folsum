@@ -58,12 +58,11 @@ fn test_summarization_and_export() {
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
 /// file extension is accurate.
 fn verify_extension_counts(exported_counts: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
-    // For each exported file extension...
+    // For each file extension...
     for (summarized_extension, summarized_count) in exported_counts.iter() {
-        // ... ensure that the number of files found matches the actual number of files.
-        println!("Summarizer found \"{summarized_count}\" occurrences of extension \"{summarized_extension}\"");
+        // Look up the actual number of files with that extension.
         let actual_count = &actual_extensions.extension_counts[summarized_extension];
-        println!("Comparing to actual count of \"{actual_count}\" occurrences");
+        println!("Comparing \"{summarized_count}\" occurrences of extension \"{summarized_extension}\" to actual count of \"{actual_count}\" occurrences");
         // Ensure that the number of files found with that extension is correct.
         assert_eq!(actual_count, summarized_count);
     }
