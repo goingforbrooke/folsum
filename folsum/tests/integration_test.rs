@@ -50,6 +50,7 @@ fn test_summarization_and_export() {
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
     // Extract content rows from exported CSV.
     let exported_counts = read_csv_contents(export_file.clone()).unwrap();
+    // Test: Check if the file count for each extension in the export is accurate.
     verify_extension_counts(&exported_counts, &actual_extensions);
     // Define the order that export file rows should be in: descending by count, then alphabetical.
     let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
