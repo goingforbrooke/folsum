@@ -18,7 +18,7 @@ fn test_summarization_and_export() {
 
     // Mock global state variables that are mutated by `folsum::summarize_directory`.
     let extension_counts = Arc::new(Mutex::new(HashMap::new()));
-    let summarization_path = Arc::new(Mutex::new(Some(actual_extensions.dir_path.clone())));
+    let summarization_path = Arc::new(Mutex::new(Some(actual_extensions.base_path.clone())));
     let summarization_start = Arc::new(Mutex::new(Instant::now()));
     let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
@@ -93,7 +93,7 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
 
 struct TestDirectories {
     // Create the test directory in `./test-dir`.
-    dir_path: PathBuf,
+    base_path: PathBuf,
     // Remember the number of files created for each extension as a test "answer key."
     extension_counts: HashMap<String, u32>,
 }
@@ -126,13 +126,13 @@ impl TestDirectories {
             }
         }
         println!("Created test directories with contents: {:?}", extension_counts);
-        Ok(Self {dir_path: base_path, extension_counts})
+        Ok(Self {base_path, extension_counts})
     }
 }
 
 impl Drop for TestDirectories {
     fn drop(&mut self) {
-        let directory_path = self.dir_path.clone();
+        let directory_path = self.base_path.clone();
         // Recursively delete mocked subdirectories.
         let _delete_result = fs::remove_dir_all(&directory_path);
     }
