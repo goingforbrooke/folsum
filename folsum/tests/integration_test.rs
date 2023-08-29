@@ -60,12 +60,12 @@ fn test_summarization_and_export() {
 fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
     //std::collections::hash_map::Iter<'_, String, u32>
     // For each exported file extension...
-    for (summarized_extension, summarized_count) in reported_extensions.iter() {
+    for (reported_extension, reported_count) in reported_extensions.iter() {
         // Look up the actual number of files with that extension.
-        let actual_count = &actual_extensions.extension_counts[summarized_extension];
-        println!("Comparing \"{summarized_count}\" occurrences of extension \"{summarized_extension}\" to actual count of \"{actual_count}\" occurrences");
+        let actual_count = &actual_extensions.extension_counts[reported_extension];
+        println!("Comparing \"{reported_count}\" occurrences of extension \"{reported_extension}\" to actual count of \"{actual_count}\" occurrences");
         // Ensure that the number of files found with that extension is correct.
-        assert_eq!(actual_count, summarized_count);
+        assert_eq!(actual_count, reported_count);
     }
 }
 
