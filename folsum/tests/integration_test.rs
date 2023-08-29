@@ -65,9 +65,9 @@ fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
     // Read a line of text into the buffer.
     let _read_attempt = reader.read_line(&mut column_headers)?;
     // Remove newline character from end of line.
-    let mut parts = column_headers.splitn(2, ',');
-    let first_header = parts.next().unwrap().trim();
-    let second_header = parts.next().unwrap().trim();
+    let mut line_parts = column_headers.splitn(2, ',');
+    let first_header = line_parts.next().unwrap().trim();
+    let second_header = line_parts.next().unwrap().trim();
     Ok((first_header.to_string(), second_header.to_string()))
 }
 
