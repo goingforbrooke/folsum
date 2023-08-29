@@ -13,14 +13,12 @@ use folsum;
 
 #[test]
 fn test_summarization_and_export() {
-    // Create the test directory in `./test-dir`.
-    let test_dir = PathBuf::from("test_dir");
-    // Mock some subdirectories that contain various files with different extensions.
-    let actual_extensions = create_test_directory(&test_dir).unwrap();
+    // Create nested directories with empty test files.
+    let actual_extensions = TestDirectories::new().unwrap();
 
-    // Mock global state that's mutated by `summarize_directory`.
+    // Mock global state variables that are mutated by `folsum::summarize_directory`.
     let extension_counts = Arc::new(Mutex::new(HashMap::new()));
-    let summarization_path = Arc::new(Mutex::new(Some(test_dir.clone())));
+    let summarization_path = Arc::new(Mutex::new(Some(actual_extensions.dir_path.clone())));
     let summarization_start = Arc::new(Mutex::new(Instant::now()));
     let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
@@ -31,10 +29,13 @@ fn test_summarization_and_export() {
                                                             &time_taken);
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
-    // Summarization test.
+    // For each summarized file extension...
     for (found_extension, counts) in extension_counts.lock().unwrap().iter() {
-        // For each summarized file extension, ensure that the number of files found matches the actual number of files.
-        assert_eq!(&actual_extensions[found_extension], counts);
+        println!("Summarizer found \"{counts}\" occurrences of extension \"{found_extension}\"");
+        let actual_count = &actual_extensions.extension_counts[found_extension];
+        println!("Comparing to actual count of \"{actual_count}\" occurrences");
+        // Ensure that the number of files found with that extension is correct.
+        assert_eq!(actual_count, counts);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,13 +57,8 @@ fn test_summarization_and_export() {
     // For each file extension, ensure that the number of files found 
     for (summarized_extension, counts) in exported_counts.unwrap().iter() {
         // For each exported file extension, ensure that the number of files found matches the actual number of files.
-        assert_eq!(&actual_extensions[summarized_extension], counts);
+        assert_eq!(&actual_extensions.extension_counts[summarized_extension], counts);
     }
-    
-    ///////////////////////////////////////////////////////////////////////////////////////////////
-    
-    // todo: Clean up mocked test directory whether tests fail or succeed.
-    let _cleanup_result = cleanup_test_directory(&test_dir);
 }
 
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
@@ -97,38 +93,48 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
     Ok(extension_counts)
 }
 
-fn create_test_directory(test_dir: &PathBuf) -> std::io::Result<HashMap<String, u32>> {
-    let mut current_path = test_dir.clone();
-    // Keep track of how many files of each extension are created.
-    let mut extension_counts: HashMap<String, u32> = HashMap::new();
-    // Create a test directory in the current directory.
-    fs::create_dir(&current_path)?;
-    // Define the file extensions that'll be used to create (empty) test files.
-    let extensions = vec!["py", "pdf", "doc", "zip", "xml"];
-    // Create subdirectories with a depth of ten.
-    for subdir_depth in 1..=10 {
-        // Name each subdirectory for its depth.
-        current_path.push(format!("subdir_{}", subdir_depth));
-        fs::create_dir(&current_path)?;
-        // Create a number of empty files in each subdirectory equal to the subdirectory depth.
-        for counter in 1..subdir_depth {
-            // Pick a file extension for this file based off of how deep the subdirectory is.
-            let extension = &extensions[counter % extensions.len()];
-            let filename = format!("file_{}.{}", counter, extension);
-            let file_path = current_path.join(filename);
-            // Create the empty file.
-            fs::File::create(file_path)?;
-            // If the file extension already exists, then add one to it, otherwise, add it with "zero."
-            *extension_counts.entry(extension.to_string()).or_insert(0) += 1;
-        }
-    }
-    // Return the number of files created for each extension as a test "answer key."
-    Ok(extension_counts)
+struct TestDirectories {
+    // Create the test directory in `./test-dir`.
+    dir_path: PathBuf,
+    // Remember the number of files created for each extension as a test "answer key."
+    extension_counts: HashMap<String, u32>,
 }
 
-fn cleanup_test_directory(test_dir: &PathBuf) -> std::io::Result<()> {
-    let directory_path = test_dir.clone();
-    // Recursively delete mocked subdirectories.
-    let _delete_result = fs::remove_dir_all(&directory_path);
-    Ok(())
+impl TestDirectories {
+    fn new() -> std::io::Result<Self> {
+        let mut current_path = PathBuf::from("test_dir");
+        // Keep track of how many files of each extension are created.
+        let mut extension_counts: HashMap<String, u32> = HashMap::new();
+        // Create a test directory in the current directory.
+        fs::create_dir(&current_path)?;
+        // Define the file extensions that'll be used to create (empty) test files.
+        let extensions = vec!["py", "pdf", "doc", "zip", "xml"];
+        // Create subdirectories with a depth of ten.
+        for subdir_depth in 1..=10 {
+            // Name each subdirectory for its depth.
+            current_path.push(format!("subdir_{}", subdir_depth));
+            fs::create_dir(&current_path)?;
+            // Create a number of empty files in each subdirectory equal to the subdirectory depth.
+            for counter in 1..subdir_depth {
+                // Pick a file extension for this file based off of how deep the subdirectory is.
+                let extension = &extensions[counter % extensions.len()];
+                let filename = format!("file_{}.{}", counter, extension);
+                let file_path = current_path.join(filename);
+                // Create the empty file.
+                fs::File::create(file_path)?;
+                // If the file extension already exists, then add one to it, otherwise, add it with "zero."
+                *extension_counts.entry(extension.to_string()).or_insert(0) += 1;
+            }
+        }
+        println!("Created test directories with contents: {:?}", extension_counts);
+        Ok(Self {dir_path: current_path, extension_counts: extension_counts})
+    }
+}
+
+impl Drop for TestDirectories {
+    fn drop(&mut self) {
+        let directory_path = self.dir_path.clone();
+        // Recursively delete mocked subdirectories.
+        let _delete_result = fs::remove_dir_all(&directory_path);
+    }
 }
