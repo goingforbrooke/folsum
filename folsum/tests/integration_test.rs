@@ -55,6 +55,8 @@ fn test_summarization_and_export() {
     let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
 }
 
+/// Test if the occurrences (the number of times a file with a given extension was encountered) for each
+/// file extension is accurate.
 fn verify_extension_counts(exported_counts: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
     //std::collections::hash_map::Iter<'_, String, u32>
     // For each exported file extension...
