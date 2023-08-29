@@ -51,9 +51,9 @@ fn test_summarization_and_export() {
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
     // Extract content rows from exported CSV.
     let exported_counts = read_csv_contents(export_file.clone());
-    // For each file extension, ensure that the number of files found 
+    // For each exported file extension...
     for (summarized_extension, counts) in exported_counts.unwrap().iter() {
-        // For each exported file extension, ensure that the number of files found matches the actual number of files.
+        // ... ensure that the number of files found matches the actual number of files.
         assert_eq!(&actual_extensions.extension_counts[summarized_extension], counts);
     }
 }
