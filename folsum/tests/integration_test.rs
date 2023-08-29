@@ -58,7 +58,6 @@ fn test_summarization_and_export() {
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
 /// file extension is accurate.
 fn verify_extension_counts(exported_counts: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
-    //std::collections::hash_map::Iter<'_, String, u32>
     // For each exported file extension...
     for (summarized_extension, summarized_count) in exported_counts.iter() {
         // ... ensure that the number of files found matches the actual number of files.
