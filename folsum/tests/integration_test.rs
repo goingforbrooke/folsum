@@ -28,15 +28,8 @@ fn test_summarization_and_export() {
                                                             &time_taken);
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
-    // For each summarized file extension...
-    for (found_extension, found_count) in extension_counts.lock().unwrap().iter() {
-        println!("Summarizer found \"{found_count}\" occurrences of extension \"{found_extension}\"");
-        let actual_count = &actual_extensions.extension_counts[found_extension];
-        println!("Comparing to actual count of \"{actual_count}\" occurrences");
-        // Ensure that the number of files found with that extension is correct.
-        assert_eq!(actual_count, found_count);
-    }
-
+    // Test: Check if the file count for each summarized extension is accurate.
+    verify_extension_counts(&extension_counts.lock().unwrap(), &actual_extensions);
     let export_file = &ExportFile::new().filename;
     // Mock the export filename as if the investigator named the file `export_test`.
     let mocked_export_file = Arc::new(Mutex::new(Some(export_file.clone())));
