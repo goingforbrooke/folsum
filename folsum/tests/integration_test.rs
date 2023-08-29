@@ -59,6 +59,8 @@ fn test_summarization_and_export() {
         // Ensure that the number of files found with that extension is correct.
         assert_eq!(actual_count, summarized_count);
     }
+    // Define the order that export file rows should be in: descending by count, then alphabetical.
+    let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
 }
 
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
