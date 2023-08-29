@@ -7,7 +7,6 @@ use chrono::{DateTime, Local};
 use dirs::home_dir;
 #[cfg(not(target_arch = "wasm32"))]
 use egui_extras::{TableBuilder, Column};
-use itertools::Itertools;
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 #[cfg(not(target_arch = "wasm32"))]
@@ -15,6 +14,7 @@ use web_time::SystemTime;
 use web_time::{Duration, Instant};
 
 use crate::export_csv;
+use crate::sort_counts;
 use crate::summarize_directory;
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -196,11 +196,9 @@ impl eframe::App for FolsumGui {
                 ui.separator();
             });
             let unlocked_exts = extension_counts.lock().unwrap();
-            // Alphabetize file extensions before occurrence sorting so those with the same count appear alphabetically.
-            let mut ext_info: Vec<(&String, &u32)> = unlocked_exts.iter().sorted().collect();
-            // Sort file extensions from most to least occurrences, assuming the user wants to see the most numerous filetypes first.
-            ext_info.sort_by(|a, b| b.1.cmp(a.1));
-            // todo: Optimize table by efficiently displaying viewable rows with `show_rows()`.
+            // Sort extension counts in descending order, then alphabetically.
+            let ext_info = sort_counts(&*unlocked_exts);
+            // todo: Optimize table display by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
                 .resizable(true)
