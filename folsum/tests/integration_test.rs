@@ -30,19 +30,19 @@ fn test_summarization_and_export() {
     thread::sleep(Duration::from_secs(1));
     // Test: Check if the file count for each summarized extension is accurate.
     verify_extension_counts(&extension_counts.lock().unwrap(), &actual_extensions);
-    let export_file = &ExportFile::new().filename;
+    let export_filename = &ExportFile::new().filename;
     // Mock the export filename as if the investigator named the file `export_test`.
-    let mocked_export_file = Arc::new(Mutex::new(Some(export_file.clone())));
+    let mocked_export_file = Arc::new(Mutex::new(Some(export_filename.clone())));
     // Export summarization results of the mocked directory to CSV.
     let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
     // Wait a sec for the export to run so the export file exists before we try reading from it.
     thread::sleep(Duration::from_secs(1));
     // Extract header row from exported CSV.
-    let exported_headers = read_csv_headers(export_file.clone()).unwrap();
+    let exported_headers = read_csv_headers(export_filename.clone()).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
     // Extract content rows from exported CSV.
-    let exported_counts = read_csv_contents(export_file.clone()).unwrap();
+    let exported_counts = read_csv_contents(export_filename.clone()).unwrap();
     // Test: Check if the file count for each extension in the export is accurate.
     verify_extension_counts(&exported_counts, &actual_extensions);
     // Define the order that export file rows should be in: descending by count, then alphabetical.
