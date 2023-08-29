@@ -13,7 +13,7 @@ use folsum;
 #[test]
 fn test_summarization_and_export() {
     // Create nested directories with empty test files.
-    let actual_extensions = TestDirectories::new().unwrap();
+    let actual_extensions = TestFiles::new().unwrap();
 
     // Mock global state variables that are mutated by `folsum::summarize_directory`.
     let extension_counts = Arc::new(Mutex::new(HashMap::new()));
@@ -51,7 +51,7 @@ fn test_summarization_and_export() {
 
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
 /// file extension is accurate.
-fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
+fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_extensions: &TestFiles) {
     // For each exported file extension...
     for (reported_extension, reported_count) in reported_extensions.iter() {
         // Look up the actual number of files with that extension.
@@ -96,14 +96,14 @@ fn read_csv_contents(export_file: &PathBuf) -> io::Result<HashMap<String, u32>> 
 }
 
 /// Create nested subdirectories with empty files of various extensions in `test_dir/`.
-struct TestDirectories {
+struct TestFiles {
     // Create the test directory in `./test-dir`.
     base_path: PathBuf,
     // Remember the number of files created for each extension as a test "answer key."
     extension_counts: HashMap<String, u32>,
 }
 
-impl TestDirectories {
+impl TestFiles {
     fn new() -> std::io::Result<Self> {
         let base_path = PathBuf::from("test_dir");
         let mut current_path = base_path.clone();
@@ -136,7 +136,7 @@ impl TestDirectories {
 }
 
 /// Whether the test using these directories passes or fails, delete them afterward.
-impl Drop for TestDirectories {
+impl Drop for TestFiles {
     fn drop(&mut self) {
         let directory_path = self.base_path.clone();
         // Recursively delete mocked subdirectories.
