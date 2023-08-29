@@ -41,7 +41,7 @@ fn test_summarization_and_export() {
     ///////////////////////////////////////////////////////////////////////////////////////////////
     
     let export_file = PathBuf::from("export_test.csv");
-    // Mock the export filename as if the investigator named the file `export_test`
+    // Mock the export filename as if the investigator named the file `export_test`.
     let mocked_export_file = Arc::new(Mutex::new(Some(export_file.clone())));
     // Export summarization results of the mocked directory to CSV.
     let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
