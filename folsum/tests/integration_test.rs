@@ -49,9 +49,16 @@ fn test_summarization_and_export() {
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
     // Extract content rows from exported CSV.
-    let exported_counts = read_csv_contents(export_file.clone());
+    let exported_counts = read_csv_contents(export_file.clone()).unwrap();
+    verify_extension_counts(&exported_counts, &actual_extensions);
+    // Define the order that export file rows should be in: descending by count, then alphabetical.
+    let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
+}
+
+fn verify_extension_counts(exported_counts: &HashMap<String, u32>, actual_extensions: &TestDirectories) {
+    //std::collections::hash_map::Iter<'_, String, u32>
     // For each exported file extension...
-    for (summarized_extension, summarized_count) in exported_counts.unwrap().iter() {
+    for (summarized_extension, summarized_count) in exported_counts.iter() {
         // ... ensure that the number of files found matches the actual number of files.
         println!("Summarizer found \"{summarized_count}\" occurrences of extension \"{summarized_extension}\"");
         let actual_count = &actual_extensions.extension_counts[summarized_extension];
@@ -59,8 +66,6 @@ fn test_summarization_and_export() {
         // Ensure that the number of files found with that extension is correct.
         assert_eq!(actual_count, summarized_count);
     }
-    // Define the order that export file rows should be in: descending by count, then alphabetical.
-    let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
 }
 
 fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
