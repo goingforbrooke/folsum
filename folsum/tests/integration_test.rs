@@ -63,7 +63,7 @@ fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_ex
 }
 
 fn read_csv_headers(export_file: &PathBuf) -> io::Result<(String, String)> {
-    let file = File::open(export_file).unwrap();
+    let file = File::open(export_file)?;
     let mut reader = BufReader::new(file);
     let mut column_headers = String::new();
     // Read a line of text into the buffer.
