@@ -126,7 +126,7 @@ impl TestDirectories {
             }
         }
         println!("Created test directories with contents: {:?}", extension_counts);
-        Ok(Self {dir_path: base_path, extension_counts: extension_counts})
+        Ok(Self {dir_path: base_path, extension_counts})
     }
 }
 
