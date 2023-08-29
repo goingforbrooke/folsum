@@ -85,6 +85,7 @@ fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
         let extension_name = parts.next().unwrap().to_string();
         // Assume that the number of times the extension was seen is the first part of the line.
         let raw_occurrences: &str = parts.next().unwrap();
+        // Convert extension count to an integer.
         let extension_occurrences: u32 = raw_occurrences.parse::<u32>().unwrap();
         extension_counts.insert(extension_name, extension_occurrences);
     }
