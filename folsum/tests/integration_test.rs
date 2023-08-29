@@ -37,7 +37,7 @@ fn test_summarization_and_export() {
         assert_eq!(actual_count, counts);
     }
 
-    let export_file = PathBuf::from("export_test.csv");
+    let export_file = &ExportFile::new().filename;
     // Mock the export filename as if the investigator named the file `export_test`.
     let mocked_export_file = Arc::new(Mutex::new(Some(export_file.clone())));
     // Export summarization results of the mocked directory to CSV.
@@ -135,5 +135,23 @@ impl Drop for TestDirectories {
         let directory_path = self.base_path.clone();
         // Recursively delete mocked subdirectories.
         let _delete_result = fs::remove_dir_all(&directory_path);
+    }
+}
+
+struct ExportFile {
+    // Name the export file `export_test.csv`.
+    filename: PathBuf,
+}
+
+impl ExportFile {
+    fn new() -> Self {
+        let filename = PathBuf::from("export_test.csv");
+        Self {filename}
+    }
+}
+
+impl Drop for ExportFile {
+    fn drop(&mut self) {
+        let _delete_result = fs::remove_file(&self.filename);
     }
 }
