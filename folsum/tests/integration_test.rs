@@ -95,6 +95,7 @@ fn read_csv_contents(export_file: &PathBuf) -> io::Result<HashMap<String, u32>> 
     Ok(extension_counts)
 }
 
+/// Create nested subdirectories with empty files of various extensions in `test_dir/`.
 struct TestDirectories {
     // Create the test directory in `./test-dir`.
     base_path: PathBuf,
@@ -134,6 +135,7 @@ impl TestDirectories {
     }
 }
 
+/// Whether the test using these directories passes or fails, delete them afterward.
 impl Drop for TestDirectories {
     fn drop(&mut self) {
         let directory_path = self.base_path.clone();
