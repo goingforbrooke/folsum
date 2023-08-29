@@ -29,12 +29,12 @@ fn test_summarization_and_export() {
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
     // For each summarized file extension...
-    for (found_extension, counts) in extension_counts.lock().unwrap().iter() {
-        println!("Summarizer found \"{counts}\" occurrences of extension \"{found_extension}\"");
+    for (found_extension, found_count) in extension_counts.lock().unwrap().iter() {
+        println!("Summarizer found \"{found_count}\" occurrences of extension \"{found_extension}\"");
         let actual_count = &actual_extensions.extension_counts[found_extension];
         println!("Comparing to actual count of \"{actual_count}\" occurrences");
         // Ensure that the number of files found with that extension is correct.
-        assert_eq!(actual_count, counts);
+        assert_eq!(actual_count, found_count);
     }
 
     let export_file = &ExportFile::new().filename;
@@ -52,9 +52,13 @@ fn test_summarization_and_export() {
     // Extract content rows from exported CSV.
     let exported_counts = read_csv_contents(export_file.clone());
     // For each exported file extension...
-    for (summarized_extension, counts) in exported_counts.unwrap().iter() {
+    for (summarized_extension, summarized_count) in exported_counts.unwrap().iter() {
         // ... ensure that the number of files found matches the actual number of files.
-        assert_eq!(&actual_extensions.extension_counts[summarized_extension], counts);
+        println!("Summarizer found \"{summarized_count}\" occurrences of extension \"{summarized_extension}\"");
+        let actual_count = &actual_extensions.extension_counts[summarized_extension];
+        println!("Comparing to actual count of \"{actual_count}\" occurrences");
+        // Ensure that the number of files found with that extension is correct.
+        assert_eq!(actual_count, summarized_count);
     }
 }
 
