@@ -38,11 +38,11 @@ fn test_summarization_and_export() {
     // Wait a sec for the export to run so the export file exists before we try reading from it.
     thread::sleep(Duration::from_secs(1));
     // Extract header row from exported CSV.
-    let exported_headers = read_csv_headers(export_filename.clone()).unwrap();
+    let exported_headers = read_csv_headers(&export_filename).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
     // Extract content rows from exported CSV.
-    let exported_counts = read_csv_contents(export_filename.clone()).unwrap();
+    let exported_counts = read_csv_contents(&export_filename).unwrap();
     // Test: Check if the file count for each extension in the export is accurate.
     verify_extension_counts(&exported_counts, &actual_extensions);
     // Define the order that export file rows should be in: descending by count, then alphabetical.
@@ -62,7 +62,7 @@ fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_ex
     }
 }
 
-fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
+fn read_csv_headers(export_file: &PathBuf) -> io::Result<(String, String)> {
     let file = File::open(export_file).unwrap();
     let mut reader = BufReader::new(file);
     let mut column_headers = String::new();
@@ -75,7 +75,7 @@ fn read_csv_headers(export_file: PathBuf) -> io::Result<(String, String)> {
     Ok((first_header.to_string(), second_header.to_string()))
 }
 
-fn read_csv_contents(export_file: PathBuf) -> io::Result<HashMap<String, u32>> {
+fn read_csv_contents(export_file: &PathBuf) -> io::Result<HashMap<String, u32>> {
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
     let mut extension_counts: HashMap<String, u32> = HashMap::new();
