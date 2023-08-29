@@ -100,7 +100,8 @@ struct TestDirectories {
 
 impl TestDirectories {
     fn new() -> std::io::Result<Self> {
-        let mut current_path = PathBuf::from("test_dir");
+        let base_path = PathBuf::from("test_dir");
+        let mut current_path = base_path.clone();
         // Keep track of how many files of each extension are created.
         let mut extension_counts: HashMap<String, u32> = HashMap::new();
         // Create a test directory in the current directory.
@@ -125,7 +126,7 @@ impl TestDirectories {
             }
         }
         println!("Created test directories with contents: {:?}", extension_counts);
-        Ok(Self {dir_path: current_path, extension_counts: extension_counts})
+        Ok(Self {dir_path: base_path, extension_counts: extension_counts})
     }
 }
 
