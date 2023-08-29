@@ -23,10 +23,10 @@ fn test_summarization_and_export() {
     let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
     // Summarize the test directory so we can compare its output with the answer key.
-    let _summarization_result = folsum::summarize_directory(&summarization_path,
-                                                            &extension_counts,
-                                                            &summarization_start,
-                                                            &time_taken);
+    let _summarization_attempt = folsum::summarize_directory(&summarization_path,
+                                                             &extension_counts,
+                                                             &summarization_start,
+                                                             &time_taken);
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
     // Test: Check if the file count for each summarized extension is accurate.
@@ -36,7 +36,7 @@ fn test_summarization_and_export() {
     // Mock the export filename as if the investigator named the file `export_test`.
     let mocked_export_file = Arc::new(Mutex::new(Some(export_filename.clone())));
     // Export summarization results of the mocked directory to CSV.
-    let _export_result = folsum::export_csv(&mocked_export_file, &extension_counts);
+    let _export_attempt = folsum::export_csv(&mocked_export_file, &extension_counts);
     // Wait a sec for the export to run so the export file exists before we try reading from it.
     thread::sleep(Duration::from_secs(1));
     // Test: Ensure that an export file was produced.
