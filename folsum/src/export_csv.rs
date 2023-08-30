@@ -7,6 +7,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use crate::sort_counts;
+
 
 pub fn export_csv(export_file: &Arc<Mutex<Option<PathBuf>>>, extension_counts: &Arc<Mutex<HashMap<String, u32>>>) -> Result<(), &'static str> {
     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
