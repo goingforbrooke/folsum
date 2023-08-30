@@ -45,12 +45,16 @@ fn test_summarization_and_export() {
     let exported_headers = read_csv_headers(&export_filename).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
     assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
-    // Extract content rows from exported CSV.
-    let exported_counts = read_csv_contents(&export_filename).unwrap();
+    // Extract content rows from exported CSV, preserving their order.
+    let ordered_exported_counts: Vec<(String, u32)> = read_csv_contents(&export_filename).unwrap();
+    // Convert exported file extensions into a HashMap for efficient testing, disregarding their order.
+    let unordered_exported_counts: HashMap<String, u32> = ordered_exported_counts.into_iter().collect();
     // Test: Check if the file count for each extension in the export is accurate.
-    verify_extension_counts(&exported_counts, &actual_extensions);
-    // Define the order that export file rows should be in: descending by count, then alphabetical.
+    verify_extension_counts(&unordered_exported_counts, &actual_extensions);
+    // Define the order that export file rows should be in: descending by count, then alphabetically.
     let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
+    // Test: Check if export file rows are ordered correctly: descending by count, then alphabetically.
+    assert_eq!(ordered_exported_counts, properly_sorted);
 }
 
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
@@ -79,10 +83,10 @@ fn read_csv_headers(export_file: &PathBuf) -> io::Result<(String, String)> {
     Ok((first_header.to_string(), second_header.to_string()))
 }
 
-fn read_csv_contents(export_file: &PathBuf) -> io::Result<HashMap<String, u32>> {
+fn read_csv_contents(export_file: &PathBuf) -> io::Result<Vec<(String, u32)>> {
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
-    let mut extension_counts: HashMap<String, u32> = HashMap::new();
+    let mut extension_counts: Vec<(String, u32)> = Vec::new();
     // Skip the first line in the CSV file because it's headers.
     for raw_line in reader.lines().skip(1) {
         let csv_line = raw_line?;
@@ -94,7 +98,7 @@ fn read_csv_contents(export_file: &PathBuf) -> io::Result<HashMap<String, u32>> 
         let raw_occurrences: &str = parts.next().unwrap();
         // Convert extension count to an integer.
         let extension_occurrences: u32 = raw_occurrences.parse::<u32>().unwrap();
-        extension_counts.insert(extension_name, extension_occurrences);
+        extension_counts.push((extension_name, extension_occurrences));
     }
     Ok(extension_counts)
 }
