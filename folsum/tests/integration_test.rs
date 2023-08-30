@@ -48,13 +48,16 @@ fn test_summarization_and_export() {
     // Extract content rows from exported CSV, preserving their order.
     let ordered_exported_counts: Vec<(String, u32)> = read_csv_contents(&export_filename).unwrap();
     // Convert exported file extensions into a HashMap for efficient testing, disregarding their order.
-    let unordered_exported_counts: HashMap<String, u32> = ordered_exported_counts.into_iter().collect();
+    let unordered_exported_counts: HashMap<String, u32> = ordered_exported_counts.clone().into_iter().collect();
     // Test: Check if the file count for each extension in the export is accurate.
     verify_extension_counts(&unordered_exported_counts, &actual_extensions);
     // Define the order that export file rows should be in: descending by count, then alphabetically.
     let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
     // Test: Check if export file rows are ordered correctly: descending by count, then alphabetically.
-    assert_eq!(ordered_exported_counts, properly_sorted);
+    for ((reported_extension, reported_count), (actual_extension, actual_count)) in ordered_exported_counts.iter().zip(properly_sorted.iter()) {
+        assert_eq!(&reported_extension, actual_extension);
+        assert_eq!(&reported_count, actual_count);
+    }
 }
 
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
