@@ -29,7 +29,7 @@ fn test_summarization_and_export() {
                                                              &time_taken);
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
-    // Test: Check if the file count for each summarized extension is accurate.
+    // Test: Check if the file count for each summarized extension are accurate.
     verify_extension_counts(&extension_counts.lock().unwrap(), &actual_extensions);
     // Test CSV Export ////////////////////////////////////////////////////////////////////////////
     let export_filename = &ExportFile::new().filename;
