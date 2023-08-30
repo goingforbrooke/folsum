@@ -83,22 +83,22 @@ fn read_csv_headers(export_file: &PathBuf) -> io::Result<(String, String)> {
     Ok((first_header.to_string(), second_header.to_string()))
 }
 
-fn read_csv_contents(export_file: &PathBuf) -> io::Result<Vec<(String, u32)>> {
+fn read_csv_contents(export_file: &PathBuf) -> io::Result<Vec<(&str, &u32)>> {
     let file = File::open(export_file)?;
     let reader = BufReader::new(file);
-    let mut extension_counts: Vec<(String, u32)> = Vec::new();
+    let mut extension_counts: Vec<(&str, &u32)> = Vec::new();
     // Skip the first line in the CSV file because it's headers.
     for raw_line in reader.lines().skip(1) {
         let csv_line = raw_line?;
         // Separate each line on commas.
         let mut parts = csv_line.splitn(2, ',');
         // Assume that the extension name is the first part of the line.
-        let extension_name = parts.next().unwrap().to_string();
+        let extension_name: &str = parts.next().unwrap();
         // Assume that the number of times the extension was seen is the first part of the line.
         let raw_occurrences: &str = parts.next().unwrap();
         // Convert extension count to an integer.
         let extension_occurrences: u32 = raw_occurrences.parse::<u32>().unwrap();
-        extension_counts.push((extension_name, extension_occurrences));
+        extension_counts.push((&extension_name, &extension_occurrences));
     }
     Ok(extension_counts)
 }
