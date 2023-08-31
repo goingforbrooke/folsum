@@ -126,7 +126,7 @@ jobs:
         # Gate version bumping to only happen on main branch because CI/CD branch pushes are just for testing.
         if: github.ref == 'refs/heads/main'
         with:
-          file_pattern: Cargo.toml
+          file_pattern: folsum/Cargo.toml
           commit_message: Increment minor version from ${{ steps.get_current_semver.outputs.semver }} to ${{ steps.get_bumped_semver.outputs.semver }}
       - name: Publish a new release
         id: publish_release
