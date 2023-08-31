@@ -29,7 +29,7 @@ pub fn export_csv(export_file: &Arc<Mutex<Option<PathBuf>>>, extension_counts: &
         }
         // Lock the export file path so we can use it to create the CSV dump.
         let unlocked_export_file = export_file.lock().unwrap();
-        let export_filename = unlocked_export_file.as_ref().expect("Failed to create CSV export file"); 
+        let export_filename = unlocked_export_file.as_ref().expect("No path for export file was specified"); 
         // Create a CSV file to write the extension types and their counts to, overwriting it if it already exists.
         let mut csv_export = File::create(export_filename).expect("Failed to create CSV export file");
         // Write the CSV's content to the export file.
