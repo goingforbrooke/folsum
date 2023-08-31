@@ -12,7 +12,7 @@ use crate::sort_counts;
 
 pub fn export_csv(export_file: &Arc<Mutex<Option<PathBuf>>>, extension_counts: &Arc<Mutex<HashMap<String, u32>>>) -> Result<(), &'static str> {
     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
-    let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = Arc::clone(&extension_counts);
+    let extension_counts_copy: Arc<Mutex<HashMap<String, u32>>> = extension_counts.clone();
     // Copy the export file path's `Arc` so we can access it in a separate thread for CSV dumping.
     let export_file: Arc<Mutex<Option<PathBuf>>> = Arc::clone(&export_file);
     thread::spawn(move || {
