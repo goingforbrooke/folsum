@@ -2,7 +2,7 @@ var cacheName = 'egui-template-pwa';
 var filesToCache = [
   './',
   './index.html',
-  './eframe_template.js',
+  './folsum.js',
   './eframe_template_bg.wasm',
 ];
 
