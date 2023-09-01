@@ -195,9 +195,9 @@ impl eframe::App for FolsumGui {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
-            let unlocked_exts = extension_counts.lock().unwrap();
+            let locked_exts = extension_counts.lock().unwrap();
             // Sort extension counts in descending order, then alphabetically.
-            let ext_info = sort_counts(&*unlocked_exts);
+            let ext_info = sort_counts(&*locked_exts);
             // todo: Optimize table display by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
