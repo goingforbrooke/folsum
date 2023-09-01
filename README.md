@@ -143,3 +143,11 @@ Format inspired by [Make a README](https://www.makeareadme.com).
 [Reddit post on the difference between `.pkg`, `.dmg`, and `.app`](https://www.reddit.com/r/macsysadmin/comments/px1eae/difference_between_pkg_dmg_and_app_files/)
 
 [Possible `lipo` alternative written in Go](https://github.com/konoui/lipo)
+
+## 🔌 Compatibility
+
+## 🙏🏻 Kudos
+
+## 🛟 Support
+
+# 🪪 License
