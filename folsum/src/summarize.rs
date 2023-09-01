@@ -60,8 +60,8 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                 // Increment the counter for known file extensions by one.
                 *counter += 1;
                 // Update the summarization time stopwatch.
-                let mut unlocked_time_taken_copy = time_taken_copy.lock().unwrap();
-                *unlocked_time_taken_copy = locked_start_copy.elapsed();
+                let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+                *locked_time_taken_copy = locked_start_copy.elapsed();
             }
         });
     };
