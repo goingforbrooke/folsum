@@ -35,11 +35,11 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
             let mut locked_start_copy = start_copy.lock().unwrap();
             *locked_start_copy = Instant::now();
 
-            let unlocked_summarization_path = summarization_path_copy.lock().unwrap();
+            let locked_summarization_path = summarization_path_copy.lock().unwrap();
             // Clone the user's chosen path so we can release it's lock, allowing live table updates.
-            let summarization_path_copy = unlocked_summarization_path.clone();
+            let summarization_path_copy = locked_summarization_path.clone();
             // Release the mutex lock on the chosen path so extension count table can update.
-            drop(unlocked_summarization_path);
+            drop(locked_summarization_path);
 
             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
             for entry in WalkDir::new(summarization_path_copy.unwrap())
