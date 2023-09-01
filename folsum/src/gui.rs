@@ -121,9 +121,9 @@ impl eframe::App for FolsumGui {
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
-                    let shown_path: &str = match &*unlocked_path {
+                    let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
