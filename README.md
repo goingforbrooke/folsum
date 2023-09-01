@@ -161,3 +161,5 @@ If you need to contact the developers, then file an issue with one of these [lab
 - 🙋🏼‍♀️ Question: https://github.com/goingforbrooke/folsum/labels/question
 
 # 🪪 License
+
+Must be 16 or older and have an adult in the car during operation.
