@@ -146,6 +146,8 @@ Format inspired by [Make a README](https://www.makeareadme.com).
 
 ## 🔌 Compatibility
 
+FolSum requires no external dependencies to run.
+
 ## 🙏🏻 Kudos
 
 ## 🛟 Support
