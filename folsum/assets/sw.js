@@ -3,7 +3,7 @@ var filesToCache = [
   './',
   './index.html',
   './folsum.js',
-  './eframe_template_bg.wasm',
+  './folsum_bg.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */
