@@ -4,6 +4,15 @@
 
 FolSum is a simple application for summarizing the contents of a directory. It counts each filetype by extension and displays those counts in a table. You can preview it [here](https://goingforbrooke.github.io/folsum/).
 
+<details>
+
+## Table of Contents
+
+[Installation](#🖥️-installation)
+[Usage](#🖱️-usage)
+
+</details>
+
 ## 🖥️ Installation
 
 todo: write installation section in `README.md`
