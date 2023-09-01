@@ -150,6 +150,7 @@ FolSum requires no external dependencies to run.
 
 Format inspired by [Make a README](https://www.makeareadme.com).
 
+Changelog format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## 🛟 Support
 
