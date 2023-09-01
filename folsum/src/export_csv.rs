@@ -19,9 +19,9 @@ pub fn export_csv(export_file: &Arc<Mutex<Option<PathBuf>>>, extension_counts: &
         // Make a place to put extension counts that'll be written to the CSV file and include column headers.
         let mut csv_rows = String::from("File Extension, Occurrences\n");
         // Lock extension counts so we can read them into CSV format.
-        let unlocked_extension_counts: MutexGuard<'_, HashMap<String, u32>> = extension_counts_copy.lock().unwrap();
+        let locked_extension_counts: MutexGuard<'_, HashMap<String, u32>> = extension_counts_copy.lock().unwrap();
         // Sort extension counts by the number of occurrences (descending), then alphabetically (for extensions with the same count).
-        let sorted_counts: Vec<(&String, &u32)> = sort_counts(&unlocked_extension_counts);
+        let sorted_counts: Vec<(&String, &u32)> = sort_counts(&locked_extension_counts);
         for (extension_type, extension_count) in sorted_counts.iter() {
             // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
             assert!(!extension_type.contains('\n') && !extension_type.contains(','));
