@@ -142,11 +142,11 @@ Xtask requires no extra dependencies for implementing post-build actions. It use
 
 [Possible `lipo` alternative written in Go](https://github.com/konoui/lipo)
 
-## 🔌 Compatibility
+### 🔌 Compatibility
 
 FolSum requires no external dependencies to run.
 
-## 🙏🏻 Kudos
+### 🙏🏻 Kudos
 
 Format inspired by [Make a README](https://www.makeareadme.com).
 
