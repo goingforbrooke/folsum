@@ -32,8 +32,8 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
             let default_extension = OsString::from("No extension");
 
             // Start the stopwatch for summarization time.
-            let mut unlocked_start_copy = start_copy.lock().unwrap();
-            *unlocked_start_copy = Instant::now();
+            let mut locked_start_copy = start_copy.lock().unwrap();
+            *locked_start_copy = Instant::now();
 
             let unlocked_summarization_path = summarization_path_copy.lock().unwrap();
             // Clone the user's chosen path so we can release it's lock, allowing live table updates.
@@ -61,7 +61,7 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                 *counter += 1;
                 // Update the summarization time stopwatch.
                 let mut unlocked_time_taken_copy = time_taken_copy.lock().unwrap();
-                *unlocked_time_taken_copy = unlocked_start_copy.elapsed();
+                *unlocked_time_taken_copy = locked_start_copy.elapsed();
             }
         });
     };
