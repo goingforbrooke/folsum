@@ -136,8 +136,6 @@ Xtask requires no extra dependencies for implementing post-build actions. It use
 
 ## 🐭 Misc.
 
-Format inspired by [Make a README](https://www.makeareadme.com).
-
 [Apple's documentation on how to create a certificate signing request on MacOS](https://developer.apple.com/help/account/create-certificates/create-a-certificate-signing-request)
 
 [Reddit post on the difference between `.pkg`, `.dmg`, and `.app`](https://www.reddit.com/r/macsysadmin/comments/px1eae/difference_between_pkg_dmg_and_app_files/)
@@ -149,6 +147,9 @@ Format inspired by [Make a README](https://www.makeareadme.com).
 FolSum requires no external dependencies to run.
 
 ## 🙏🏻 Kudos
+
+Format inspired by [Make a README](https://www.makeareadme.com).
+
 
 ## 🛟 Support
 
