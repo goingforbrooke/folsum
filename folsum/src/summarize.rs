@@ -14,9 +14,9 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                            extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
                            summarization_start: &Arc<Mutex<Instant>>,
                            time_taken: &Arc<Mutex<Duration>>) -> Result<(), &'static str> {
-    let unlocked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
+    let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
     // If the user picked a directory to summarize....
-    if unlocked_path.is_some() {
+    if locked_path.is_some() {
         // ...then recursively count file extensions in the chosen directory.
         // Reset file extension counts to zero.
         *extension_counts.lock().unwrap() = HashMap::new();
