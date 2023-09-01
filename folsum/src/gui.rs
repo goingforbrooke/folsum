@@ -142,11 +142,11 @@ impl eframe::App for FolsumGui {
                 };
 
                 ui.horizontal(|ui| {
-                    let unlocked_time_taken = time_taken.lock().unwrap();
+                    let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
                         "Summarized {} files in {} milliseconds",
                         &total_files,
-                        &unlocked_time_taken.as_millis()
+                        &locked_time_taken.as_millis()
                     ));
                 });
 
