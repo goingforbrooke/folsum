@@ -165,7 +165,7 @@ Changelog format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.
 If you need to contact the developers, then file an issue with one of these [labels](https://github.com/goingforbrooke/folsum/labels):
 
 - 🪲 Bug: https://github.com/goingforbrooke/folsum/labels/bug
-- ✨ Feature: https://github.com/goingforbrooke/folsum/feature
+- ✨ Feature: https://github.com/goingforbrooke/folsum/labels/feature
 - 🙋🏼‍♀️ Question: https://github.com/goingforbrooke/folsum/labels/question
 
 # 🪪 License
