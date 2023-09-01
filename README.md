@@ -1,4 +1,4 @@
-<img src="folsum/images/icons/folsum_icon_660.png" align="right" />
+<img src="folsum/images/icons/resized_icons/folsum_icon_128px.png" align="right" />
 
 # 🗂️ FolSum
 
