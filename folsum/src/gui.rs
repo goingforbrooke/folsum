@@ -121,9 +121,9 @@ impl eframe::App for FolsumGui {
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
-                    let shown_path: &str = match &*unlocked_path {
+                    let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
@@ -142,11 +142,11 @@ impl eframe::App for FolsumGui {
                 };
 
                 ui.horizontal(|ui| {
-                    let unlocked_time_taken = time_taken.lock().unwrap();
+                    let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
                         "Summarized {} files in {} milliseconds",
                         &total_files,
-                        &unlocked_time_taken.as_millis()
+                        &locked_time_taken.as_millis()
                     ));
                 });
 
@@ -195,9 +195,9 @@ impl eframe::App for FolsumGui {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
-            let unlocked_exts = extension_counts.lock().unwrap();
+            let locked_exts = extension_counts.lock().unwrap();
             // Sort extension counts in descending order, then alphabetically.
-            let ext_info = sort_counts(&*unlocked_exts);
+            let ext_info = sort_counts(&*locked_exts);
             // todo: Optimize table display by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
