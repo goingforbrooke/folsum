@@ -148,7 +148,7 @@ FolSum requires no external dependencies to run.
 
 ### 🙏🏻 Kudos
 
-Format inspired by [Make a README](https://www.makeareadme.com).
+Readme format inspired by [Make a README](https://www.makeareadme.com) and [awesome-readme](https://github.com/matiassingers/awesome-readme/tree/master).
 
 Changelog format inspired by [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
