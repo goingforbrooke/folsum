@@ -154,6 +154,8 @@ FolSum requires no external dependencies to run.
 
 If you need to contact the developers, then file an issue with one of these [labels](https://github.com/goingforbrooke/folsum/labels):
 
-- Bug: https://github.com/goingforbrooke/folsum/labels/bug
+- 🪲 Bug: https://github.com/goingforbrooke/folsum/labels/bug
+- ✨ Feature: https://github.com/goingforbrooke/folsum/feature
+- 🙋🏼‍♀️ Question: https://github.com/goingforbrooke/folsum/labels/question
 
 # 🪪 License
