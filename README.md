@@ -18,7 +18,15 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 ### 🌳 Branch Naming Conventions
 
-| ❓ | Name | Purpose | CI/CD Trigger |
+Branch names follow the pattern **prefix** `/` **branch_name**. In practice, this looks like `goingforbrooke/folsum/tree` `/` **branch_prefix** `/` **branch_name**.
+
+The **branch_prefix** depends on the purpose of the branch, described in the table below. Every branch must have a prefix, except for `main` and `dev`, which can only be merged into.
+
+For example, a branch that fixes a launch issue might look like `fix/launch_broken` and a branch that adds a green button might look like `feat/green_button`. This style is consistent with Git's **repo**`/`**branch** style and GitHub-style URLs.
+
+Each branch prefix triggers different things in the CI/CD workflow.
+
+| ❓ | Prefix | Purpose | CI/CD Trigger |
 | ------------- | ------------- | ------------- | ------------- |
 | 📦 | `main` | Publish [releases](https://github.com/goingforbrooke/folsum/releases) | [Increment minor/patch version and publish a standard release](https://github.com/goingforbrooke/folsum/blob/cicd/increment_minor/.github/workflows/build_macos.yml) |
 | 🛠️ | `dev` | Development | Implicitly bump minor/patch version after `--no-ff` merge to `main` |
