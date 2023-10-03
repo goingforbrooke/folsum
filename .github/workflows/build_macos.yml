@@ -114,7 +114,7 @@ jobs:
             echo "bump_type=minor" >> "$GITHUB_OUTPUT"
           fi
       - name: Note bump type in an Action annotation
-        run: echo "::notice::Bumped type: ${{ steps.decide_bump_type.outputs.bump_type }}"
+        run: echo "::notice::Bump type: ${{ steps.decide_bump_type.outputs.bump_type }}"
       - name: Increment minor/patch version
         # Gate version bumping to only happen on main branch and CI/CD branches.
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cicd')
