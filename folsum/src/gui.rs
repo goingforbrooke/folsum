@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Local};
 use dirs::home_dir;
 #[cfg(not(target_arch = "wasm32"))]
-use egui_extras::{TableBuilder, Column};
+use egui_extras::{Column, TableBuilder};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 #[cfg(not(target_arch = "wasm32"))]
@@ -135,10 +135,12 @@ impl eframe::App for FolsumGui {
                 ui.separator();
 
                 if ui.button("Summarize").clicked() {
-                    let _result = summarize_directory(&summarization_path,
-                                                      &extension_counts,
-                                                      &summarization_start,
-                                                      &time_taken);
+                    let _result = summarize_directory(
+                        &summarization_path,
+                        &extension_counts,
+                        &summarization_start,
+                        &time_taken,
+                    );
                 };
 
                 ui.horizontal(|ui| {
@@ -163,7 +165,7 @@ impl eframe::App for FolsumGui {
                         // Open the export dialog in the same dir as the previous export.
                         Some(export_file) => export_file.parent().unwrap().to_path_buf(),
                         // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory")
+                        None => home_dir().expect("Failed to get user's home directory"),
                     };
                     // Ask user where they'd like to save the CSV export and what they'd like it to be called.
                     if let Some(path) = FileDialog::new()
@@ -174,7 +176,8 @@ impl eframe::App for FolsumGui {
                         .set_directory(starting_directory)
                         // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
                         .set_file_name(&export_filename)
-                        .save_file() {
+                        .save_file()
+                    {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
                     let _result = export_csv(&export_file, &extension_counts);
