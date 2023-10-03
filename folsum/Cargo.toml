@@ -19,16 +19,16 @@ eframe = { version = "0.22.0", default-features = false, features = [
 log = "0.4"
 
 # FolSum Dependencies.
-chrono = "0.4.26"
+chrono = "0.4.31"
 dirs = "5.0.1"
 egui_extras = "0.22.0"
 itertools = "0.11.0"
-rfd = "0.11.4"
-walkdir = "2.3.3"
+rfd = "0.12.0"
+walkdir = "2.4.0"
 web-time = "0.2.0"
 
 # Serde for app persistence.
-serde = { version = "1.0.183", features = ["derive"] }
+serde = { version = "1.0.188", features = ["derive"] }
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -55,4 +55,4 @@ icon = ["images/icons/resized_icons/folsum_icon_128px.png",
         "images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
-cargo-edit = "0.12.0"
+cargo-edit = "0.12.2"
