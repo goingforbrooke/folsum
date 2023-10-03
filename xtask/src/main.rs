@@ -140,7 +140,13 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
         .as_array()
         .expect("Failed to extract bundle icon paths")
         .iter()
-        .map(|icon_path| folsum_root.join(icon_path.as_str().expect("Failed to extract bundle icon path")))
+        .map(|icon_path| {
+            folsum_root.join(
+                icon_path
+                    .as_str()
+                    .expect("Failed to extract bundle icon path"),
+            )
+        })
         .collect();
     debug!("Found bundle icons:\n{:?}", bundle_icons);
 
@@ -153,7 +159,12 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
     let bundle_settings: BundleSettings = BundleSettings {
         identifier: Some(bundle_identifier.to_string()),
         // Convert each bundle icon path to a string.
-        icon: Some(bundle_icons.iter().map(|icon_path: &PathBuf| icon_path.to_str().unwrap().to_string()).collect()),
+        icon: Some(
+            bundle_icons
+                .iter()
+                .map(|icon_path: &PathBuf| icon_path.to_str().unwrap().to_string())
+                .collect(),
+        ),
         copyright: Some(bundle_copyright.to_string()),
         ..Default::default()
     };
