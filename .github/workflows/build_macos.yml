@@ -113,6 +113,8 @@ jobs:
             # Otherwise, assume that the minor version needs incrementation.
             echo "bump_type=minor" >> "$GITHUB_OUTPUT"
           fi
+      - name: Note version bump type in Action annotation
+        run: echo "::notice::Decided to bump ${{ steps.decide_bump_type.outputs.bump_type }} version"
       - name: Increment minor/patch version
         # Gate version bumping to only happen on main branch and CI/CD branches.
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cicd')
