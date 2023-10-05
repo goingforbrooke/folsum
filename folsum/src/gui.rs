@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Local};
 use dirs::home_dir;
 #[cfg(not(target_arch = "wasm32"))]
-use egui_extras::{TableBuilder, Column};
+use egui_extras::{Column, TableBuilder};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 #[cfg(not(target_arch = "wasm32"))]
@@ -121,9 +121,9 @@ impl eframe::App for FolsumGui {
                 }
 
                 ui.horizontal(|ui| {
-                    let unlocked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
-                    let shown_path: &str = match &*unlocked_path {
+                    let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
@@ -135,18 +135,20 @@ impl eframe::App for FolsumGui {
                 ui.separator();
 
                 if ui.button("Summarize").clicked() {
-                    let _result = summarize_directory(&summarization_path,
-                                                      &extension_counts,
-                                                      &summarization_start,
-                                                      &time_taken);
+                    let _result = summarize_directory(
+                        &summarization_path,
+                        &extension_counts,
+                        &summarization_start,
+                        &time_taken,
+                    );
                 };
 
                 ui.horizontal(|ui| {
-                    let unlocked_time_taken = time_taken.lock().unwrap();
+                    let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
                         "Summarized {} files in {} milliseconds",
                         &total_files,
-                        &unlocked_time_taken.as_millis()
+                        &locked_time_taken.as_millis()
                     ));
                 });
 
@@ -163,7 +165,7 @@ impl eframe::App for FolsumGui {
                         // Open the export dialog in the same dir as the previous export.
                         Some(export_file) => export_file.parent().unwrap().to_path_buf(),
                         // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory")
+                        None => home_dir().expect("Failed to get user's home directory"),
                     };
                     // Ask user where they'd like to save the CSV export and what they'd like it to be called.
                     if let Some(path) = FileDialog::new()
@@ -174,7 +176,8 @@ impl eframe::App for FolsumGui {
                         .set_directory(starting_directory)
                         // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
                         .set_file_name(&export_filename)
-                        .save_file() {
+                        .save_file()
+                    {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
                     let _result = export_csv(&export_file, &extension_counts);
@@ -195,9 +198,9 @@ impl eframe::App for FolsumGui {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
-            let unlocked_exts = extension_counts.lock().unwrap();
+            let locked_exts = extension_counts.lock().unwrap();
             // Sort extension counts in descending order, then alphabetically.
-            let ext_info = sort_counts(&*unlocked_exts);
+            let ext_info = sort_counts(&*locked_exts);
             // todo: Optimize table display by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)

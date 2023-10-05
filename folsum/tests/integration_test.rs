@@ -9,7 +9,6 @@ use web_time::{Duration, Instant};
 
 use folsum;
 
-
 #[test]
 fn test_summarization_and_export() {
     // Test Summarization /////////////////////////////////////////////////////////////////////////
@@ -23,10 +22,12 @@ fn test_summarization_and_export() {
     let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
     // Summarize the test directory so we can compare its output with the answer key.
-    let _summarization_attempt = folsum::summarize_directory(&summarization_path,
-                                                             &extension_counts,
-                                                             &summarization_start,
-                                                             &time_taken);
+    let _summarization_attempt = folsum::summarize_directory(
+        &summarization_path,
+        &extension_counts,
+        &summarization_start,
+        &time_taken,
+    );
     // Wait a bit so the summarization thread has a chance to do it's thing.
     thread::sleep(Duration::from_secs(1));
     // Test: Check if the file count for each summarized extension are accurate.
@@ -44,17 +45,24 @@ fn test_summarization_and_export() {
     // Extract header row from exported CSV.
     let exported_headers = read_csv_headers(&export_filename).unwrap();
     // Test if the CSV export headers are `File Extension` and `Occurrences`.
-    assert_eq!(exported_headers, (String::from("File Extension"), String::from("Occurrences")));
+    assert_eq!(
+        exported_headers,
+        (String::from("File Extension"), String::from("Occurrences"))
+    );
     // Extract content rows from exported CSV, preserving their order.
     let ordered_exported_counts: Vec<(String, u32)> = read_csv_contents(&export_filename).unwrap();
     // Convert exported file extensions into a HashMap for efficient testing, disregarding their order.
-    let unordered_exported_counts: HashMap<String, u32> = ordered_exported_counts.clone().into_iter().collect();
+    let unordered_exported_counts: HashMap<String, u32> =
+        ordered_exported_counts.clone().into_iter().collect();
     // Test: Check if the file count for each extension in the export is accurate.
     verify_extension_counts(&unordered_exported_counts, &actual_extensions);
     // Define the order that export file rows should be in: descending by count, then alphabetically.
-    let properly_sorted: Vec<(&String, &u32)> = folsum::sort_counts(&actual_extensions.extension_counts);
+    let properly_sorted: Vec<(&String, &u32)> =
+        folsum::sort_counts(&actual_extensions.extension_counts);
     // Test: Check if export file rows are ordered correctly: descending by count, then alphabetically.
-    for ((reported_extension, reported_count), (actual_extension, actual_count)) in ordered_exported_counts.iter().zip(properly_sorted.iter()) {
+    for ((reported_extension, reported_count), (actual_extension, actual_count)) in
+        ordered_exported_counts.iter().zip(properly_sorted.iter())
+    {
         assert_eq!(&reported_extension, actual_extension);
         assert_eq!(&reported_count, actual_count);
     }
@@ -62,7 +70,10 @@ fn test_summarization_and_export() {
 
 /// Test if the occurrences (the number of times a file with a given extension was encountered) for each
 /// file extension is accurate.
-fn verify_extension_counts(reported_extensions: &HashMap<String, u32>, actual_extensions: &TestFiles) {
+fn verify_extension_counts(
+    reported_extensions: &HashMap<String, u32>,
+    actual_extensions: &TestFiles,
+) {
     // For each exported file extension...
     for (reported_extension, reported_count) in reported_extensions.iter() {
         // Look up the actual number of files with that extension.
@@ -141,8 +152,14 @@ impl TestFiles {
                 *extension_counts.entry(extension.to_string()).or_insert(0) += 1;
             }
         }
-        println!("Created test directories with contents: {:?}", extension_counts);
-        Ok(Self {base_path, extension_counts})
+        println!(
+            "Created test directories with contents: {:?}",
+            extension_counts
+        );
+        Ok(Self {
+            base_path,
+            extension_counts,
+        })
     }
 }
 
@@ -163,7 +180,7 @@ struct ExportFile {
 impl ExportFile {
     fn new() -> Self {
         let filename = PathBuf::from("export_test.csv");
-        Self {filename}
+        Self { filename }
     }
 }
 

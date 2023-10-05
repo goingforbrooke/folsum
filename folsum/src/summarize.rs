@@ -9,14 +9,15 @@ use walkdir::WalkDir;
 #[cfg(not(target_arch = "wasm32"))]
 use web_time::{Duration, Instant};
 
-
-pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-                           extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
-                           summarization_start: &Arc<Mutex<Instant>>,
-                           time_taken: &Arc<Mutex<Duration>>) -> Result<(), &'static str> {
-    let unlocked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
+pub fn summarize_directory(
+    summarization_path: &Arc<Mutex<Option<PathBuf>>>,
+    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    summarization_start: &Arc<Mutex<Instant>>,
+    time_taken: &Arc<Mutex<Duration>>,
+) -> Result<(), &'static str> {
+    let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
     // If the user picked a directory to summarize....
-    if unlocked_path.is_some() {
+    if locked_path.is_some() {
         // ...then recursively count file extensions in the chosen directory.
         // Reset file extension counts to zero.
         *extension_counts.lock().unwrap() = HashMap::new();
@@ -32,14 +33,14 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
             let default_extension = OsString::from("No extension");
 
             // Start the stopwatch for summarization time.
-            let mut unlocked_start_copy = start_copy.lock().unwrap();
-            *unlocked_start_copy = Instant::now();
+            let mut locked_start_copy = start_copy.lock().unwrap();
+            *locked_start_copy = Instant::now();
 
-            let unlocked_summarization_path = summarization_path_copy.lock().unwrap();
+            let locked_summarization_path = summarization_path_copy.lock().unwrap();
             // Clone the user's chosen path so we can release it's lock, allowing live table updates.
-            let summarization_path_copy = unlocked_summarization_path.clone();
+            let summarization_path_copy = locked_summarization_path.clone();
             // Release the mutex lock on the chosen path so extension count table can update.
-            drop(unlocked_summarization_path);
+            drop(locked_summarization_path);
 
             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
             for entry in WalkDir::new(summarization_path_copy.unwrap())
@@ -49,19 +50,17 @@ pub fn summarize_directory(summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                 .filter(|e| !e.file_type().is_dir())
             {
                 // Extract the file extension from the file's name.
-                let file_ext: &OsStr =
-                    entry.path().extension().unwrap_or(&default_extension);
+                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
                 let show_ext: String = String::from(file_ext.to_string_lossy());
                 // Lock the extension counts variable so we can add a file to it.
-                let mut unlocked_counts_copy = extension_counts_copy.lock().unwrap();
+                let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
                 // Add newly encountered file extensions to known file extensions with a counter of 0.
-                let counter: &mut u32 =
-                    unlocked_counts_copy.entry(show_ext).or_insert(0);
+                let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
                 // Increment the counter for known file extensions by one.
                 *counter += 1;
                 // Update the summarization time stopwatch.
-                let mut unlocked_time_taken_copy = time_taken_copy.lock().unwrap();
-                *unlocked_time_taken_copy = unlocked_start_copy.elapsed();
+                let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+                *locked_time_taken_copy = locked_start_copy.elapsed();
             }
         });
     };
