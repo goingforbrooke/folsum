@@ -32,7 +32,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
             out.finish(format_args!(
                 "[{} {} {}] {}",
                 humantime::format_rfc3339_seconds(SystemTime::now()),
-                // Colorize the log recored based off of its log level.
+                // Colorize the log record based off of its log level.
                 colors.color(record.level()),
                 record.target(),
                 message
