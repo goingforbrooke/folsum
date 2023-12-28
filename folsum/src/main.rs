@@ -1,7 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use log::{debug, error, info, warn};
+use log::info;
 use std::error::Error;
 
 fn setup_native_logging() -> Result<(), Box<dyn Error>> {
