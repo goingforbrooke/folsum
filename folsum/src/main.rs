@@ -8,10 +8,22 @@ use std::time::SystemTime;
 use fern::colors::{Color, ColoredLevelConfig};
 
 fn setup_native_logging() -> Result<(), Box<dyn Error>> {
+    //struct AColor {
+    //    r: u8,
+    //    g: u8,
+    //    b: u8,
+    //}
+    // Define what Grey looks like because it's not a color in the `colored`, used by `fern`.
+    //enum MyColors {
+    //    Blue,
+    //    Grey {r: 51, g: 51, b: 51},
+    //    Red,
+    //    Yellow,
+    //}
     // Define the line color for each log level.
     let mut colors = ColoredLevelConfig::new()
-        .trace(Color::Grey)
-        .debug(Color::Grey)
+        .trace(Color::White)
+        .debug(Color::White)
         .info(Color::Blue)
         .warn(Color::Yellow)
         .error(Color::Red);
