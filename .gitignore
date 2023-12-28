@@ -1,9 +1,10 @@
 dist/
+.DS_Store
 export_test.csv
 folsum.code-workspace
 folsum/test_dir/*
 *folsum_export.csv
+output.log
 .rust-analyzer.toml
 target
-.DS_Store
 .vscode/
