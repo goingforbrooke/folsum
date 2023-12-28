@@ -29,7 +29,7 @@ web-time = "0.2.0"
 
 # Serde for app persistence.
 serde = { version = "1.0.188", features = ["derive"] }
-fern = "0.6.2"
+fern = { version = "0.6.2", features = ["colored"] }
 humantime = "2.1.0"
 
 # native:
