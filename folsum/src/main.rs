@@ -1,10 +1,16 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+use log::info;
+
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
-    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+    let mut logger_builder = env_logger::Builder::from_env(env_logger::Env::default()).init();
+    // Don't show egui log messages because FolSum's debugs gets lost in the sea of egui debugs.
+    //logger_builder.filter_module("egui", LevelFilter::Info);
+
+    info!("Initialized logger");
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
