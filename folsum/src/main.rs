@@ -29,7 +29,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .error(Color::Red);
     // Create a foundation for the console logger and file logger to sit on top of.
     let base_config = fern::Dispatch::new();
-    // Configure how log records are displayed in the console.
+    // Define how log records are displayed in the console.
     let stdout_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -41,14 +41,28 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 message
             ))
         })
-        // Set minimum logging level for all modules to DEBUG.
+        // Show log records at DEBUG and above.
         .level(log::LevelFilter::Debug)
         // Send unfiltered messages to stdout.
-        .chain(std::io::stdout())
+        .chain(std::io::stdout());
+    // Define how log records are diplayed in the log file.
+    let file_config = fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "[{} {}] {}",
+                humantime::format_rfc3339_seconds(SystemTime::now()),
+                record.target(),
+                message
+            ))
+        })
+        // Include logs records at every level.
+        .level(log::LevelFilter::Trace)
+        // Write to a file called `output.log` in the current working directory.
         .chain(fern::log_file("output.log")?);
+    // Activate the console logger and the file logger.
     base_config
         .chain(stdout_config)
-        //.chain(file_config)
+        .chain(file_config)
         .apply()?;
     info!("Initialized logger");
     Ok(())
