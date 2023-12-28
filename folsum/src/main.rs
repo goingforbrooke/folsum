@@ -7,7 +7,9 @@ use log::{debug, error, info, warn};
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result<()> {
     // Define how messages should be logged.
-    let logger_env = env_logger::Env::default();
+    let logger_env = env_logger::Env::default()
+        // Obviate defining `RUST_LOG` env var with `cargo run` by advancing log level from (default) ERROR to INFO.
+        .filter_or("RUST_LOG", "INFO");
     env_logger::init_from_env(logger_env);
 
     // Don't show egui log messages because FolSum's debugs gets lost in the sea of egui debugs.
