@@ -1,23 +1,28 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use std::error::Error;
-
 use log::{debug, error, info, trace, warn};
+use std::error::Error;
 use std::time::SystemTime;
 
+use fern::colors::{Color, ColoredLevelConfig};
+
 fn setup_native_logging() -> Result<(), Box<dyn Error>> {
+    // Define the line color for each log level.
+    let mut colors = ColoredLevelConfig::new().info(Color::Green);
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
                 "[{} {} {}] {}",
                 humantime::format_rfc3339_seconds(SystemTime::now()),
-                record.level(),
+                colors.color(record.level()),
                 record.target(),
                 message
             ))
         })
+        // Set minimum logging level for all modules to DEBUG.
         .level(log::LevelFilter::Debug)
+        // Send unfiltered messages to stdout.
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log")?)
         .apply()?;
