@@ -27,7 +27,10 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .info(Color::Blue)
         .warn(Color::Yellow)
         .error(Color::Red);
-    fern::Dispatch::new()
+    // Create a foundation for the console logger and file logger to sit on top of.
+    let base_config = fern::Dispatch::new();
+    // Configure how log records are displayed in the console.
+    let stdout_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "[{} {} {}] {}",
@@ -42,7 +45,10 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .level(log::LevelFilter::Debug)
         // Send unfiltered messages to stdout.
         .chain(std::io::stdout())
-        .chain(fern::log_file("output.log")?)
+        .chain(fern::log_file("output.log")?);
+    base_config
+        .chain(stdout_config)
+        //.chain(file_config)
         .apply()?;
     info!("Initialized logger");
     Ok(())
