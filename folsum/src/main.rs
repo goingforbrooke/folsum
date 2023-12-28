@@ -24,7 +24,9 @@ fn setup_native_eframe() -> eframe::Result<()> {
         "FolSum",
         native_options,
         Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
-    )
+    )?;
+    info!("Initialized native eframe");
+    Ok(())
 }
 
 // When compiling natively:
