@@ -3,9 +3,7 @@
 
 use log::{debug, error, info, warn};
 
-// When compiling natively:
-#[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result<()> {
+fn setup_logging() {
     // Define how messages should be logged.
     let logger_env = env_logger::Env::default()
         // Obviate defining `RUST_LOG` env var with `cargo run` by advancing log level from (default) ERROR to INFO.
@@ -20,7 +18,12 @@ fn main() -> eframe::Result<()> {
     error!("Initialized logger");
     info!("Initialized logger");
     warn!("Initialized logger");
+}
 
+// When compiling natively:
+#[cfg(not(target_arch = "wasm32"))]
+fn main() -> eframe::Result<()> {
+    setup_logging();
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
         "FolSum",
