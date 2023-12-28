@@ -10,10 +10,6 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         // Obviate defining `RUST_LOG` env var with `cargo run` by advancing log level from (default) ERROR to INFO.
         .filter_or("RUST_LOG", "INFO");
     env_logger::init_from_env(logger_env);
-
-    // Don't show egui log messages because FolSum's debugs gets lost in the sea of egui debugs.
-    //logger_builder.filter_module("egui", LevelFilter::Info);
-
     info!("Initialized logger");
     Ok(())
 }
