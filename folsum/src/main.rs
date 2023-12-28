@@ -9,7 +9,12 @@ use fern::colors::{Color, ColoredLevelConfig};
 
 fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     // Define the line color for each log level.
-    let mut colors = ColoredLevelConfig::new().info(Color::Green);
+    let mut colors = ColoredLevelConfig::new()
+        .trace(Color::Grey)
+        .debug(Color::Grey)
+        .info(Color::Blue)
+        .warn(Color::Yellow)
+        .error(Color::Red);
     fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
