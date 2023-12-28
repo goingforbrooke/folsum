@@ -2,8 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use log::{debug, error, info, warn};
+use std::error::Error;
 
-fn setup_logging() {
+fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     // Define how messages should be logged.
     let logger_env = env_logger::Env::default()
         // Obviate defining `RUST_LOG` env var with `cargo run` by advancing log level from (default) ERROR to INFO.
@@ -14,22 +15,24 @@ fn setup_logging() {
     //logger_builder.filter_module("egui", LevelFilter::Info);
 
     info!("Initialized logger");
-    debug!("Initialized logger");
-    error!("Initialized logger");
-    info!("Initialized logger");
-    warn!("Initialized logger");
+    Ok(())
 }
 
-// When compiling natively:
-#[cfg(not(target_arch = "wasm32"))]
-fn main() -> eframe::Result<()> {
-    setup_logging();
+fn setup_native_eframe() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
         "FolSum",
         native_options,
         Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
     )
+}
+
+// When compiling natively:
+#[cfg(not(target_arch = "wasm32"))]
+fn main() -> Result<(), Box<dyn Error>> {
+    setup_native_logging()?;
+    setup_native_eframe()?;
+    Ok(())
 }
 
 // When compiling to web using trunk:
