@@ -1,15 +1,26 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use log::info;
 use std::error::Error;
 
+use log::{debug, error, info, trace, warn};
+use std::time::SystemTime;
+
 fn setup_native_logging() -> Result<(), Box<dyn Error>> {
-    // Define how messages should be logged.
-    let logger_env = env_logger::Env::default()
-        // Obviate defining `RUST_LOG` env var with `cargo run` by advancing log level from (default) ERROR to INFO.
-        .filter_or("RUST_LOG", "INFO");
-    env_logger::init_from_env(logger_env);
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{} {} {}] {}",
+                humantime::format_rfc3339_seconds(SystemTime::now()),
+                record.level(),
+                record.target(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("output.log")?)
+        .apply()?;
     info!("Initialized logger");
     Ok(())
 }
