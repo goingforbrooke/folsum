@@ -26,7 +26,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .error(Color::Red)
         .warn(Color::Yellow)
         .debug(Color::Green)
-        .info(Color::Blue)
+        .info(Color::Cyan)
         .trace(Color::White);
     // Create a foundation for the console logger and file logger to sit on top of.
     let base_config = fern::Dispatch::new();
