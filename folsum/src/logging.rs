@@ -1,10 +1,34 @@
-use log::{debug, error, info, trace, warn};
+//! Logging
+//!
+//! `logging` sets up native logging for FolSum projects. This doesn't include WASM deployments,
+//! which need a different logger.
+
+// Standard library.
 use std::error::Error;
 use std::path::Path;
 use std::time::SystemTime;
 
+// External crates.
 use fern::colors::{Color, ColoredLevelConfig};
+use log::{debug, error, info, trace, warn};
 
+/// Create a logger for native compilation targets.
+///
+/// # Examples
+///
+/// ```
+/// trace!("doodle");
+/// debug!("buuuuuuuuuuuugs!");
+/// info!("knowledge");
+/// warn!("uh-oh");
+/// error!("danger will robinson");
+/// Output:
+/// 11:58🧊logging.rsL79::folsum::logging Initialized logger
+/// 11:58🐛logging.rsL82::folsum::logging buuuuuuuuuuuugs!
+/// 11:58🧊logging.rsL83::folsum::logging knowledge
+/// 11:58💡logging.rsL84::folsum::logging uh-oh
+/// 11:58🚨logging.rsL85::folsum::logging danger will robinson
+/// ```
 pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
@@ -77,11 +101,5 @@ pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .chain(file_config)
         .apply()?;
     info!("Initialized logger");
-
-    trace!("doodle");
-    debug!("buuuuuuuuuuuugs!");
-    info!("knowledge");
-    warn!("uh-oh");
-    error!("danger will robinson");
     Ok(())
 }
