@@ -43,8 +43,8 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 // Get the line number that the log record was invoked from.
                 record_line = record.line().map_or(String::from("unknown_line"), |line| line.to_string()),
                 record_module = record.module_path().unwrap_or("unknown_module"),
+                // Colorize log level record based off of its log level.
                 level = colors_line.color(record.level()),
-                // Colorize the log record based off of its log level.
                 message = message,
             ));
         })
