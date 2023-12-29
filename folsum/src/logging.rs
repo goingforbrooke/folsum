@@ -12,7 +12,7 @@ use std::time::SystemTime;
 use fern::colors::{Color, ColoredLevelConfig};
 use log::{debug, error, info, trace, warn};
 
-/// Create a logger for native compilation targets.
+/// Initialize a logger for native compilation targets.
 ///
 /// # Examples
 ///
