@@ -43,6 +43,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 // todo: Add filename and line number.
                 // Get the filename that the log record came from.
                 record_filename = record.file().unwrap_or("unknown_file"),
+                record_line = record.line().map_or(String::from("unknown_line"), |line| line.to_string()),
                 // Get the module that the log record came from.
                 record_module = record.module_path().unwrap_or("unknown_module"),
                 level = colors_line.color(record.level()),
