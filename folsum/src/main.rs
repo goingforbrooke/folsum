@@ -70,11 +70,17 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     let file_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "[{} {}] {}",
-                humantime::format_rfc3339_seconds(SystemTime::now()),
-                record.target(),
-                message
-            ))
+                "[{timestamp} {record_filename}L{record_line}::{record_module}] {message}",
+                timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
+                // Get the full path to the invoking file.
+                record_filename = record.file().unwrap_or("unknown_file"),
+                // Get the line number that the log record was invoked from.
+                record_line = record
+                    .line()
+                    .map_or(String::from("unknown_line"), |line| line.to_string()),
+                record_module = record.module_path().unwrap_or("unknown_module"),
+                message = message
+            ));
         })
         // Include logs records at every level.
         .level(log::LevelFilter::Trace)
