@@ -45,7 +45,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 message = message,
             ));
         })
-        // Show log records at DEBUG and above.
+        // Console log records at DEBUG and above.
         .level(log::LevelFilter::Debug)
         // Send unfiltered messages to stdout.
         .chain(std::io::stdout());
