@@ -38,14 +38,13 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                     "\x1b[{}m",
                     colors_line.get_color(&record.level()).to_fg_str()
                 ),
-                timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
-                // Colorize the log record based off of its log level.
-                // Get the filename that the log record came from.
+                timestamp = chrono::Local::now().format("%H:%M"),
                 record_filename = record.file().unwrap_or("unknown_file"),
+                // Get the line number that the log record was invoked from.
                 record_line = record.line().map_or(String::from("unknown_line"), |line| line.to_string()),
-                // Get the module that the log record came from.
                 record_module = record.module_path().unwrap_or("unknown_module"),
                 level = colors_line.color(record.level()),
+                // Colorize the log record based off of its log level.
                 message = message,
             ));
         })
