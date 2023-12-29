@@ -17,8 +17,6 @@ eframe = { version = "0.22.0", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4"
-
-# FolSum Dependencies.
 chrono = "0.4.31"
 dirs = "5.0.1"
 egui_extras = "0.22.0"
