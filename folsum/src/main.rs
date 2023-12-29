@@ -45,8 +45,12 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 message = message,
             ));
         })
-        // Ignore all non-warning eframe logs in console.
+        // Ignore all non-warning `eframe` logs in console.
         .level_for("eframe", log::LevelFilter::Warn)
+        // Ignore all non-warning `egui_glow` logs in console.
+        .level_for("egui_glow", log::LevelFilter::Warn)
+        // Ignore all non-warning `egui_winit` logs in console.
+        .level_for("egui_winit", log::LevelFilter::Warn)
         // Console log records at DEBUG and above.
         .level(log::LevelFilter::Debug)
         // Send unfiltered messages to stdout.
