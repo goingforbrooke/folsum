@@ -45,6 +45,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                 message = message,
             ));
         })
+        // Ignore all non-error eframe logs in console.
         .level_for("eframe", log::LevelFilter::Error)
         // Console log records at DEBUG and above.
         .level(log::LevelFilter::Debug)
