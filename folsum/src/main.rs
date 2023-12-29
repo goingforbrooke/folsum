@@ -33,12 +33,12 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     let stdout_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "[{date} {color_line} {level} {record_filename}L{record_line}::{record_module}] {color_line} {message}\x1B[0m",
+                "[{timestamp} {color_line} {level} {record_filename}L{record_line}::{record_module}] {color_line} {message}\x1B[0m",
                 color_line = format_args!(
                     "\x1b[{}m",
                     colors_line.get_color(&record.level()).to_fg_str()
                 ),
-                date = humantime::format_rfc3339_seconds(SystemTime::now()),
+                timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
                 // Colorize the log record based off of its log level.
                 // Get the filename that the log record came from.
                 record_filename = record.file().unwrap_or("unknown_file"),
