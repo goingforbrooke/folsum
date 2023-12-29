@@ -3,6 +3,7 @@
 
 use log::{debug, error, info, trace, warn};
 use std::error::Error;
+use std::path::Path;
 use std::time::SystemTime;
 
 use fern::colors::{Color, ColoredLevelConfig};
@@ -39,7 +40,10 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
                     colors_line.get_color(&record.level()).to_fg_str()
                 ),
                 timestamp = chrono::Local::now().format("%H:%M"),
-                record_filename = record.file().unwrap_or("unknown_file"),
+                record_filename = record.file()
+                    .and_then(|record_filepath| Path::new(record_filepath).file_name())
+                    .and_then(|record_filename| record_filename.to_str())
+                    .unwrap_or("unknown_file"),
                 // Get the line number that the log record was invoked from.
                 record_line = record.line().map_or(String::from("unknown_line"), |line| line.to_string()),
                 record_module = record.module_path().unwrap_or("unknown_module"),
