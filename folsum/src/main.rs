@@ -23,7 +23,7 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
         .trace(Color::White)
-        .debug(Color::White)
+        .debug(Color::Green)
         .info(Color::Blue)
         .warn(Color::Yellow)
         .error(Color::Red);
