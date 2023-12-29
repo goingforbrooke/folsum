@@ -23,11 +23,11 @@ fn setup_native_logging() -> Result<(), Box<dyn Error>> {
     //}
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
-        .trace(Color::White)
+        .error(Color::Red)
+        .warn(Color::Yellow)
         .debug(Color::Green)
         .info(Color::Blue)
-        .warn(Color::Yellow)
-        .error(Color::Red);
+        .trace(Color::White);
     // Create a foundation for the console logger and file logger to sit on top of.
     let base_config = fern::Dispatch::new();
     // Define how log records are displayed in the console.
