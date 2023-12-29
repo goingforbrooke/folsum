@@ -4,7 +4,8 @@
 use log::info;
 use std::error::Error;
 
-use crate::setup_native_logging;
+mod logging;
+use logging::setup_native_logging;
 
 fn setup_native_eframe() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
