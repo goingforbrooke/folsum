@@ -31,6 +31,7 @@ fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
     // Ensure that logs dir and its parents exist.
     create_dir_all(&log_dir)?;
 
+    // Define the logs file as `<app_name>/logs/<app_name>.log`.
     let mut logfile_path = log_dir;
     let logfile_name = format!("{}", &app_name);
     logfile_path.set_file_name(logfile_name);
