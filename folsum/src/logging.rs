@@ -5,12 +5,38 @@
 
 // Standard library.
 use std::error::Error;
-use std::path::Path;
+use std::fs::{create_dir_all, File};
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 // External crates.
+use dirs::data_local_dir;
 use fern::colors::{Color, ColoredLevelConfig};
 use log::{debug, error, info, trace, warn};
+
+/// Create a logfile in the application data directory.
+///
+/// The logfile and its parent directories are created if they don't already exist. If the logfile
+/// already exist, then the path to the existing logfile will be returned.
+fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
+    // Get the place on the user's box where applications can store data.
+    let appdata_dir = data_local_dir().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Failed to find an app data directory to store log files",
+        )
+    })?;
+    // Define logs dir as `<app_name>/logs/` in app data dir.
+    let log_dir = [appdata_dir, Path::new(app_name).iter().collect()];
+    // Ensure that logs dir and its parents exist.
+    create_dir_all(&log_dir.into())?;
+    // Name the logfile `folsum.log.
+    let logfile_name = format!("{}.log", &app_name);
+    let logfile_path = [log_dir, PathBuf::new(logfile_name)].iter().collect();
+    // Ensure the logfile exists.
+    File::create(&logfile_path);
+    Ok(logfile_path)
+}
 
 /// Initialize a logger for native compilation targets.
 ///
