@@ -14,11 +14,11 @@ use dirs::data_local_dir;
 use fern::colors::{Color, ColoredLevelConfig};
 use log::{debug, error, info, trace, warn};
 
-/// Create a logfile in the application data directory.
+/// Create a directory for logfiles in the application data directory.
 ///
-/// The logfile and its parent directories are created if they don't already exist. If the logfile
-/// already exist, then the path to the existing logfile will be returned.
-fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
+/// A logfile directory for the application is created in a platform-specific
+/// app data directory. If it already exists, then nothing happens.
+fn create_logdir(app_name: &str, logdir_override: &Path) -> Result<PathBuf, Box<dyn Error>> {
     // Get the place on the user's box where applications can store data.
     let appdata_dir = data_local_dir().ok_or_else(|| {
         std::io::Error::new(
@@ -30,7 +30,12 @@ fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
     let log_dir = appdata_dir.join(app_name).join("logs");
     // Ensure that logs dir and its parents exist.
     create_dir_all(&log_dir)?;
+}
 
+/// Create a logfile in the logfile subdirectory for this application.
+///
+/// If the logfile already exists, then nothing happens.
+fn create_logfile(logdir: &Path) -> Result<PathBuf, Box<dyn Error>> {
     // Define the logs file as `<app_name>/logs/<app_name>.log`.
     let mut logfile_path = log_dir;
     let logfile_name = format!("{}", &app_name);
