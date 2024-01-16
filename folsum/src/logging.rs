@@ -27,14 +27,17 @@ fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
         )
     })?;
     // Define logs dir as `<app_name>/logs/` in app data dir.
-    let log_dir = [appdata_dir, Path::new(app_name).iter().collect()];
+    let log_dir = appdata_dir.join(app_name).join("logs");
     // Ensure that logs dir and its parents exist.
-    create_dir_all(&log_dir.into())?;
-    // Name the logfile `folsum.log.
-    let logfile_name = format!("{}.log", &app_name);
-    let logfile_path = [log_dir, PathBuf::new(logfile_name)].iter().collect();
+    create_dir_all(&log_dir)?;
+
+    let mut logfile_path = log_dir;
+    let logfile_name = format!("{}", &app_name);
+    logfile_path.set_file_name(logfile_name);
+    // Name the logfile `folsum.log`.
+    logfile_path.set_extension("log");
     // Ensure the logfile exists.
-    File::create(&logfile_path);
+    File::create(&logfile_path)?;
     Ok(logfile_path)
 }
 
