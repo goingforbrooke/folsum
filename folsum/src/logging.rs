@@ -38,13 +38,11 @@ fn create_logdir(app_name: &str, logdir_override: &Path) -> Result<PathBuf, Box<
 /// Create a logfile in the loging subdirectory for this application.
 ///
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
-fn create_logfile(app_name: &PathBuf) -> Result<PathBuf, Box<dyn Error>> {
+fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
     // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
-    let mut logfile_path = log_dir;
-    let logfile_name = format!("{}", &app_name);
-    logfile_path.set_file_name(logfile_name);
-    // Name the logfile `folsum.log`.
-    logfile_path.set_extension("log");
+    let logfile_name = format!("{}.log", app_name);
+    // Name the logfile `<app_name>.log`.
+    let mut logfile_path = PathBuf::from(logfile_name);
     // Ensure the logfile exists.
     File::create(&logfile_path)?;
     Ok(logfile_path)
