@@ -12,6 +12,7 @@ use std::time::SystemTime;
 // External crates.
 use dirs::data_local_dir;
 use fern::colors::{Color, ColoredLevelConfig};
+#[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
 /// Create a directory for logfiles in the application data directory.
