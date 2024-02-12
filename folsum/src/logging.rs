@@ -15,7 +15,7 @@ use fern::colors::{Color, ColoredLevelConfig};
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-/// Create a directory for logfiles in the application data directory.
+/// Create application data subdirectory for logfiles.
 ///
 /// A logfile directory for the application is created in a platform-specific
 /// app data directory. If it already exists, then nothing happens.
@@ -30,14 +30,16 @@ fn create_logdir(app_name: &str, logdir_override: &Path) -> Result<PathBuf, Box<
     // Define logs dir as `<app_name>/logs/` in app data dir.
     let log_dir = appdata_dir.join(app_name).join("logs");
     // Ensure that logs dir and its parents exist.
+    // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
+    Ok(log_dir)
 }
 
-/// Create a logfile in the logfile subdirectory for this application.
+/// Create a logfile in the loging subdirectory for this application.
 ///
-/// If the logfile already exists, then nothing happens.
-fn create_logfile(logdir: &Path) -> Result<PathBuf, Box<dyn Error>> {
-    // Define the logs file as `<app_name>/logs/<app_name>.log`.
+/// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
+fn create_logfile(app_name: &PathBuf) -> Result<PathBuf, Box<dyn Error>> {
+    // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
     let mut logfile_path = log_dir;
     let logfile_name = format!("{}", &app_name);
     logfile_path.set_file_name(logfile_name);
@@ -48,24 +50,31 @@ fn create_logfile(logdir: &Path) -> Result<PathBuf, Box<dyn Error>> {
     Ok(logfile_path)
 }
 
-/// Initialize a logger for native compilation targets.
-///
-/// # Examples
-///
-/// ```
-/// trace!("doodle");
-/// debug!("buuuuuuuuuuuugs!");
-/// info!("knowledge");
-/// warn!("uh-oh");
-/// error!("danger will robinson");
-/// Output:
-/// 11:58🧊logging.rsL79::folsum::logging Initialized logger
-/// 11:58🐛logging.rsL82::folsum::logging buuuuuuuuuuuugs!
-/// 11:58🧊logging.rsL83::folsum::logging knowledge
-/// 11:58💡logging.rsL84::folsum::logging uh-oh
-/// 11:58🚨logging.rsL85::folsum::logging danger will robinson
-/// ```
-pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
+/// Define how log records are diplayed in the log file.
+fn define_logfile_format() -> Result<fern::Dispatch, Box<dyn Error>> {
+    let file_config = fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "[{timestamp} {record_filename}L{record_line}::{record_module}] {message}",
+                timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
+                // Get the full path to the invoking file.
+                record_filename = record.file().unwrap_or("unknown_file"),
+                // Get the line number that the log record was invoked from.
+                record_line = record
+                    .line()
+                    .map_or(String::from("unknown_line"), |line| line.to_string()),
+                record_module = record.module_path().unwrap_or("unknown_module"),
+                message = message
+            ));
+        })
+        // Include logs records at every level.
+        .level(log::LevelFilter::Trace)
+        // Write to a file called `output.log` in the current working directory.
+        .chain(fern::log_file("output.log")?);
+    Ok(file_config)
+}
+
+fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
         .error(Color::Red)
@@ -111,26 +120,29 @@ pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
         .level(log::LevelFilter::Debug)
         // Send unfiltered messages to stdout.
         .chain(std::io::stdout());
-    // Define how log records are diplayed in the log file.
-    let file_config = fern::Dispatch::new()
-        .format(move |out, message, record| {
-            out.finish(format_args!(
-                "[{timestamp} {record_filename}L{record_line}::{record_module}] {message}",
-                timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
-                // Get the full path to the invoking file.
-                record_filename = record.file().unwrap_or("unknown_file"),
-                // Get the line number that the log record was invoked from.
-                record_line = record
-                    .line()
-                    .map_or(String::from("unknown_line"), |line| line.to_string()),
-                record_module = record.module_path().unwrap_or("unknown_module"),
-                message = message
-            ));
-        })
-        // Include logs records at every level.
-        .level(log::LevelFilter::Trace)
-        // Write to a file called `output.log` in the current working directory.
-        .chain(fern::log_file("output.log")?);
+    Ok(stdout_config)
+}
+
+/// Initialize a logger for native compilation targets.
+///
+/// # Examples
+///
+/// ```
+/// trace!("doodle");
+/// debug!("buuuuuuuuuuuugs!");
+/// info!("knowledge");
+/// warn!("uh-oh");
+/// error!("danger will robinson");
+/// Output:
+/// 11:58🧊logging.rsL79::folsum::logging Initialized logger
+/// 11:58🐛logging.rsL82::folsum::logging buuuuuuuuuuuugs!
+/// 11:58🧊logging.rsL83::folsum::logging knowledge
+/// 11:58💡logging.rsL84::folsum::logging uh-oh
+/// 11:58🚨logging.rsL85::folsum::logging danger will robinson
+/// ```
+pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
+    let stdout_config = define_console_format();
+    let file_config = define_logfile_format();
     // Activate the console logger and the file logger.
     base_config
         .chain(stdout_config)
