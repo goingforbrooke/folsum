@@ -67,7 +67,7 @@ fn define_logfile_format() -> Result<fern::Dispatch, Box<dyn Error>> {
         })
         // Include logs records at every level.
         .level(log::LevelFilter::Trace)
-        // Write to a file called `output.log` in the current working directory.
+        // Append to a logfilefile called `output.log` in the cwd, creating it if needed.
         .chain(fern::log_file("output.log")?);
     Ok(file_config)
 }
