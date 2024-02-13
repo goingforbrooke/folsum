@@ -47,11 +47,11 @@ fn create_logdir(
 /// Create a logfile in the loging subdirectory for this application.
 ///
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
-fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
+fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf, Box<dyn Error>> {
     let lowercased_name = app_name.to_lowercase();
     // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
     let logfile_name = format!("{}.log", lowercased_name);
-    let logfile_path = PathBuf::from(logfile_name);
+    let logfile_path = parent_dir.join(PathBuf::from(logfile_name));
     // Ensure the logfile exists.
     File::create(&logfile_path)?;
     Ok(logfile_path)
@@ -149,9 +149,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
     // todo: Provide for logdir creation failures.
     let logdir = create_logdir(&app_name, None).unwrap();
     // todo: Provide for logfile creation failures.
-    let logfile = create_logfile(&app_name).unwrap();
-    let logfile_path = logdir.join(&logfile);
-
+    let logfile_path = create_logfile(&app_name, &logdir).unwrap();
     let console_config = define_console_format();
     let file_config = define_logfile_format(&logfile_path);
     // Activate the console logger and the file logger.
