@@ -80,8 +80,6 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
         .debug(Color::Green)
         .info(Color::Cyan)
         .trace(Color::White);
-    // Create a foundation for the console logger and file logger to sit on top of.
-    let base_config = fern::Dispatch::new();
     // Define how log records are displayed in the console.
     let stdout_config = fern::Dispatch::new()
         .format(move |out, message, record| {
@@ -138,13 +136,13 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
 /// 11:58💡logging.rsL84::folsum::logging uh-oh
 /// 11:58🚨logging.rsL85::folsum::logging danger will robinson
 /// ```
-pub fn setup_native_logging() -> Result<(), Box<dyn Error>> {
-    let stdout_config = define_console_format();
+pub fn setup_native_logging() -> Result<(), fern::InitError> {
+    let console_config = define_console_format();
     let file_config = define_logfile_format();
     // Activate the console logger and the file logger.
-    base_config
-        .chain(stdout_config)
-        .chain(file_config)
+    fern::Dispatch::new()
+        .chain(console_config.unwrap())
+        .chain(file_config.unwrap())
         .apply()?;
     info!("Initialized logger");
     Ok(())
