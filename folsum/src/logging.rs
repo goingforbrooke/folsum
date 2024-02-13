@@ -30,12 +30,13 @@ fn create_logdir(
             "Failed to find an app data directory to store log files",
         )
     })?;
+    // Store logs the Appdata dir unless specified otherwise.
     let parent_dir = match logdir_override {
         Some(logdir_override) => logdir_override,
         None => &appdata_dir,
     };
     // Define logs dir as `<app_name>/logs/` in app data dir.
-    let log_dir = appdata_dir.join(app_name).join("logs");
+    let log_dir = parent_dir.join(app_name).join("logs");
     // Ensure that logs dir and its parents exist.
     // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
@@ -48,15 +49,14 @@ fn create_logdir(
 fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
     // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
     let logfile_name = format!("{}.log", app_name);
-    // Name the logfile `<app_name>.log`.
-    let mut logfile_path = PathBuf::from(logfile_name);
+    let logfile_path = PathBuf::from(logfile_name);
     // Ensure the logfile exists.
     File::create(&logfile_path)?;
     Ok(logfile_path)
 }
 
 /// Define how log records are diplayed in the log file.
-fn define_logfile_format() -> Result<fern::Dispatch, Box<dyn Error>> {
+fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch, Box<dyn Error>> {
     let file_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -74,8 +74,8 @@ fn define_logfile_format() -> Result<fern::Dispatch, Box<dyn Error>> {
         })
         // Include logs records at every level.
         .level(log::LevelFilter::Trace)
-        // Append to a logfilefile called `output.log` in the cwd, creating it if needed.
-        .chain(fern::log_file("output.log")?);
+        // Append to a given logfile, creating it if necessary.
+        .chain(fern::log_file(logfile_path)?);
     Ok(file_config)
 }
 
@@ -144,8 +144,14 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
 /// 11:58🚨logging.rsL85::folsum::logging danger will robinson
 /// ```
 pub fn setup_native_logging() -> Result<(), fern::InitError> {
+    let app_name = String::from("FolSum");
+
+    let logdir = create_logdir(&app_name, None).unwrap();
+    let logfile = create_logfile(&app_name).unwrap();
+    let logfile_path = logdir.join(&logfile);
+
     let console_config = define_console_format();
-    let file_config = define_logfile_format();
+    let file_config = define_logfile_format(&logfile_path);
     // Activate the console logger and the file logger.
     fern::Dispatch::new()
         .chain(console_config.unwrap())
