@@ -62,7 +62,7 @@ fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch, Box<d
     let file_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "[{timestamp} {record_filename}L{record_line}::{record_module}] {message}",
+                "[{timestamp}_{record_filename}::{record_module}L{record_line}]_{message}",
                 timestamp = humantime::format_rfc3339_seconds(SystemTime::now()),
                 // Get the full path to the invoking file.
                 record_filename = record.file().unwrap_or("unknown_file"),
