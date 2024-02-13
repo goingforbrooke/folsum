@@ -145,9 +145,7 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
 /// 11:58💡logging.rsL84::folsum::logging uh-oh
 /// 11:58🚨logging.rsL85::folsum::logging danger will robinson
 /// ```
-pub fn setup_native_logging() -> Result<(), fern::InitError> {
-    let app_name = String::from("FolSum");
-
+pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
     // todo: Provide for logdir creation failures.
     let logdir = create_logdir(&app_name, None).unwrap();
     // todo: Provide for logfile creation failures.

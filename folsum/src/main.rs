@@ -7,10 +7,12 @@ use std::error::Error;
 mod logging;
 use logging::setup_native_logging;
 
+const APP_NAME: &str = "FolSum";
+
 fn setup_native_eframe() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "FolSum",
+        &APP_NAME,
         native_options,
         Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
     )?;
@@ -21,7 +23,7 @@ fn setup_native_eframe() -> eframe::Result<()> {
 // When compiling natively:
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> Result<(), Box<dyn Error>> {
-    setup_native_logging()?;
+    setup_native_logging(&APP_NAME)?;
     setup_native_eframe()?;
     Ok(())
 }
