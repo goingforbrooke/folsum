@@ -19,7 +19,10 @@ use log::{debug, error, info, trace, warn};
 ///
 /// A logfile directory for the application is created in a platform-specific
 /// app data directory. If it already exists, then nothing happens.
-fn create_logdir(app_name: &str, logdir_override: &Path) -> Result<PathBuf, Box<dyn Error>> {
+fn create_logdir(
+    app_name: &str,
+    logdir_override: Option<&PathBuf>,
+) -> Result<PathBuf, Box<dyn Error>> {
     // Get the place on the user's box where applications can store data.
     let appdata_dir = data_local_dir().ok_or_else(|| {
         std::io::Error::new(
@@ -27,6 +30,10 @@ fn create_logdir(app_name: &str, logdir_override: &Path) -> Result<PathBuf, Box<
             "Failed to find an app data directory to store log files",
         )
     })?;
+    let parent_dir = match logdir_override {
+        Some(logdir_override) => logdir_override,
+        None => &appdata_dir,
+    };
     // Define logs dir as `<app_name>/logs/` in app data dir.
     let log_dir = appdata_dir.join(app_name).join("logs");
     // Ensure that logs dir and its parents exist.
