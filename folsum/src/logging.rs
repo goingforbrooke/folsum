@@ -158,6 +158,6 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
         // todo: Provide for logging file config creation failures.
         .chain(file_config.unwrap())
         .apply()?;
-    info!("Initialized logger with target file \"{logfile_path:?}\"");
+    info!("Initialized logger with target file {logfile_path:?}");
     Ok(())
 }
