@@ -35,8 +35,9 @@ fn create_logdir(
         Some(logdir_override) => logdir_override,
         None => &appdata_dir,
     };
+    let lowercased_name = app_name.to_lowercase();
     // Define logs dir as `<app_name>/logs/` in app data dir.
-    let log_dir = parent_dir.join(app_name).join("logs");
+    let log_dir = parent_dir.join(lowercased_name).join("logs");
     // Ensure that logs dir and its parents exist.
     // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
@@ -47,8 +48,9 @@ fn create_logdir(
 ///
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
 fn create_logfile(app_name: &str) -> Result<PathBuf, Box<dyn Error>> {
+    let lowercased_name = app_name.to_lowercase();
     // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
-    let logfile_name = format!("{}.log", app_name);
+    let logfile_name = format!("{}.log", lowercased_name);
     let logfile_path = PathBuf::from(logfile_name);
     // Ensure the logfile exists.
     File::create(&logfile_path)?;
