@@ -146,7 +146,9 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
 pub fn setup_native_logging() -> Result<(), fern::InitError> {
     let app_name = String::from("FolSum");
 
+    // todo: Provide for logdir creation failures.
     let logdir = create_logdir(&app_name, None).unwrap();
+    // todo: Provide for logfile creation failures.
     let logfile = create_logfile(&app_name).unwrap();
     let logfile_path = logdir.join(&logfile);
 
@@ -155,6 +157,7 @@ pub fn setup_native_logging() -> Result<(), fern::InitError> {
     // Activate the console logger and the file logger.
     fern::Dispatch::new()
         .chain(console_config.unwrap())
+        // todo: Provide for logging file config creation failures.
         .chain(file_config.unwrap())
         .apply()?;
     info!("Initialized logger");
