@@ -173,7 +173,7 @@ mod tests {
     use tempdir::TempDir;
 
     #[test]
-    fn test_setup_native_logging() {
+    fn test_create_logdir() {
         // Create temporary directory that'll be deleted when it goes out of scope.
         let temp_dir = TempDir::new("example").unwrap();
 
