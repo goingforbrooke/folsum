@@ -168,7 +168,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::test_utilities::TempEnvVar;
+    use crate::common::test_utilities::{get_platform_env_var, TempEnvVar};
 
     use tempdir::TempDir;
 
@@ -177,26 +177,12 @@ mod tests {
         // Create temporary directory that'll be deleted when it goes out of scope.
         let temp_dir = TempDir::new("test_create_logdir").unwrap();
 
-        // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
-        let platform = if cfg!(unix) {
-            "unix"
-        } else if cfg!(windows) {
-            "windows"
-        } else {
-            "unknown"
-        };
-        let env_var_name = match platform {
-            "unix" => "HOME",
-            "windows" => "USERPROFILE",
-            _ => "unknown",
-        };
-        if env_var_name == "unknown" {
-            // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
-            panic!("Unknown platform")
-        }
+        let env_var_name: String = get_platform_env_var().unwrap();
 
-        // Set testing environemnt variable that'll be removed when this goes out of scope.
-        let _temp_env_var = TempEnvVar::new(env_var_name, &temp_dir.path().to_str().unwrap());
+        // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
+        // Set testing environment variable that'll be removed when this goes out of scope.
+        let _temp_env_var =
+            TempEnvVar::new(env_var_name.as_str(), &temp_dir.path().to_str().unwrap());
 
         const TEST_APP_NAME: &str = "TestAppName";
 

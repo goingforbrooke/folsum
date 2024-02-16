@@ -18,4 +18,25 @@ pub mod test_utilities {
             std::env::remove_var(self.variable_name);
         }
     }
+
+    /// Get platform-specifc environment variable that corresponds to `$HOME`.
+    pub fn get_platform_env_var() -> Result<String, Box<dyn Error>> {
+        let platform = if cfg!(unix) {
+            "unix"
+        } else if cfg!(windows) {
+            "windows"
+        } else {
+            "unknown"
+        };
+        let env_var_name = match platform {
+            "unix" => "HOME",
+            "windows" => "USERPROFILE",
+            _ => "unknown",
+        };
+        if env_var_name == "unknown" {
+            // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
+            panic!("Unknown platform")
+        }
+        Ok(String::from(platform))
+    }
 }
