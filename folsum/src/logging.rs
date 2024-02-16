@@ -186,6 +186,7 @@ mod tests {
 
         const TEST_APP_NAME: &str = "TestAppName";
 
+        // todo: Try removing top-level lowercase change from test.
         let platform_path = PathBuf::from(format!(
             // Exclude leading forward slash to prevent total replacement of `temp_dir`.
             "Library/Application Support/{}/logs/",
