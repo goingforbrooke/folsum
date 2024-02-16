@@ -42,6 +42,7 @@ fn create_logdir(
     // Ensure that logs dir and its parents exist.
     // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
+    //todo: Separate debug messages for logdir did/didn't already exist.
     Ok(log_dir)
 }
 
@@ -162,4 +163,39 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
         .apply()?;
     info!("Initialized logger with target file {logfile_path:?}");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempdir::TempDir;
+
+    #[test]
+    fn test_setup_native_logging() {
+        // Create temporary directory that'll be deleted when it goes out of scope.
+        let temp_dir = TempDir::new("example").unwrap();
+
+        //#[cfg(unix)]
+        // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
+        std::env::set_var("HOME", &temp_dir.path());
+
+        //#[cfg(windows)]
+        //std::env::set_var("USERPROFILE", temp_dir.path());
+
+        const TEST_APP_NAME: &str = "TestAppName";
+
+        let platform_path = PathBuf::from(format!(
+            "Library/Application Support/{}/logs/",
+            TEST_APP_NAME.to_lowercase()
+        ));
+        let expected_logdir = temp_dir.path().join(platform_path);
+
+        //let _ = setup_native_logging(&TEST_APP_NAME);
+        let _ = create_logdir(&TEST_APP_NAME.to_lowercase(), None);
+
+        assert!(expected_logdir.exists(), "Logging directory wasn't created");
+
+        // Clean up env var.
+        std::env::remove_var("HOME");
+    }
 }
