@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_create_logdir() {
         // Create temporary directory that'll be deleted when it goes out of scope.
-        let temp_dir = TempDir::new("example").unwrap();
+        let temp_dir = TempDir::new("test_create_logdir").unwrap();
 
         // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
         if cfg!(unix) {
