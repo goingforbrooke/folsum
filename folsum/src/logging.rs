@@ -17,8 +17,9 @@ use log::{debug, error, info, trace, warn};
 
 /// Create application data subdirectory for logfiles.
 ///
-/// A logfile directory for the application is created in a platform-specific
-/// app data directory. If it already exists, then nothing happens.
+/// A logfile directory named `logs/` for the application is
+/// created in a platform-specific app data directory. If it
+/// already exists, then nothing happens.
 fn create_logdir(
     app_name: &str,
     logdir_override: Option<&PathBuf>,
