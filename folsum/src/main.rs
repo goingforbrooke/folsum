@@ -4,6 +4,8 @@
 use log::info;
 use std::error::Error;
 
+mod common;
+
 mod logging;
 use logging::setup_native_logging;
 

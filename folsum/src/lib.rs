@@ -15,7 +15,5 @@ pub use summarize::summarize_directory;
 mod utils;
 pub use utils::sort_counts;
 
-#[cfg(test)]
-mod tests {
-    mod common;
-}
+mod common;
+//pub use comm

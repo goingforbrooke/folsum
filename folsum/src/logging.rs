@@ -168,7 +168,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tests::common::EnvVarGuard;
+    use crate::common::test_utilities::TempEnvVar;
 
     use tempdir::TempDir;
 
