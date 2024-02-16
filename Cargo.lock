@@ -1569,7 +1569,6 @@ dependencies = [
  "log",
  "rfd",
  "serde",
- "tempfile",
  "walkdir",
  "wasm-bindgen-futures",
  "web-time",
