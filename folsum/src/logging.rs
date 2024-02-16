@@ -178,11 +178,25 @@ mod tests {
         let temp_dir = TempDir::new("test_create_logdir").unwrap();
 
         // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
-        if cfg!(unix) {
-            std::env::set_var("HOME", &temp_dir.path());
+        let platform = if cfg!(unix) {
+            "unix"
         } else if cfg!(windows) {
-            std::env::set_var("USERPROFILE", temp_dir.path());
+            "windows"
+        } else {
+            "unknown"
+        };
+        let env_var_name = match platform {
+            "unix" => "HOME",
+            "windows" => "USERPROFILE",
+            _ => "unknown",
+        };
+        if env_var_name == "unknown" {
+            // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
+            panic!("Unknown platform")
         }
+
+        // Set testing environemnt variable that'll be removed when this goes out of scope.
+        let _temp_env_var = TempEnvVar::new(env_var_name, &temp_dir.path().to_str().unwrap());
 
         const TEST_APP_NAME: &str = "TestAppName";
 
@@ -197,12 +211,5 @@ mod tests {
         let _ = create_logdir(&TEST_APP_NAME.to_lowercase(), None);
 
         assert!(expected_logdir.exists(), "Logging directory wasn't created");
-
-        // Clean up env vars.
-        if cfg!(unix) {
-            std::env::remove_var("HOME");
-        } else if cfg!(windows) {
-            std::env::remove_var("USERPROFILE");
-        }
     }
 }
