@@ -175,16 +175,17 @@ mod tests {
         // Create temporary directory that'll be deleted when it goes out of scope.
         let temp_dir = TempDir::new("example").unwrap();
 
-        //#[cfg(unix)]
         // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
-        std::env::set_var("HOME", &temp_dir.path());
-
-        //#[cfg(windows)]
-        //std::env::set_var("USERPROFILE", temp_dir.path());
+        if cfg!(unix) {
+            std::env::set_var("HOME", &temp_dir.path());
+        } else if cfg!(windows) {
+            std::env::set_var("USERPROFILE", temp_dir.path());
+        }
 
         const TEST_APP_NAME: &str = "TestAppName";
 
         let platform_path = PathBuf::from(format!(
+            // Exclude leading forward slash to prevent total replacement of `temp_dir`.
             "Library/Application Support/{}/logs/",
             TEST_APP_NAME.to_lowercase()
         ));
@@ -195,7 +196,11 @@ mod tests {
 
         assert!(expected_logdir.exists(), "Logging directory wasn't created");
 
-        // Clean up env var.
-        std::env::remove_var("HOME");
+        // Clean up env vars.
+        if cfg!(unix) {
+            std::env::remove_var("HOME");
+        } else if cfg!(windows) {
+            std::env::remove_var("USERPROFILE");
+        }
     }
 }
