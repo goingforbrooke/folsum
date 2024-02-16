@@ -188,7 +188,7 @@ mod tests {
 
         // todo: Try removing top-level lowercase change from test.
         let platform_path = PathBuf::from(format!(
-            // Exclude leading forward slash to prevent total replacement of `temp_dir`.
+            // Exclude leading forward slash to prevent replacement of `temp_dir` in `.join()`.
             "Library/Application Support/{}/logs/",
             TEST_APP_NAME.to_lowercase()
         ));
