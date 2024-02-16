@@ -56,3 +56,4 @@ icon = ["images/icons/resized_icons/folsum_icon_128px.png",
 
 [dev-dependencies]
 cargo-edit = "0.12.2"
+tempdir = "0.3.7"
