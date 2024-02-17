@@ -37,6 +37,6 @@ pub mod test_utilities {
             // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
             panic!("Unknown platform")
         }
-        Ok(String::from(platform))
+        Ok(String::from(env_var_name))
     }
 }
