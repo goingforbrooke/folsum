@@ -43,6 +43,7 @@ fn create_logdir(
     // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
     //todo: Separate debug messages for logdir did/didn't already exist.
+    debug_println!("Created log dir: {:?}", log_dir);
     Ok(log_dir)
 }
 
@@ -195,6 +196,7 @@ mod tests {
         let expected_logdir = temp_dir.path().join(platform_path);
 
         //let _ = setup_native_logging(&TEST_APP_NAME);
+        debug_println!("$HOME: {:?}", std::env::var("HOME"));
         let _ = create_logdir(&TEST_APP_NAME.to_lowercase(), None);
 
         assert!(expected_logdir.exists(), "Logging directory wasn't created");
