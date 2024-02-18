@@ -11,14 +11,14 @@ macro_rules! debug_println {
 
 #[cfg(test)]
 pub mod test_utilities {
-    use std::error::Error;
+    use anyhow::{bail, Result};
 
     pub struct TempHomeEnvVar {
         variable_name: String,
     }
 
     impl TempHomeEnvVar {
-        pub fn new(desired_value: &str) -> Result<Self, Box<dyn Error>> {
+        pub fn new(desired_value: &str) -> Result<Self> {
             let variable_name = Self::get_platform_env_var()?;
             std::env::set_var(&variable_name, desired_value);
             debug_println!(
@@ -30,7 +30,7 @@ pub mod test_utilities {
         }
 
         /// Get platform-specifc environment variable that corresponds to `$HOME`.
-        pub fn get_platform_env_var() -> Result<String, Box<dyn Error>> {
+        pub fn get_platform_env_var() -> Result<String> {
             let platform = if cfg!(unix) {
                 "unix"
             } else if cfg!(windows) {
@@ -42,7 +42,7 @@ pub mod test_utilities {
                 "unix" => "HOME",
                 "windows" => "USERPROFILE",
                 // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
-                _ => return Err("Unknown platform".into()),
+                _ => bail!("Unsupported platform"),
             };
             Ok(env_var_name.to_string())
         }
