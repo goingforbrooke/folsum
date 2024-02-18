@@ -185,18 +185,18 @@ mod tests {
         // Set testing environment variable that'll be removed when this goes out of scope.
         let _temp_env_var = TempHomeEnvVar::new(&temp_dir.path().to_str().unwrap());
 
+        // The application's name should be converted to lowercase.
         const TEST_APP_NAME: &str = "TestAppName";
 
-        // todo: Try removing top-level lowercase change from test.
         let platform_path = PathBuf::from(format!(
             // Exclude leading forward slash to prevent replacement of `temp_dir` in `.join()`.
             "Library/Application Support/{}/logs/",
-            TEST_APP_NAME.to_lowercase()
+            TEST_APP_NAME
         ));
         let expected_logdir = temp_dir.path().join(platform_path);
 
         debug_println!("$HOME: {:?}", std::env::var("HOME"));
-        let _ = create_logdir(&TEST_APP_NAME.to_lowercase(), None);
+        let _ = create_logdir(&TEST_APP_NAME, None);
 
         assert!(expected_logdir.exists(), "Logging directory wasn't created");
     }
