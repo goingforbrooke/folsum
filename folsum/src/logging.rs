@@ -25,12 +25,10 @@ use crate::debug_println;
 /// already exists, then nothing happens.
 fn create_logdir(app_name: &str, logdir_override: Option<&PathBuf>) -> Result<PathBuf> {
     // Get the place on the user's box where applications can store data.
-    let appdata_dir = data_local_dir().ok_or_else(|| {
-        std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "Failed to find an app data directory to store log files",
-        )
-    })?;
+    let appdata_dir = match data_local_dir() {
+        Some(appdata_dir) => appdata_dir,
+        None => bail!("Failed to find an app data directory to store log files"),
+    };
     // Store logs the Appdata dir unless specified otherwise.
     let parent_dir = match logdir_override {
         Some(logdir_override) => logdir_override,
