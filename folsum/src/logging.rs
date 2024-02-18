@@ -4,12 +4,12 @@
 //! which need a different logger.
 
 // Standard library.
-use std::error::Error;
 use std::fs::{create_dir_all, File};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 // External crates.
+use anyhow::{bail, Result};
 use dirs::data_local_dir;
 use fern::colors::{Color, ColoredLevelConfig};
 #[allow(unused)]
@@ -23,10 +23,7 @@ use crate::debug_println;
 /// A logfile directory named `logs/` for the application is
 /// created in a platform-specific app data directory. If it
 /// already exists, then nothing happens.
-fn create_logdir(
-    app_name: &str,
-    logdir_override: Option<&PathBuf>,
-) -> Result<PathBuf, Box<dyn Error>> {
+fn create_logdir(app_name: &str, logdir_override: Option<&PathBuf>) -> Result<PathBuf> {
     // Get the place on the user's box where applications can store data.
     let appdata_dir = data_local_dir().ok_or_else(|| {
         std::io::Error::new(
@@ -53,7 +50,7 @@ fn create_logdir(
 /// Create a logfile in the loging subdirectory for this application.
 ///
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
-fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf, Box<dyn Error>> {
+fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf> {
     let lowercased_name = app_name.to_lowercase();
     // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
     let logfile_name = format!("{}.log", lowercased_name);
@@ -64,7 +61,7 @@ fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf, Box<d
 }
 
 /// Define how log records are diplayed in the log file.
-fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch, Box<dyn Error>> {
+fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch> {
     let file_config = fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -87,7 +84,7 @@ fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch, Box<d
     Ok(file_config)
 }
 
-fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
+fn define_console_format() -> Result<fern::Dispatch> {
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
         .error(Color::Red)
@@ -151,7 +148,7 @@ fn define_console_format() -> Result<fern::Dispatch, Box<dyn Error>> {
 /// 11:58💡logging.rsL84::folsum::logging uh-oh
 /// 11:58🚨logging.rsL85::folsum::logging danger will robinson
 /// ```
-pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
+pub fn setup_native_logging(app_name: &str) -> Result<()> {
     // todo: Provide for logdir creation failures.
     let logdir = create_logdir(&app_name, None).unwrap();
     // todo: Provide for logfile creation failures.
