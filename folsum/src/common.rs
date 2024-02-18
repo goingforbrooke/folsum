@@ -1,6 +1,7 @@
 /// Add a debug-only `println!` macro
 ///
 /// This ignores `--release`s, so stdout will only show in `cargo build` and `cargo run`.
+#[macro_export]
 macro_rules! debug_println {
     ($($arg:tt)*) => {
         #[cfg(debug_assertions)]

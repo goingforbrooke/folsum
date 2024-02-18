@@ -15,6 +15,9 @@ use fern::colors::{Color, ColoredLevelConfig};
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
+// Project crate.
+use crate::debug_println;
+
 /// Create application data subdirectory for logfiles.
 ///
 /// A logfile directory named `logs/` for the application is
