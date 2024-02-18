@@ -13,43 +13,48 @@ macro_rules! debug_println {
 pub mod test_utilities {
     use std::error::Error;
 
-    pub struct TempEnvVar<'a> {
-        variable_name: &'a str,
+    pub struct TempHomeEnvVar {
+        variable_name: String,
     }
 
-    impl<'a> TempEnvVar<'a> {
-        pub fn new(variable_name: &'a str, desired_value: &'a str) -> Self {
-            std::env::set_var(variable_name, desired_value);
-            debug_println!("Added env var: {}:{}", variable_name, desired_value);
-            Self { variable_name }
+    impl TempHomeEnvVar {
+        pub fn new(desired_value: &str) -> Result<Self, Box<dyn Error>> {
+            let variable_name = Self::get_platform_env_var()?;
+            std::env::set_var(&variable_name, desired_value);
+            debug_println!(
+                "Added temporary env var: {}:{}",
+                &variable_name,
+                &desired_value
+            );
+            Ok(Self { variable_name })
+        }
+
+        /// Get platform-specifc environment variable that corresponds to `$HOME`.
+        pub fn get_platform_env_var() -> Result<String, Box<dyn Error>> {
+            let platform = if cfg!(unix) {
+                "unix"
+            } else if cfg!(windows) {
+                "windows"
+            } else {
+                "unknown"
+            };
+            let env_var_name = match platform {
+                "unix" => "HOME",
+                "windows" => "USERPROFILE",
+                // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
+                _ => return Err("Unknown platform".into()),
+            };
+            Ok(env_var_name.to_string())
         }
     }
 
-    impl<'a> Drop for TempEnvVar<'a> {
+    impl Drop for TempHomeEnvVar {
         fn drop(&mut self) {
-            std::env::remove_var(self.variable_name);
-            debug_println!("Removed env var: {}", self.variable_name);
+            std::env::remove_var(&self.variable_name);
+            debug_println!(
+                "Automatically removed temporary env var: {}",
+                self.variable_name
+            );
         }
-    }
-
-    /// Get platform-specifc environment variable that corresponds to `$HOME`.
-    pub fn get_platform_env_var() -> Result<String, Box<dyn Error>> {
-        let platform = if cfg!(unix) {
-            "unix"
-        } else if cfg!(windows) {
-            "windows"
-        } else {
-            "unknown"
-        };
-        let env_var_name = match platform {
-            "unix" => "HOME",
-            "windows" => "USERPROFILE",
-            _ => "unknown",
-        };
-        if env_var_name == "unknown" {
-            // todo: Raise more specific test util (?Anyhow?) setup error for unknown platform.
-            panic!("Unknown platform")
-        }
-        Ok(String::from(env_var_name))
     }
 }

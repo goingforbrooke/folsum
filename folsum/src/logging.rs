@@ -172,7 +172,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<(), fern::InitError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::test_utilities::{get_platform_env_var, TempEnvVar};
+    use crate::common::test_utilities::TempHomeEnvVar;
 
     use tempdir::TempDir;
 
@@ -181,12 +181,9 @@ mod tests {
         // Create temporary directory that'll be deleted when it goes out of scope.
         let temp_dir = TempDir::new("test_create_logdir").unwrap();
 
-        let env_var_name: String = get_platform_env_var().unwrap();
-
         // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
         // Set testing environment variable that'll be removed when this goes out of scope.
-        let _temp_env_var =
-            TempEnvVar::new(env_var_name.as_str(), &temp_dir.path().to_str().unwrap());
+        let _temp_env_var = TempHomeEnvVar::new(&temp_dir.path().to_str().unwrap());
 
         const TEST_APP_NAME: &str = "TestAppName";
 
@@ -198,7 +195,6 @@ mod tests {
         ));
         let expected_logdir = temp_dir.path().join(platform_path);
 
-        //let _ = setup_native_logging(&TEST_APP_NAME);
         debug_println!("$HOME: {:?}", std::env::var("HOME"));
         let _ = create_logdir(&TEST_APP_NAME.to_lowercase(), None);
 
