@@ -178,12 +178,11 @@ mod tests {
         // The application's name should be converted to lowercase.
         const TEST_APP_NAME: &str = "TestAppName";
 
-        let platform_path = PathBuf::from(format!(
-            // Exclude leading forward slash to prevent replacement of `temp_dir` in `.join()`.
-            "Library/Application Support/{}/logs/",
-            TEST_APP_NAME
-        ));
-        let expected_logdir = temp_dir.path().join(platform_path);
+        let platform_path = PathBuf::from("Library/Application Support/");
+
+        let app_path = PathBuf::from(format!("{}/logs/", TEST_APP_NAME));
+
+        let expected_logdir = temp_dir.path().join(platform_path).join(app_path);
 
         debug_println!("$HOME: {:?}", std::env::var("HOME"));
         let _ = create_appdata_logdir(&TEST_APP_NAME);
