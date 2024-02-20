@@ -142,16 +142,13 @@ fn define_console_format() -> Result<fern::Dispatch> {
 /// 11:58🚨logging.rsL85::folsum::logging danger will robinson
 /// ```
 pub fn setup_native_logging(app_name: &str) -> Result<()> {
-    // todo: Provide for logdir creation failures.
     let logdir = create_appdata_logdir(&app_name).unwrap();
-    // todo: Provide for logfile creation failures.
     let logfile_path = create_logfile(&app_name, &logdir).unwrap();
     let console_config = define_console_format();
     let file_config = define_logfile_format(&logfile_path);
     // Activate the console logger and the file logger.
     fern::Dispatch::new()
         .chain(console_config.unwrap())
-        // todo: Provide for logging file config creation failures.
         .chain(file_config.unwrap())
         .apply()?;
     info!("Initialized logger with target file {logfile_path:?}");
