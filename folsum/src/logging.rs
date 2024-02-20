@@ -167,7 +167,7 @@ mod tests {
     use tempdir::TempDir;
 
     #[test]
-    fn test_create_logdir() {
+    fn test_create_appdata_logdir() {
         // Create temporary directory that'll be deleted when it goes out of scope.
         let temp_dir = TempDir::new("test_create_logdir").unwrap();
 
