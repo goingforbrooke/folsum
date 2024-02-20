@@ -126,6 +126,9 @@ fn define_console_format() -> Result<fern::Dispatch> {
 
 /// Initialize a logger for native compilation targets.
 ///
+/// Simplified logs are sent to stdout, colorized by severity level. More complete logs are written
+/// to a logfile in the user's local data directory.
+///
 /// # Examples
 ///
 /// ```
@@ -147,7 +150,6 @@ pub fn setup_native_logging(app_name: &str) -> Result<()> {
     // todo: Provide for logfile creation failures.
     let logfile_path = create_logfile(&app_name, &logdir).unwrap();
     let console_config = define_console_format();
-    // MacOS: `~/Library/Application\ Support/folsum/logs/folsum.log`
     let file_config = define_logfile_format(&logfile_path);
     // Activate the console logger and the file logger.
     fern::Dispatch::new()
