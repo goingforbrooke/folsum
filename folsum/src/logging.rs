@@ -45,7 +45,6 @@ fn create_appdata_logdir(app_name: &str) -> Result<PathBuf> {
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
 fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf> {
     let lowercased_name = app_name.to_lowercase();
-    // todo: Store logfiles in a subdir named after `name` in `[package]` of Cargo.toml.
     let logfile_name = format!("{}.log", lowercased_name);
     let logfile_path = parent_dir.join(PathBuf::from(logfile_name));
     // Ensure the logfile exists.
