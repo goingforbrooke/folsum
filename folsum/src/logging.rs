@@ -161,6 +161,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<()> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 #[cfg(test)]
 mod tests {
     use super::*;
