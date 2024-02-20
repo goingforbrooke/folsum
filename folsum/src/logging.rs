@@ -33,9 +33,7 @@ fn create_appdata_logdir(app_name: &str) -> Result<PathBuf> {
     // Define logs dir as `<app_name>/logs/` in app data dir.
     let log_dir = appdata_dir.join(lowercased_name).join("logs");
     // Ensure that logs dir and its parents exist.
-    // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
-    //todo: Separate debug messages for logdir did/didn't already exist.
     debug_println!("Created log dir: {:?}", log_dir);
     Ok(log_dir)
 }
