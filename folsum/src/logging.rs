@@ -23,21 +23,16 @@ use crate::debug_println;
 /// A logfile directory named `logs/` for the application is
 /// created in a platform-specific app data directory. If it
 /// already exists, then nothing happens.
-fn create_logdir(app_name: &str, logdir_override: Option<&PathBuf>) -> Result<PathBuf> {
+fn create_logdir(app_name: &str) -> Result<PathBuf> {
     // todo: remove `logdir_override` and rename fx to `create_appdata_logdir`.
     // Get the place on the user's box where applications can store data.
     let appdata_dir = match data_local_dir() {
         Some(appdata_dir) => appdata_dir,
         None => bail!("Failed to find an app data directory to store log files"),
     };
-    // Store logs the Appdata dir unless specified otherwise.
-    let parent_dir = match logdir_override {
-        Some(logdir_override) => logdir_override,
-        None => &appdata_dir,
-    };
     let lowercased_name = app_name.to_lowercase();
     // Define logs dir as `<app_name>/logs/` in app data dir.
-    let log_dir = parent_dir.join(lowercased_name).join("logs");
+    let log_dir = appdata_dir.join(lowercased_name).join("logs");
     // Ensure that logs dir and its parents exist.
     // todo: Handle logdir creation errors.
     create_dir_all(&log_dir)?;
@@ -149,7 +144,7 @@ fn define_console_format() -> Result<fern::Dispatch> {
 /// ```
 pub fn setup_native_logging(app_name: &str) -> Result<()> {
     // todo: Provide for logdir creation failures.
-    let logdir = create_logdir(&app_name, None).unwrap();
+    let logdir = create_logdir(&app_name).unwrap();
     // todo: Provide for logfile creation failures.
     let logfile_path = create_logfile(&app_name, &logdir).unwrap();
     let console_config = define_console_format();
@@ -192,7 +187,7 @@ mod tests {
         let expected_logdir = temp_dir.path().join(platform_path);
 
         debug_println!("$HOME: {:?}", std::env::var("HOME"));
-        let _ = create_logdir(&TEST_APP_NAME, None);
+        let _ = create_logdir(&TEST_APP_NAME);
 
         assert!(expected_logdir.exists(), "Logging directory wasn't created");
     }
