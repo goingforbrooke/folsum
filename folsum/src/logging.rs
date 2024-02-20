@@ -24,7 +24,6 @@ use crate::debug_println;
 /// created in a platform-specific app data directory. If it
 /// already exists, then nothing happens.
 fn create_appdata_logdir(app_name: &str) -> Result<PathBuf> {
-    // todo: remove `logdir_override` and rename fx to `create_appdata_logdir`.
     // Get the place on the user's box where applications can store data.
     let appdata_dir = match data_local_dir() {
         Some(appdata_dir) => appdata_dir,
