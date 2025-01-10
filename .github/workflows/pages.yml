@@ -1,4 +1,4 @@
-name: Github Pages
+name: Build with Trunk and Deploy with GitHub Pages
 
 # By default, runs if you push to master. keeps your deployed app in sync with master branch.
 on:
@@ -6,20 +6,36 @@ on:
     branches:
       - main
       - 'cicd/**'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 # to only run when you do a new github release, comment out above part and uncomment the below trigger.
 # on:
 #   release:
 #     types:
 #       - published
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write # for committing to gh-pages branch.
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-github-pages:
+    environment:
+      name: Build with Trunk and Deploy with GitHub's "static" Starter Workflow
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2 # repo checkout
+      - uses: actions/checkout@v4 # repo checkout
       - uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
         with:
           profile: minimal
@@ -42,11 +58,14 @@ jobs:
         run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}";
         # Run build command in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
+      # Deploy static files with GitHub's "static" starter workflow. https://github.com/actions/starter-workflows/blob/main/pages/static.yml
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          # Expect webfiles to be in `/home/runner/work/folsum/folsum/folsum/dist/`.
-          folder: folsum/dist/
-          # this option will not maintain any history of your previous pages deployment
-          # set to false if you want all page build to be committed to your gh-pages branch history
-          single-commit: true
+          # Upload contents of Zola's output directory.
+          path: 'folsum/dist/'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
