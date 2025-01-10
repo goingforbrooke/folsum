@@ -1,0 +1,59 @@
+[package]
+name = "folsum"
+description = "Summarize the contents of a directory with a GUI"
+default-run = "folsum"
+version = "2.0.3"
+authors = ["Brooke <12855764+goingforbrooke@users.noreply.github.com>"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[dependencies]
+# eGui dependencies.
+egui = "0.27.2"
+eframe = { version = "0.27.2", default-features = false, features = [
+    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
+    "default_fonts", # Embed the default egui fonts.
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+log = "0.4"
+chrono = "0.4.38"
+dirs = "5.0.1"
+egui_extras = "0.27.2"
+itertools = "0.12.1"
+rfd = "0.14.1"
+walkdir = "2.5.0"
+web-time = "1.1.0"
+
+# Serde for app persistence.
+serde = { version = "1.0.199", features = ["derive"] }
+fern = { version = "0.6.2", features = ["colored"] }
+humantime = "2.1.0"
+anyhow = "1.0.82"
+
+# native:
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+env_logger = "0.11.3"
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
+
+[package.metadata.bundle]
+identifier = "com.bytesluice.folsum"
+copyright = "Copyright (c) Brooke Deuson 2024. All rights reserved."
+category = "public.app-category.productivity"
+#icon = "images/icons/resized_icons/"
+icon = ["images/icons/resized_icons/folsum_icon_128px.png",
+        "images/icons/resized_icons/folsum_icon_128px@2x.png",
+        "images/icons/resized_icons/folsum_icon_16px.png",
+        "images/icons/resized_icons/folsum_icon_16px@2x.png",
+        "images/icons/resized_icons/folsum_icon_256px.png",
+        "images/icons/resized_icons/folsum_icon_256px@2x.png",
+        "images/icons/resized_icons/folsum_icon_32px.png",
+        "images/icons/resized_icons/folsum_icon_32px@2x.png",
+        "images/icons/resized_icons/folsum_icon_512px.png",
+        "images/icons/resized_icons/folsum_icon_512px@2x.png",]
+
+[dev-dependencies]
+tempdir = "0.3.7"

@@ -1,0 +1,158 @@
+name: Build, Bundle, and Publish for macOS
+on:
+  push:
+    branches:
+      - main
+      - 'cicd/**'
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+    steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
+      - name: Set up sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Install Rust toolchain with M1 chip support
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin
+      - name: Build x86_64 binary
+        run: cargo build --release --target x86_64-apple-darwin
+      - name: Build ARM64 binary
+        run: cargo build --release --target aarch64-apple-darwin
+      # Cargo Bundle can't create universal binaries, so make one with `lipo` and put it where Cargo Bundle expects to find it (`target/release/`).
+      - name: Create a universal binary from the x86_64 and ARM64 binaries and put it in `target/release/`
+        run: lipo -create -output target/release/${{ steps.get_repo_name.outputs.repo_name }} -arch x86_64 target/x86_64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }} -arch arm64 target/aarch64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }}
+      - name: Install `cargo-bundle` for creating `.app` directory structure and `.plist` with `cargo bundle`
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-bundle
+      # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
+      - name: Create `*.app` directory structure and `.plist` file
+        working-directory: folsum/
+        env:
+          # Skip building binaries becuase they've already been built and combined.
+          CARGO_BUNDLE_SKIP_BUILD: "true"
+        run: cargo bundle --release --format osx
+      # Move the `*.app` directory to the top level of the repo so it's easier to access for codesigning and notarization.
+      - name: Move bundled `*.app` directory to top level
+        run: mv target/release/bundle/osx/${{ steps.get_repo_name.outputs.repo_name }}.app .
+      - name: Codesign app bundle
+        env: 
+          MACOS_CERTIFICATE: ${{ secrets.PROD_MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.PROD_MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.PROD_MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.PROD_MACOS_CI_KEYCHAIN_PWD }}
+        run: |
+          # Convert base64-encoded certificate back to .p12 file.
+          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+
+          # Create a new keychain so no UI dialogs are generated.
+          security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain 
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+
+          # Codesign the app bundle with hardened runtime so it passes notarization.
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime ${{ steps.get_repo_name.outputs.repo_name }}.app -v
+      - name: "Notarize app bundle"
+        env:
+          PROD_MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_APPLE_ID }}
+          PROD_MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.PROD_MACOS_NOTARIZATION_TEAM_ID }}
+          PROD_MACOS_NOTARIZATION_PWD: ${{ secrets.PROD_MACOS_NOTARIZATION_PWD }}
+        run: |
+          # Prevent UI password dialog by storing notarization credentials.
+          echo "Create keychain profile"
+          xcrun notarytool store-credentials "notarytool-profile" --apple-id "$PROD_MACOS_NOTARIZATION_APPLE_ID" --team-id "$PROD_MACOS_NOTARIZATION_TEAM_ID" --password "$PROD_MACOS_NOTARIZATION_PWD"
+
+          # We can't notarize an app bundle directly, but we need to compress it as an archive.
+          # Compress app bundle to zip file for notarization (because we can't notarize app bundles directly).
+
+          echo "Creating temporary notarization archive"
+          ditto -c -k --keepParent "${{ steps.get_repo_name.outputs.repo_name }}.app" "notarization.zip"
+
+          # Send the notarization request to the Apple's Notarization service.
+          echo "Notarizing compressed app bundle"
+          xcrun notarytool submit "notarization.zip" --keychain-profile "notarytool-profile" --wait
+
+          # "Attach the staple" to executable for offline MacOS validation.
+          echo "Attach staple"
+          xcrun stapler staple "${{ steps.get_repo_name.outputs.repo_name }}.app"
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.get_repo_name.outputs.repo_name }}.zip
+      - name: Get current SemVer version from Cargo.toml
+        id: get_current_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      - name: Install `cargo-edit` for version bumping with `cargo set-version`
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-edit
+      - name: Get the last branch that was merged into the `dev` branch
+        id: get_last_dev_merge
+        # Assume that the branch was merged with `--no-ff`.
+        run: echo "branch_name=$(git log origin/dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Decide whether to bump the minor or patch version
+        id: decide_bump_type
+        run: | 
+          # If the last branch merged with `dev` starts with "fix/"...
+          if [[ "${{ steps.get_last_dev_merge.outputs.branch_name }}" == fix/* ]]; then
+            # ... then increment the patch version.
+            echo "bump_type=patch"  >> "$GITHUB_OUTPUT"
+          else
+            # Otherwise, assume that the minor version needs incrementation.
+            echo "bump_type=minor" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Note version bump type in Action annotation
+        run: echo "::notice::Decided to bump ${{ steps.decide_bump_type.outputs.bump_type }} version"
+      - name: Increment minor/patch version
+        # Gate version bumping to only happen on main branch and CI/CD branches.
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/cicd')
+        # Use Cargo Edit to increment the minor/patch version of the project (and not xtask) in Cargo.toml.
+        run: cargo set-version --bump ${{ steps.decide_bump_type.outputs.bump_type }} --package ${{ steps.get_repo_name.outputs.repo_name }}
+      - name: Get bumped SemVer version from Cargo.toml
+        id: get_bumped_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      - name: Commit minor/patch version bump
+        uses: stefanzweifel/git-auto-commit-action@v4
+        # Gate version bumping to only happen on main branch because CI/CD branch pushes are just for testing.
+        if: github.ref == 'refs/heads/main'
+        with:
+          file_pattern: 'folsum/Cargo.toml Cargo.lock'
+          commit_message: Increment minor version from ${{ steps.get_current_semver.outputs.semver }} to ${{ steps.get_bumped_semver.outputs.semver }}
+      - name: Publish a new release
+        id: publish_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.get_bumped_semver.outputs.semver }}
+          # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate release names.
+          draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
+          commit: main
+          artifacts: ${{ steps.get_repo_name.outputs.repo_name }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            # New Release ${{ steps.get_bumped_semver.outputs.semver }}
+
+            This is a new release of FolSum triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
+
+            ## Changelog
+
+            - Add feature X
+            - Fix bug Y
+      - name: Generate "new release" message with hyperlink to release page
+        id: generate_release_message
+        run: echo "message=Created new release ${{ steps.get_bumped_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_OUTPUT
+      - name: Create info message about new release
+        run: echo "::notice::${{ steps.generate_release_message.outputs.message }}"
+      - name: Create job summary about new release
+        run: echo "## ${{ steps.generate_release_message.outputs.message }}" >> $GITHUB_STEP_SUMMARY
