@@ -50,6 +50,7 @@ jobs:
         id: get_cname
         run: |
           pwd
+          ls
           if [ -f CNAME ]; then
             SUBDOMAIN=$(cat folsum/assets/CNAME)
             echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
