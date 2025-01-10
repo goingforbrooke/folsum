@@ -52,7 +52,7 @@ jobs:
         id: get_cname
         run: |
           if [ -f CNAME ]; then
-            SUBDOMAIN=$(cat assets/CNAME)
+            SUBDOMAIN=$(cat folsum/assets/CNAME)
             echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
           else
             echo "no cname file found."
