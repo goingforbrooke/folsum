@@ -1,16 +1,16 @@
 #![warn(clippy::all, rust_2018_idioms)]
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+#[cfg(not(target_arch = "wasm32"))]
 use log::info;
 use std::error::Error;
+#[cfg(not(target_arch = "wasm32"))]
+use folsum::setup_native_logging;
 
-mod common;
-
-mod logging;
-use logging::setup_native_logging;
-
+#[cfg(not(target_arch = "wasm32"))]
 const APP_NAME: &str = "FolSum";
 
+#[cfg(not(target_arch = "wasm32"))]
 fn setup_native_eframe() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(

@@ -4,21 +4,30 @@ use std::sync::{Arc, Mutex};
 
 #[cfg(not(target_arch = "wasm32"))]
 use chrono::{DateTime, Local};
-use dirs::home_dir;
-use egui::ViewportCommand;
 #[cfg(not(target_arch = "wasm32"))]
+use dirs::home_dir;
+#[cfg(not(target_arch = "wasm32"))]
+use egui::ViewportCommand;
 use egui_extras::{Column, TableBuilder};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
-#[cfg(not(target_arch = "wasm32"))]
+
+#[cfg(target_arch = "wasm32")]
 use web_time::SystemTime;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::SystemTime;
+
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{Duration, Instant};
+#[cfg(target_arch = "wasm32")]
 use web_time::{Duration, Instant};
+
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-
-use crate::export_csv;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::{export_csv, summarize_directory};
 use crate::sort_counts;
-use crate::summarize_directory;
+
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -140,6 +149,7 @@ impl eframe::App for FolsumGui {
 
                 if ui.button("Summarize").clicked() {
                     info!("User started summarization");
+                    #[cfg(not(target_arch = "wasm32"))]
                     let _result = summarize_directory(
                         &summarization_path,
                         &extension_counts,
@@ -186,6 +196,7 @@ impl eframe::App for FolsumGui {
                     {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
+                    #[cfg(not(target_arch = "wasm32"))]
                     let _result = export_csv(&export_file, &extension_counts);
                 };
 
