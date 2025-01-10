@@ -3,6 +3,7 @@
 
 #[cfg(not(target_arch = "wasm32"))]
 use log::info;
+#[cfg(not(target_arch = "wasm32"))]
 use std::error::Error;
 #[cfg(not(target_arch = "wasm32"))]
 use folsum::setup_native_logging;
