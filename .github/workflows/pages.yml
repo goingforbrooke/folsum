@@ -42,8 +42,6 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - name: Rust Cache # cache the rust build artefacts
-        uses: Swatinem/rust-cache@v1
       - name: Download and install Trunk binary
         run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
         # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
@@ -51,12 +49,15 @@ jobs:
       - name: Read subdomain from CNAME file
         id: get_cname
         run: |
+          pwd
           if [ -f CNAME ]; then
             SUBDOMAIN=$(cat folsum/assets/CNAME)
             echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
           else
             echo "no cname file found."
           fi
+      - name: Rust Cache # cache the rust build artifacts
+        uses: Swatinem/rust-cache@v1
       - name: Build # build
         # "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
         # using --public-url something will allow trunk to modify all the href paths like from favicon.ico to repo_name/favicon.ico .
