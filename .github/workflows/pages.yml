@@ -48,6 +48,15 @@ jobs:
         run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
         # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
+      - name: Read subdomain from CNAME file
+        id: get_cname
+        run: |
+          if [ -f CNAME ]; then
+            SUBDOMAIN=$(cat assets/CNAME)
+            echo "subdomain=$SUBDOMAIN" >> "$GITHUB_OUTPUT"
+          else
+            echo "no cname file found."
+          fi
       - name: Build # build
         # "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
         # using --public-url something will allow trunk to modify all the href paths like from favicon.ico to repo_name/favicon.ico .
@@ -55,7 +64,7 @@ jobs:
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
         # Create webfiles in `/home/runner/work/folsum/folsum/folsum/dist/`.
-        run: ./trunk build --release --public-url "${GITHUB_REPOSITORY#*/}";
+        run: ./trunk build --release --public-url ${{ steps.get_cname.outputs.subdomain }};
         # Run build command in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       # Deploy static files with GitHub's "static" starter workflow. https://github.com/actions/starter-workflows/blob/main/pages/static.yml
