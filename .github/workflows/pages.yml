@@ -64,7 +64,7 @@ jobs:
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
         # Create webfiles in `/home/runner/work/folsum/folsum/folsum/dist/`.
-        run: ./trunk build --release --public-url ${{ steps.get_cname.outputs.subdomain }};
+        run: ./trunk build --release;
         # Run build command in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       # Deploy static files with GitHub's "static" starter workflow. https://github.com/actions/starter-workflows/blob/main/pages/static.yml
