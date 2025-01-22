@@ -2,7 +2,7 @@
 
 # 🗂️ FolSum
 
-FolSum is a simple application for summarizing the contents of a directory. It counts each filetype by extension and displays those counts in a table. You can preview it [here](https://goingforbrooke.github.io/folsum/).
+FolSum is a simple application for summarizing the contents of a directory. It counts each filetype by extension and displays those counts in a table. You can preview it on [folsum.goingforbrooke.com](https://folsum.goingforbrooke.com/).
 
 ## 🖥️ Installation
 
