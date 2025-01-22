@@ -1,19 +1,25 @@
 name: Build with Trunk and Deploy with GitHub Pages
 
-# By default, runs if you push to master. keeps your deployed app in sync with master branch.
 on:
   push:
     branches:
+      # Run when we push to the `main` branch.
       - main
+      # Run when we push to any branch that starts with `cicd/`
       - 'cicd/**'
-
-  # Allows you to run this workflow manually from the Actions tab
+  # Run this workflow manually from the Actions tab.
   workflow_dispatch:
-# to only run when you do a new github release, comment out above part and uncomment the below trigger.
-# on:
-#   release:
-#     types:
-#       - published
+    inputs:
+      branch:
+        description: 'Select branch to build WASM webpage from.'
+        required: true
+        default: 'main'
+        type: string
+  ## Run when we do a new GitHub release.
+  #  release:
+  #    types:
+  #      - published
+
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
