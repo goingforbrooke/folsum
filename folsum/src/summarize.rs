@@ -2,15 +2,18 @@ use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::{Duration, Instant};
 use std::thread;
+
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-
 #[cfg(not(target_arch = "wasm32"))]
 use walkdir::WalkDir;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(target_arch = "wasm32")]
 use web_time::{Duration, Instant};
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn summarize_directory(
     summarization_path: &Arc<Mutex<Option<PathBuf>>>,
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,

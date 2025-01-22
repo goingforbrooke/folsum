@@ -41,7 +41,7 @@ wasm-bindgen-futures = "0.4"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
-copyright = "Copyright (c) Brooke Deuson 2024. All rights reserved."
+copyright = "Copyright (c) Brooke Deuson 2025. All rights reserved."
 category = "public.app-category.productivity"
 #icon = "images/icons/resized_icons/"
 icon = ["images/icons/resized_icons/folsum_icon_128px.png",

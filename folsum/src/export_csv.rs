@@ -8,9 +8,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-
 use crate::sort_counts;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn export_csv(
     export_file: &Arc<Mutex<Option<PathBuf>>>,
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
@@ -39,8 +39,7 @@ pub fn export_csv(
             .as_ref()
             .expect("No path for export file was specified");
         // Create a CSV file to write the extension types and their counts to, overwriting it if it already exists.
-        let mut csv_export =
-            File::create(export_filename).expect("Failed to create CSV export file");
+        let mut csv_export = File::create(export_filename).expect("Failed to create CSV export file");
         // Write the CSV's content to the export file.
         csv_export
             .write_all(csv_rows.as_bytes())
