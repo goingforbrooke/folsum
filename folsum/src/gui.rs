@@ -94,6 +94,7 @@ impl eframe::App for FolsumGui {
             summarization_path,
             #[cfg(not(target_arch = "wasm32"))]
             export_file,
+            #[cfg(not(target_arch = "wasm32"))]
             summarization_start,
             time_taken,
             ..
