@@ -1,13 +1,18 @@
+#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
 #[cfg(not(target_arch = "wasm32"))]
 use std::io::Write;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex, MutexGuard};
+#[cfg(not(target_arch = "wasm32"))]
 use std::thread;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
+#[cfg(not(target_arch = "wasm32"))]
 use crate::sort_counts;
 
 #[cfg(not(target_arch = "wasm32"))]
