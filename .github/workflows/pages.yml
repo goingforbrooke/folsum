@@ -9,12 +9,6 @@ on:
       - 'cicd/**'
   # Run this workflow manually from the Actions tab.
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Select branch to build WASM webpage from.'
-        required: true
-        default: 'main'
-        type: string
   ## Run when we do a new GitHub release.
   #  release:
   #    types:
