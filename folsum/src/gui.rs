@@ -170,6 +170,21 @@ impl eframe::App for FolsumGui {
 
                 ui.separator();
 
+                #[cfg(target_arch = "wasm32")]
+                {
+                    ui.horizontal(|ui| {
+                        let wasm_message = "Behold the power of WASM! 🦀 This is a Rust binary running inside of your browser's sandbox! It looks and functions exactly the same way on MacOS and Windows.";
+                        ui.label(wasm_message.to_string());
+
+                        ui.separator();
+
+                        let usage_message = "Since we're in a browser, we can't summarize the contents of files on your computer.";
+                        ui.label(usage_message.to_string());
+                    });
+                }
+
+                ui.separator();
+
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
