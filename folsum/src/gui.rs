@@ -180,6 +180,14 @@ impl eframe::App for FolsumGui {
 
                         let usage_message = "Since we're in a browser, we can't summarize the contents of files on your computer.";
                         ui.label(usage_message.to_string());
+
+                        ui.separator();
+
+                        let repo_message = "The Rust code powering this can be found here: ";
+                        ui.label(repo_message.to_string());
+                        ui.hyperlink_to("github.com/goingforbrooke/folsum", "https://github.com/goingforbrooke/folsum");
+
+                        ui.separator();
                     });
                 }
 
