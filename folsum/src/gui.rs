@@ -172,7 +172,7 @@ impl eframe::App for FolsumGui {
 
                 #[cfg(target_arch = "wasm32")]
                 {
-                    ui.horizontal(|ui| {
+                    ui.vertical(|ui| {
                         let wasm_message = "Behold the power of WASM! 🦀 This is a Rust binary running inside of your browser's sandbox! It looks and functions exactly the same way on MacOS and Windows.";
                         ui.label(wasm_message.to_string());
 
