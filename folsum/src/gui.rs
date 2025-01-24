@@ -170,6 +170,29 @@ impl eframe::App for FolsumGui {
 
                 ui.separator();
 
+                #[cfg(target_arch = "wasm32")]
+                {
+                    ui.vertical(|ui| {
+                        let wasm_message = "Behold the power of WASM! 🦀 This is a Rust binary running inside of your browser's sandbox! It looks and functions exactly the same way on MacOS and Windows.";
+                        ui.label(wasm_message.to_string());
+
+                        ui.separator();
+
+                        let usage_message = "Since we're in a browser, we can't summarize the contents of files on your computer.";
+                        ui.label(usage_message.to_string());
+
+                        ui.separator();
+
+                        let repo_message = "The Rust code powering this can be found here: ";
+                        ui.label(repo_message.to_string());
+                        ui.hyperlink_to("github.com/goingforbrooke/folsum", "https://github.com/goingforbrooke/folsum");
+
+                        ui.separator();
+                    });
+                }
+
+                ui.separator();
+
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
@@ -206,7 +229,7 @@ impl eframe::App for FolsumGui {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.0;
                         ui.label("written with love by ");
-                        ui.hyperlink_to("Brooke", "https://github.com/goingforbrooke");
+                        ui.hyperlink_to("goingforbrooke", "https://goingforbrooke.com");
                     });
                 });
             });
