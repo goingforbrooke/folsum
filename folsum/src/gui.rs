@@ -206,7 +206,7 @@ impl eframe::App for FolsumGui {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.0;
                         ui.label("written with love by ");
-                        ui.hyperlink_to("Brooke", "https://github.com/goingforbrooke");
+                        ui.hyperlink_to("goingforbrooke", "https://goingforbrooke.com");
                     });
                 });
             });
