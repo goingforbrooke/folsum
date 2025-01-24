@@ -1,0 +1,4 @@
+[watch]
+
+# Reload the served app preview when changes are detected in `src/` files.
+watch = ["src/"]
