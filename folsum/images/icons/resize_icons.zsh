@@ -67,7 +67,9 @@ for web_icon_size in "${web_icon_sizes[@]}"; do
   magick "$input_icon" -resize "${web_icon_size}x${web_icon_size}" "$output_file";
   echo "Done converting to ${web_icon_size}x${web_icon_size}"
 done
+# todo: Optimize PNGs with pngquant.
 
 # Create a 32x32 ICO.
 output_file="$web_icons_dir/favicon.ico"
 magick "$input_icon" -resize "32x32" "$output_file"
+# todo: Optimize (minify) SVG (npm install -g svgo; svgo folsum_icon_660.svg -o folsum_icon_660_minified.svg)
