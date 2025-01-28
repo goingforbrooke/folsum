@@ -38,7 +38,7 @@
 {% block footer %}
 <footer>
     <small class="subtext">
-        © 2025 <a href="https://goingforbrooke.com">Brooke Deuson</a>
+        © {{ config.extra.juice_copyright_year }} <a href={{ config.extra.juice_copyright_link }}>{{ config.extra.juice_copyright_person }}</a>
     </small>
 </footer>
 {% endblock footer %}

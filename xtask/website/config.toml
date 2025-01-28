@@ -18,9 +18,10 @@ highlight_code = false
 [extra]
 
 juice_logo_name = "FolSum"
+# G4B: used for top-left logo and large logo. SVG would be better, but it needs to be smaller.
 juice_logo_path = "folsum_icon_660.png"
 
-#
+# Top-right links that aren't webpages (like the MD files in `content/`).
 juice_extra_menu = [
     { title = "Demo", link = "https://folsum.goingforbrooke.com"},
     { title = "GitHub", link = "https://github.com/goingforbrooke/folsum"}
@@ -32,3 +33,8 @@ juice_exclude_menu = [
 ]
 
 repository_url = "https://github.com/goingforbrooke/folsum"
+
+# G4B: made the copyright configurable, which is used in the footer block override (`index.html`).
+juice_copyright_year = "2025"
+juice_copyright_person = "Brooke Deuson"
+juice_copyright_link = "https://goingforbrooke.com"
