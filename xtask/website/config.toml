@@ -18,7 +18,7 @@ highlight_code = false
 [extra]
 
 juice_logo_name = "FolSum"
-juice_logo_path = "folsum_icon_660.svg"
+juice_logo_path = "folsum_icon_660.png"
 
 #
 juice_extra_menu = [
