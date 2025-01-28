@@ -23,7 +23,7 @@ juice_logo_path = "folsum_icon_660.png"
 #
 juice_extra_menu = [
     { title = "Demo", link = "https://folsum.goingforbrooke.com"},
-    { title = "GitHub", link = "https://github.com/goingforbroo,ke/folsum"}
+    { title = "GitHub", link = "https://github.com/goingforbrooke/folsum"}
 ]
 
 # Exclude items in `content/` that would otherwise become navbar items.
