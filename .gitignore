@@ -8,4 +8,4 @@ output.log
 .rust-analyzer.toml
 target
 .vscode/
-folsum/xtask/website/public/
+xtask/website/public/
