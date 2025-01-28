@@ -7,10 +7,28 @@ compile_sass = true
 # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = false
 
+theme = "juice"
+
 [markdown]
 # Whether to do syntax highlighting
 # Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
 highlight_code = false
 
+# It's not documented, but these Juice variables need to be defined for Zola to render the site.
 [extra]
-# Put all your custom variables here
+
+juice_logo_name = "FolSum"
+juice_logo_path = "folsum_icon_660.svg"
+
+#
+juice_extra_menu = [
+    { title = "Demo", link = "https://folsum.goingforbrooke.com"},
+    { title = "GitHub", link = "https://github.com/goingforbroo,ke/folsum"}
+]
+
+# Exclude items in `content/` that would otherwise become navbar items.
+juice_exclude_menu = [
+    "exclude_from_nav"
+]
+
+repository_url = "https://github.com/goingforbrooke/folsum"
