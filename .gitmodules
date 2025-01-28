@@ -1,0 +1,3 @@
+[submodule "xtask/website/themes/juice"]
+	path = xtask/website/themes/juice
+	url = https://github.com/huhu/juice
