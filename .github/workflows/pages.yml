@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - name: Download and Install Zola Binary
         run: |
           LATEST_ZOLA=$(curl -s https://api.github.com/repos/getzola/zola/releases/latest | jq -r '.tag_name')
