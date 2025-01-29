@@ -1,0 +1,44 @@
+# The URL the site will be built for
+base_url = "https://folsum.goingforbrooke.com"
+
+# Whether to automatically compile all Sass files in the sass directory
+compile_sass = true
+
+# Whether to build a search index to be used later on by a JavaScript library
+build_search_index = false
+
+theme = "juice"
+
+[markdown]
+# Whether to do syntax highlighting
+# Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
+highlight_code = false
+
+# It's not documented, but these Juice variables need to be defined for Zola to render the site.
+[extra]
+
+# Name of the application. Used in the top left, the first word in the short description, the overview header, and more.
+juice_logo_name = "FolSum"
+# Short description of the application. Used on the main page to summarize what the application does and in the overview description.
+juice_logo_description = "a simple application for summarizing the contents of a folder on your computer."
+
+# Used for top-left icon and large icon on the right. SVG is best b/c it scales and is a small file, but PNG (bonus points for alpha channel) works too.
+juice_logo_path = "icon.svg"
+
+
+# Top-right links that aren't webpages (like the MD files in `content/`).
+juice_extra_menu = [
+    { title = "GitHub", link = "https://github.com/goingforbrooke/folsum"}
+]
+
+# Exclude items in `content/` that would otherwise become navbar items.
+juice_exclude_menu = [
+    "exclude_from_nav"
+]
+
+repository_url = "https://github.com/goingforbrooke/folsum"
+
+# G4B: made the copyright configurable, which is used in the footer block override (`index.html`).
+juice_copyright_year = "2025"
+juice_copyright_person = "Brooke Deuson"
+juice_copyright_link = "https://goingforbrooke.com"
