@@ -62,8 +62,8 @@ jobs:
         # this is necessary for github pages where the site is deployed to username.github.io/repo_name and all files must be requested
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
-        # Create static WASM files in `folsum/folsum/dist/`.
-        run: ./trunk build --release;
+        # Create static WASM files in `folsum/folsum/dist/` use `--public-url` to note that `dist/` will contain all WASM files.
+        run: ./trunk build --release --public-url dist/;
         # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Move Trunk's WASM Files
