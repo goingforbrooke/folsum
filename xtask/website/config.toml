@@ -18,8 +18,8 @@ highlight_code = false
 [extra]
 
 juice_logo_name = "FolSum"
-# G4B: used for top-left logo and large logo. SVG would be better, but it needs to be smaller.
-juice_logo_path = "folsum_icon.svg"
+# G4B: used for top-left logo and large logo. SVG is best.
+juice_logo_path = "icon.svg"
 
 # Top-right links that aren't webpages (like the MD files in `content/`).
 juice_extra_menu = [
