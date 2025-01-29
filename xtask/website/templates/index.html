@@ -1,0 +1,63 @@
+{% extends "juice/templates/index.html" %}
+
+{% block favicon %}
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/folsum_icon_180px.png">
+{% endblock favicon %}
+
+
+{% block head %}
+<!-- This is here to disable the CarbonAds CSS load in Juice's index.html-->
+{% endblock head %}
+
+{% block hero %}
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+<section class="text-center">
+    <h1 class="heading-text" style="font-size: 50px">
+        Summarize folder contents
+    </h1>
+    <h3 class="title-text">
+        <b>{{ config.extra.juice_logo_name }}</b> is {{ config.extra.juice_logo_description }}
+    </h3>
+    <div>
+        <a class="github-button" href="https://github.com/goingforbrooke/folsum" data-size="large" data-show-count="true" aria-label="Star huhu/juice on GitHub">Star</a>
+    </div>
+</section>
+<img class="hero-image" style="width: 50%" src="{{ get_url(path=config.extra.juice_logo_path) }}">
+
+<div class="explore-more text"
+    onclick="document.getElementById('features').scrollIntoView({behavior: 'smooth'})">
+    Explore More ⇩
+</div>
+<style>
+    .hero section {
+        padding: 0 5rem;
+    }
+
+    @media screen and (max-width: 768px) {
+        .hero section {
+            padding: 0 2rem;
+        }
+
+        .hero-image {
+            display: none
+        }
+    }
+</style>
+{% endblock hero %}
+
+
+{% block sidebar %}
+<div class="sidebar">
+    <!-- This is here to disable the CarbonAds JS load in Juice's index.html-->
+</div>
+{% endblock sidebar %}
+
+{% block footer %}
+<footer>
+    <small class="subtext">
+        © {{ config.extra.juice_copyright_year }} <a href={{ config.extra.juice_copyright_link }}>{{ config.extra.juice_copyright_person }}</a>
+    </small>
+</footer>
+{% endblock footer %}

@@ -8,3 +8,4 @@ output.log
 .rust-analyzer.toml
 target
 .vscode/
+xtask/website/public/

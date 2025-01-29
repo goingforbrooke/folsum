@@ -1,0 +1,3 @@
+<!--The WASM won't show with `zola serve --open`, but it'll work after `zola build` by running `python3 -m http.server 1111` in the created `public/` directory-->
+<!--Expect to find Trunk's `dist/` output directory inside of Zola's `static/`-->
+<iframe src="{{ get_url(path="dist/index.html") }}" width="100%" height="600px" style="border:none;"></iframe>
