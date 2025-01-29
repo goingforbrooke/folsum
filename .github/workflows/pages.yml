@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download and Install Zola Binary
-        run: wget -qO- https://github.com/thedodd/zola/releases/latest/download/zola-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
+        run: wget -qO- https://github.com/getzola/zola/releases/latest/download/zola-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
         # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/` because `zola` doesn't have a path parameter.
         working-directory: xtask/website
       - name: Build Static Site with Zola
