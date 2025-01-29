@@ -28,7 +28,6 @@ juice_logo_path = "icon.svg"
 
 # Top-right links that aren't webpages (like the MD files in `content/`).
 juice_extra_menu = [
-    { title = "Demo", link = "https://folsum.goingforbrooke.com"},
     { title = "GitHub", link = "https://github.com/goingforbrooke/folsum"}
 ]
 

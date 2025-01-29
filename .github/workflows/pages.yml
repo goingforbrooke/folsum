@@ -42,6 +42,35 @@ jobs:
           lfs: true
           # Include the Juice theme.
           submodules: true
+
+      ### Install Trunk and build WASM first because we need it as part of Zola's static files.
+      - uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - name: Rust Cache # cache the rust build artifacts
+        uses: Swatinem/rust-cache@v1
+      - name: Download and Install Trunk Binary
+        run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
+        # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/` because `trunk` doesn't have a path parameter.
+        working-directory: folsum
+      - name: Build WASM Distribution with Trunk
+        # "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
+        # using --public-url something will allow trunk to modify all the href paths like from favicon.ico to repo_name/favicon.ico .
+        # this is necessary for github pages where the site is deployed to username.github.io/repo_name and all files must be requested
+        # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
+        # will obviously return error 404 not found.
+        # Create static WASM files in `folsum/folsum/dist/`.
+        run: ./trunk build --release;
+        # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
+        working-directory: folsum
+      - name: Move Trunk's WASM Files
+      # Move these into Zola's static directory so Zola can build paths to the JS and WASM files when it builds the site.
+      - run: cp folsum/folsum/dist/* folsum/xtask/website/static/
+
+      ### Install Zola and build static site second.
       - name: Download and Install Zola Binary
         run: |
           LATEST_ZOLA=$(curl -s https://api.github.com/repos/getzola/zola/releases/latest | jq -r '.tag_name')
@@ -56,31 +85,6 @@ jobs:
       - name: ls
         run: ls public
         working-directory: xtask/website
-
-      #- uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
-      #  with:
-      #    profile: minimal
-      #    toolchain: stable
-      #    target: wasm32-unknown-unknown
-      #    override: true
-      #- name: Rust Cache # cache the rust build artifacts
-      #  uses: Swatinem/rust-cache@v1
-
-      #- name: Download and Install Trunk Binary
-      #  run: wget -qO- https://github.com/thedodd/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf-;
-      #  # Install Trunk in (app dir) `/home/runner/work/folsum/folsum/folsum/` because `trunk` doesn't have a path parameter.
-      #  working-directory: folsum
-      #- name: Build WASM Distribution with Trunk
-      #  # "${GITHUB_REPOSITORY#*/}" evaluates into the name of the repository
-      #  # using --public-url something will allow trunk to modify all the href paths like from favicon.ico to repo_name/favicon.ico .
-      #  # this is necessary for github pages where the site is deployed to username.github.io/repo_name and all files must be requested
-      #  # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
-      #  # will obviously return error 404 not found.
-      #  # Create static WASM files in `folsum/folsum/dist/`.
-      #  run: ./trunk build --release;
-      #  # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
-      #  working-directory: folsum
-
 
       # Deploy static files with GitHub's "static" starter workflow. https://github.com/actions/starter-workflows/blob/main/pages/static.yml
       - name: Setup Pages
