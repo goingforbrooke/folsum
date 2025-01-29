@@ -50,6 +50,9 @@ jobs:
         # Build website and output static files in `folsum/xtask/website/public/`.
         run: ./zola build;
         working-directory: xtask/website
+      - name: ls
+        run: ls public
+        working-directory: xtask/website
 
       #- uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
       #  with:
