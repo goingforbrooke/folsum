@@ -68,8 +68,7 @@ jobs:
         working-directory: folsum
       - name: Move Trunk's WASM Files
         # Move these into Zola's static directory so Zola can build paths to the JS and WASM files when it builds the site.
-        run: cp folsum/folsum/dist/* folsum/xtask/website/static/
-
+        run: cp -r folsum/dist xtask/website/static/dist
       ### Install Zola and build static site second.
       - name: Download and Install Zola Binary
         run: |
