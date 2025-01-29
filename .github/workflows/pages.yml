@@ -38,6 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # Include static images.
+          lfs: true
+          # Include the Juice theme.
           submodules: true
       - name: Download and Install Zola Binary
         run: |
