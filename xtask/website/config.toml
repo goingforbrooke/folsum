@@ -17,9 +17,14 @@ highlight_code = false
 # It's not documented, but these Juice variables need to be defined for Zola to render the site.
 [extra]
 
+# Name of the application. Used in the top left, the first word in the short description, the overview header, and more.
 juice_logo_name = "FolSum"
-# G4B: used for top-left logo and large logo. SVG is best.
+# Short description of the application. Used on the main page to summarize what the application does and in the overview description.
+juice_logo_description = "a simple application for summarizing the contents of a folder on your computer."
+
+# Used for top-left icon and large icon on the right. SVG is best b/c it scales and is a small file, but PNG (bonus points for alpha channel) works too.
 juice_logo_path = "icon.svg"
+
 
 # Top-right links that aren't webpages (like the MD files in `content/`).
 juice_extra_menu = [
