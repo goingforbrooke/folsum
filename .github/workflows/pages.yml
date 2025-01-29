@@ -81,9 +81,6 @@ jobs:
         # Build website and output static files in `folsum/xtask/website/public/`.
         run: ./zola build;
         working-directory: xtask/website
-      - name: ls
-        run: ls public
-        working-directory: xtask/website
 
       # Deploy static files with GitHub's "static" starter workflow. https://github.com/actions/starter-workflows/blob/main/pages/static.yml
       - name: Setup Pages
