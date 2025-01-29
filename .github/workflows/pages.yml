@@ -44,12 +44,14 @@ jobs:
           submodules: true
 
       ### Install Trunk and build WASM first because we need it as part of Zola's static files.
+      # todo: Switch to better caching toolchain.
       - uses: actions-rs/toolchain@v1 # get rust toolchain for wasm
         with:
           profile: minimal
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
+      # todo: Switch to better caching Action.
       - name: Rust Cache # cache the rust build artifacts
         uses: Swatinem/rust-cache@v1
       - name: Download and Install Trunk Binary
@@ -63,7 +65,7 @@ jobs:
         # relatively as eframe_template/favicon.ico. if we skip public-url option, the href paths will instead request username.github.io/favicon.ico which
         # will obviously return error 404 not found.
         # Create static WASM files in `folsum/folsum/dist/` use `--public-url` to note that `dist/` will contain all WASM files.
-        run: ./trunk build --release --public-url dist/;
+        run: ./trunk build --release --public-url /dist/;
         # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
       - name: Move Trunk's WASM Files
