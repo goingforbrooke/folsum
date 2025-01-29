@@ -66,15 +66,11 @@ jobs:
         run: ./trunk build --release --public-url dist/;
         # Run build command in (app dir) `folsum/folsum/` because `trunk` doesn't have a path parameter.
         working-directory: folsum
-      - name: ls dist
-        run: ls dist/
-        working-directory: folsum
-      - name: ls dist
-        run: ls dist/dist/
-        working-directory: folsum
       - name: Move Trunk's WASM Files
         # Move these into Zola's static directory so Zola can build paths to the JS and WASM files when it builds the site.
         run: cp -r folsum/dist xtask/website/static/dist
+      - name: ls static dist
+        run: ls xtask/website/static/dist
       ### Install Zola and build static site second.
       - name: Download and Install Zola Binary
         run: |
