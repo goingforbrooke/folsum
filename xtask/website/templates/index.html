@@ -6,6 +6,11 @@
 <link rel="apple-touch-icon" href="/folsum_icon_180px.png">
 {% endblock favicon %}
 
+
+{% block head %}
+<!-- This is here to disable the CarbonAds CSS load in Juice's index.html-->
+{% endblock head %}
+
 {% block hero %}
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 <section class="text-center">
@@ -41,6 +46,13 @@
     }
 </style>
 {% endblock hero %}
+
+
+{% block sidebar %}
+<div class="sidebar">
+    <!-- This is here to disable the CarbonAds JS load in Juice's index.html-->
+</div>
+{% endblock sidebar %}
 
 {% block footer %}
 <footer>
