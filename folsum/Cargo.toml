@@ -38,6 +38,7 @@ env_logger = "0.11.3"
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
+wasmer-vfs = "3.1.1"
 
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
