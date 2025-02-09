@@ -3,8 +3,7 @@ base_url = "https://folsum.goingforbrooke.com"
 
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
-
-# Whether to build a search index to be used later on by a JavaScript library
+ # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = false
 
 theme = "juice"
@@ -42,3 +41,11 @@ repository_url = "https://github.com/goingforbrooke/folsum"
 juice_copyright_year = "2025"
 juice_copyright_person = "Brooke Deuson"
 juice_copyright_link = "https://goingforbrooke.com"
+
+# G4B Custom variables.
+social_media_banner_path = "folsum_social_media_banner.png"
+
+# Twitter card-specific items.
+top_level_url = "goingforbrooke.com"
+twitter_owner_handle = "@goingforbrooke"
+twitter_creator_handle = "@goingforbrooke"
