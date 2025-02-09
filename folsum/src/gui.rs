@@ -12,8 +12,6 @@ use egui_extras::{Column, TableBuilder};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 
-#[cfg(target_arch = "wasm32")]
-use web_time::SystemTime;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::SystemTime;
 
@@ -24,9 +22,11 @@ use web_time::{Duration, Instant};
 
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
+use crate::sort_counts;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::{export_csv, summarize_directory};
-use crate::sort_counts;
+#[cfg(target_arch = "wasm32")]
+use crate::wasm_demo_summarize_directory;
 
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -94,7 +94,6 @@ impl eframe::App for FolsumGui {
             summarization_path,
             #[cfg(not(target_arch = "wasm32"))]
             export_file,
-            #[cfg(not(target_arch = "wasm32"))]
             summarization_start,
             time_taken,
             ..
@@ -153,6 +152,12 @@ impl eframe::App for FolsumGui {
                     #[cfg(not(target_arch = "wasm32"))]
                     let _result = summarize_directory(
                         &summarization_path,
+                        &extension_counts,
+                        &summarization_start,
+                        &time_taken,
+                    );
+                    #[cfg(target_arch = "wasm32")]
+                    let _result = wasm_demo_summarize_directory(
                         &extension_counts,
                         &summarization_start,
                         &time_taken,

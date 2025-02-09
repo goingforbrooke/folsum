@@ -1,10 +1,6 @@
-#[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
-#[cfg(not(target_arch = "wasm32"))]
 use std::ffi::{OsStr, OsString};
-#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
-#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Arc, Mutex};
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::{Duration, Instant};
@@ -77,4 +73,54 @@ pub fn summarize_directory(
         });
     };
     Ok(())
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn wasm_demo_summarize_directory(
+    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    summarization_start: &Arc<Mutex<Instant>>,
+    time_taken: &Arc<Mutex<Duration>>,
+    ) {
+    // ...then recursively count file extensions in the chosen directory.
+    // Reset file extension counts to zero.
+    *extension_counts.lock().unwrap() = HashMap::new();
+
+    // Copy the Arcs of persistent members so they can be accessed by a separate thread. let extension_counts_copy = Arc::clone(&extension_counts);
+    let start_copy = Arc::clone(&summarization_start);
+    let time_taken_copy = Arc::clone(&time_taken);
+    let extension_counts_copy = Arc::clone(&extension_counts);
+
+    // We usually do this in a separate thread, which `web_sys`'s (Web)workers would do a good job of simulating.
+    // We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
+
+    // Categorize extensionless files as "No extension."
+    let default_extension = OsString::from("No extension");
+
+    // Start the stopwatch for summarization time.
+    let mut locked_start_copy = start_copy.lock().unwrap();
+    *locked_start_copy = Instant::now();
+    info!("Started summarization");
+
+    // Create some demo files to summarize.
+    let demo_files: Vec<PathBuf> = (0..5).map(|counter| {
+        let filename = format!("{counter}.pdf");
+        PathBuf::from(filename)
+    }).collect();
+
+    // Recursively iterate through each subdirectory and don't add subdirectories to the result.
+    for entry in demo_files {
+        trace!("Found file: {:?}", &entry);
+        // Extract the file extension from the file's name.
+        let file_ext: &OsStr = entry.extension().unwrap_or(&default_extension);
+        let show_ext: String = String::from(file_ext.to_string_lossy());
+        // Lock the extension counts variable so we can add a file to it.
+        let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
+        // Add newly encountered file extensions to known file extensions with a counter of 0.
+        let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
+        // Increment the counter for known file extensions by one.
+        *counter += 1;
+        // Update the summarization time stopwatch.
+        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+        *locked_time_taken_copy = locked_start_copy.elapsed();
+    }
 }
