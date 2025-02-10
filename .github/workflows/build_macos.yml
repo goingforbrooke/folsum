@@ -19,13 +19,13 @@ jobs:
         with:
           # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
           fetch-depth: 0
-      - name: Set up Rust Build Caching
-        uses: Swatinem/rust-cache@v2
       - name: Install Rust toolchain with M1 chip support
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: aarch64-apple-darwin, x86_64-apple-darwin
+      - name: Set up Rust Build Caching
+        uses: Swatinem/rust-cache@v2
       - name: Build x86_64 binary
         run: cargo build --release --target x86_64-apple-darwin
       - name: Build ARM64 binary
