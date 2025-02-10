@@ -102,6 +102,7 @@ impl eframe::App for FolsumGui {
         let Self {
             extension_counts,
             total_files,
+            #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             export_file,
@@ -145,8 +146,9 @@ impl eframe::App for FolsumGui {
                 }
 
                 ui.horizontal(|ui| {
-                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),

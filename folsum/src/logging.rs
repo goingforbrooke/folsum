@@ -3,19 +3,28 @@
 //! `logging` sets up native logging for FolSum projects. This doesn't include WASM deployments,
 //! which need a different logger.
 
-// Std crates for macOS, Windows, *and* WASM builds.
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::fs::{create_dir_all, File};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::path::{Path, PathBuf};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::SystemTime;
 
-// External crates for macOS, Windows, *and* WASM builds.
+// External crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use anyhow::{bail, Result};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use dirs::data_local_dir;
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use fern::colors::{Color, ColoredLevelConfig};
+
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// Project crate.
+// Internal crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use crate::debug_println;
 
 /// Create application data subdirectory for logfiles.
