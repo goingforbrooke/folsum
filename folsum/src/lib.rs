@@ -13,7 +13,7 @@ mod logging;
 pub use logging::setup_native_logging;
 
 mod summarize;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(target_os = "macos")]
 pub use summarize::summarize_directory;
 #[cfg(target_arch = "wasm32")]
 pub use summarize::wasm_demo_summarize_directory;
