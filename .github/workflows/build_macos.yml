@@ -36,7 +36,6 @@ jobs:
           crate: cargo-bundle
       # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
       - name: Create `*.app` directory structure and `.plist` file
-        working-directory: folsum/
         env:
           # Skip building binaries because they've already been built and combined.
           CARGO_BUNDLE_SKIP_BUILD: "true"
