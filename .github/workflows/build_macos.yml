@@ -19,8 +19,8 @@ jobs:
         with:
           # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
           fetch-depth: 0
-      - name: Set up sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.3
+      - name: Set up Rust Build Caching
+        uses: Swatinem/rust-cache@v2
       - name: Install Rust toolchain with M1 chip support
         uses: dtolnay/rust-toolchain@stable
         with:
