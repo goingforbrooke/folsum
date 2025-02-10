@@ -101,11 +101,33 @@ pub fn wasm_demo_summarize_directory(
     *locked_start_copy = Instant::now();
     info!("Started summarization");
 
+    //
+    let demo_file_counts: Vec<(&str, u32)> = vec![("pdf", 10000),
+                                                  ("docx", 10000),
+                                                  ("exe", 10000),
+                                                  ("txt", 10000),
+                                                  ("xlsx", 10000),
+                                                  ("jpg", 10000),
+                                                  ("png", 10000),
+                                                  ("gif", 10000),
+                                                  ("mp4", 10000),
+                                                  ("avi", 10000),
+                                                  ("mkv", 10000),
+                                                  ("dll", 10000),
+                                                  ("sys", 10000),
+                                                  ("app", 10000),
+                                                  ("dmg", 10000),
+                                                  ("zip", 10000),
+                                                  ("iso", 10000)];
+
     // Create some demo files to summarize.
-    let demo_files: Vec<PathBuf> = (0..5).map(|counter| {
-        let filename = format!("{counter}.pdf");
-        PathBuf::from(filename)
-    }).collect();
+    let mut demo_files = vec![];
+    for (file_extension, counter) in demo_file_counts.iter() {
+        let filename = format!("some_filename.{file_extension}");
+        for _count in 0u32..*counter {
+            demo_files.push(PathBuf::from(&filename));
+        }
+    }
 
     // Recursively iterate through each subdirectory and don't add subdirectories to the result.
     for entry in demo_files {
