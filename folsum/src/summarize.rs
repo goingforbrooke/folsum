@@ -124,15 +124,15 @@ pub fn wasm_demo_summarize_directory(
     };
 
     // Create fake (Fibonacci) counts for each file extension.
-    let demo_file_counts: HashMap<&str, u32> = demo_file_extensions.iter().enumerate().map(| (index, item) | {
+    let demo_file_counts: HashMap<&str, u32> = demo_file_extensions.iter().enumerate().map(|(index, item)| {
         let fib_num = fibonacci_numbers(index);
         (*item, fib_num)
     }).collect();
 
     // Create a file path for each the "fake file."
-    let demo_file_paths: Vec<PathBuf> = demo_file_counts.iter().flat_map(| (file_extension, counter) | {
-            let filename = format!("some_filename.{file_extension}");
-            (0..*counter).map(move |_| PathBuf::from(&filename))
+    let demo_file_paths: Vec<PathBuf> = demo_file_counts.iter().flat_map(|(file_extension, counter)| {
+        let filename = format!("some_filename.{file_extension}");
+        (0..*counter).map(move |_| PathBuf::from(&filename))
     }).collect();
 
     // Recursively iterate through each subdirectory and don't add subdirectories to the result.
