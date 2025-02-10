@@ -13,6 +13,7 @@ use log::{debug, error, info, trace, warn};
 use walkdir::WalkDir;
 #[cfg(target_arch = "wasm32")]
 use web_time::{Duration, Instant};
+#[cfg(target_arch = "wasm32")]
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn summarize_directory(
@@ -101,36 +102,45 @@ pub fn wasm_demo_summarize_directory(
     *locked_start_copy = Instant::now();
     info!("Started summarization");
 
-    //
-    let demo_file_counts: Vec<(&str, u32)> = vec![("pdf", 10000),
-                                                  ("docx", 10000),
-                                                  ("exe", 10000),
-                                                  ("txt", 10000),
-                                                  ("xlsx", 10000),
-                                                  ("jpg", 10000),
-                                                  ("png", 10000),
-                                                  ("gif", 10000),
-                                                  ("mp4", 10000),
-                                                  ("avi", 10000),
-                                                  ("mkv", 10000),
-                                                  ("dll", 10000),
-                                                  ("sys", 10000),
-                                                  ("app", 10000),
-                                                  ("dmg", 10000),
-                                                  ("zip", 10000),
-                                                  ("iso", 10000)];
 
-    // Create some demo files to summarize.
-    let mut demo_files = vec![];
+    // File extensions for our demo.
+    let demo_file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
+                                               "jpg", "png", "gif", "mp4", "avi",
+                                               "mkv", "dll", "sys", "app", "dmg",
+                                               "zip", "iso", "pages", "numbers",
+                                               "7zip", "html", "py", "rs", "js",
+                                               "rs"];
+
+    // Fibonacci numbers to sequentially assign as theoretical quantities of each file extension.
+    let mut fibonacci_numbers = |n: usize| -> u32 {
+        let mut a = 0;
+        let mut b = 1;
+        for _ in 0..n {
+            let temp = a;
+            a = b;
+            b = temp + b;
+        }
+        a
+    };
+
+    // Create an "answer key" of demo file counts so we can use them to make paths.
+    let mut demo_file_counts: HashMap<&str, u32> = HashMap::new();
+    for (index, item) in demo_file_extensions.iter().enumerate() {
+        let fib_num = fibonacci_numbers(index);
+        demo_file_counts.insert(*item, fib_num);
+    }
+
+    // Create some demo file paths to summarize.
+    let mut demo_file_paths = vec![];
     for (file_extension, counter) in demo_file_counts.iter() {
         let filename = format!("some_filename.{file_extension}");
         for _count in 0u32..*counter {
-            demo_files.push(PathBuf::from(&filename));
+            demo_file_paths.push(PathBuf::from(&filename));
         }
     }
 
     // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-    for entry in demo_files {
+    for entry in demo_file_paths {
         trace!("Found file: {:?}", &entry);
         // Extract the file extension from the file's name.
         let file_ext: &OsStr = entry.extension().unwrap_or(&default_extension);
