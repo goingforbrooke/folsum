@@ -111,8 +111,8 @@ pub fn wasm_demo_summarize_directory(
                                                "7zip", "html", "py", "rs", "js",
                                                "rs"];
 
-    // Fibonacci numbers to sequentially assign as theoretical quantities of each file extension.
-    let mut fibonacci_numbers = |n: usize| -> u32 {
+    // Generate numbers to sequentially assign as theoretical quantities of each file extension.
+    let fibonacci_numbers = |n: usize| -> u32 {
         let mut a = 0;
         let mut b = 1;
         for _ in 0..n {
@@ -124,12 +124,12 @@ pub fn wasm_demo_summarize_directory(
     };
 
     // Create an "answer key" of demo file counts so we can use them to make paths.
-    let mut demo_file_counts: HashMap<&str, u32> = HashMap::new();
-    for (index, item) in demo_file_extensions.iter().enumerate() {
+    let demo_file_counts: HashMap<&str, u32> = demo_file_extensions.iter().enumerate().map(| (index, item) | {
         let fib_num = fibonacci_numbers(index);
-        demo_file_counts.insert(*item, fib_num);
-    }
+        (*item, fib_num)
+    }).collect();
 
+    // REPLACING THIS:
     // Create some demo file paths to summarize.
     let mut demo_file_paths = vec![];
     for (file_extension, counter) in demo_file_counts.iter() {
