@@ -12,8 +12,6 @@ use egui_extras::{Column, TableBuilder};
 #[cfg(not(target_arch = "wasm32"))]
 use rfd::FileDialog;
 
-#[cfg(target_arch = "wasm32")]
-use web_time::SystemTime;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::SystemTime;
 
@@ -24,9 +22,11 @@ use web_time::{Duration, Instant};
 
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
+use crate::sort_counts;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::{export_csv, summarize_directory};
-use crate::sort_counts;
+#[cfg(target_arch = "wasm32")]
+use crate::wasm_demo_summarize_directory;
 
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -94,7 +94,6 @@ impl eframe::App for FolsumGui {
             summarization_path,
             #[cfg(not(target_arch = "wasm32"))]
             export_file,
-            #[cfg(not(target_arch = "wasm32"))]
             summarization_start,
             time_taken,
             ..
@@ -123,11 +122,11 @@ impl eframe::App for FolsumGui {
         egui::SidePanel::left("left_panel")
             .resizable(false)
             .show(ctx, |ui| {
-                ui.heading("Choose a Directory to Summarize");
+                ui.heading("Choose a Folder to Summarize");
 
                 // Don't add a directory picker when compiling for web.
                 #[cfg(not(target_arch = "wasm32"))]
-                if ui.button("Open directory...").clicked() {
+                if ui.button("Open folder...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         info!("User chose summarization directory: {:?}", path);
                         *summarization_path = Arc::new(Mutex::new(Some(path)));
@@ -137,22 +136,29 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
+                    #[cfg(not(target_arch = "wasm32"))]
                     let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
-                    ui.label("Chosen directory:");
+                    #[cfg(target_arch = "wasm32")]
+                    let shown_path = "N/A";
+                    ui.label("Chosen folder:");
                     // Display the user's chosen directory in monospace font.
                     ui.monospace(shown_path);
                 });
-
-                ui.separator();
 
                 if ui.button("Summarize").clicked() {
                     info!("User started summarization");
                     #[cfg(not(target_arch = "wasm32"))]
                     let _result = summarize_directory(
                         &summarization_path,
+                        &extension_counts,
+                        &summarization_start,
+                        &time_taken,
+                    );
+                    #[cfg(target_arch = "wasm32")]
+                    let _result = wasm_demo_summarize_directory(
                         &extension_counts,
                         &summarization_start,
                         &time_taken,
@@ -173,25 +179,30 @@ impl eframe::App for FolsumGui {
                 #[cfg(target_arch = "wasm32")]
                 {
                     ui.vertical(|ui| {
-                        let wasm_message = "Behold the power of WASM! 🦀 This is a Rust binary running inside of your browser's sandbox! It looks and functions exactly the same way on MacOS and Windows.";
+                        ui.heading("Behold the Power of WASM! 🦀");
+                        ui.label("".to_string());
+                        let wasm_message = "This is a Rust binary running inside of your browser's sandbox! The MacOS or Windows version look the same, but with a button that lets you choose a folder to summarize.";
                         ui.label(wasm_message.to_string());
 
                         ui.separator();
 
-                        let usage_message = "Since we're in a browser, we can't summarize the contents of files on your computer.";
+                        ui.heading("Differences with Executables ⚖️");
+                        ui.label("".to_string());
+                        let usage_message = "We can't summarize the contents of files on your computer. Why? Because that's how your browser protects you from the internet. 👻";
                         ui.label(usage_message.to_string());
 
                         ui.separator();
 
+                        ui.heading("Code Source 👩🏼‍💻");
+                        ui.label("".to_string());
                         let repo_message = "The Rust code powering this can be found here: ";
                         ui.label(repo_message.to_string());
+
                         ui.hyperlink_to("github.com/goingforbrooke/folsum", "https://github.com/goingforbrooke/folsum");
 
                         ui.separator();
                     });
                 }
-
-                ui.separator();
 
                 #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Export to CSV").clicked() {
