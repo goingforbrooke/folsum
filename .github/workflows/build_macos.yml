@@ -7,9 +7,6 @@ on:
 jobs:
   build:
     runs-on: macos-latest
-    env:
-      SCCACHE_GHA_ENABLED: "true"
-      RUSTC_WRAPPER: "sccache"
     steps:
       - name: Get repository name
         id: get_repo_name
