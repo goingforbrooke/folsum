@@ -3,19 +3,20 @@
 mod common;
 
 mod export_csv;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub use export_csv::export_csv;
 
 mod gui;
 pub use gui::FolsumGui;
 
 mod logging;
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub use logging::setup_native_logging;
 
 mod summarize;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub use summarize::summarize_directory;
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 pub use summarize::wasm_demo_summarize_directory;
 
 mod utils;

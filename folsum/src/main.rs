@@ -1,17 +1,24 @@
 #![warn(clippy::all, rust_2018_idioms)]
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+// Hide the console window on Windows release builds.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[cfg(not(target_arch = "wasm32"))]
-use log::info;
-#[cfg(not(target_arch = "wasm32"))]
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::error::Error;
-#[cfg(not(target_arch = "wasm32"))]
+
+// External crates for macOS, Windows, *and* WASM builds.
+#[allow(unused)]
+use log::{debug, error, info, trace, warn};
+
+// Internal crates for macOS, Windows, *and* WASM builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use folsum::setup_native_logging;
 
-#[cfg(not(target_arch = "wasm32"))]
+// The app name is only necessary for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 const APP_NAME: &str = "FolSum";
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn setup_native_eframe() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
@@ -24,7 +31,7 @@ fn setup_native_eframe() -> eframe::Result<()> {
 }
 
 // When compiling natively:
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn main() -> Result<(), Box<dyn Error>> {
     setup_native_logging(&APP_NAME)?;
     setup_native_eframe()?;
@@ -32,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 // When compiling to web using trunk:
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 fn main() {
     // Redirect `log` message to `console.log` and friends:
     eframe::WebLogger::init(log::LevelFilter::Debug).ok();

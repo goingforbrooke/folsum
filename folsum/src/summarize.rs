@@ -14,9 +14,10 @@ use std::time::{Duration, Instant};
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// External crates for macOS, and Windows builds.
+// External crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use walkdir::WalkDir;
+
 // External crates for WASM builds.
 #[cfg(target_family = "wasm")]
 use web_time::{Duration, Instant};
@@ -85,7 +86,7 @@ pub fn summarize_directory(
 }
 
 /// Summarize directories in WASM builds.
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_family = "wasm")]
 pub fn wasm_demo_summarize_directory(
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
     summarization_start: &Arc<Mutex<Instant>>,
