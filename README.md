@@ -58,6 +58,14 @@ $ user@host: cargo add --package xtask chrono
 $ user@host: cargo xtask build
 ```
 
+### ☑️ `cargo check`
+
+Check compilation for all targets.
+
+```text
+$ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-darwin --target wasm32-unknown-unknown --target x86_64-pc-windows-gnu
+```
+
 ### 📦 `cargo build`
 
 Build for MacOS (Intel x86_64):
