@@ -161,6 +161,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      # We still need to check out the code for this job so we can get the SemVer.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
       - name: Get repository name
         id: get_repo_name
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
