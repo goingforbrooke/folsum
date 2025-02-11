@@ -100,6 +100,8 @@ jobs:
       - name: Upload macOS executable for release
         uses: actions/upload-artifact@v4
         with:
+          # Give the artifact the same name as the zip file, otherwise it'll default to "artifact" and fail b/c already exists.
+          name: ${{ steps.create_zip_filename.outputs.zip_filename }}
           path: ${{ steps.create_zip_filename.outputs.zip_filename }}
           # Fail the Action if no zip was found.
           if-no-files-found: error
@@ -147,6 +149,8 @@ jobs:
       - name: Upload Windows executable for release
         uses: actions/upload-artifact@v4
         with:
+          # Give the artifact the same name as the zip file, otherwise it'll default to "artifact" and fail b/c already exists.
+          name: ${{ steps.create_zip_filename.outputs.zip_filename }}
           path: ${{ steps.create_zip_filename.outputs.zip_filename }}
           # Fail the Action if no zip was found.
           if-no-files-found: error
