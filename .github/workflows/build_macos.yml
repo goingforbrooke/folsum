@@ -170,6 +170,9 @@ jobs:
       # Download all artifacts for this run.
       - name: download artifacts
         uses: actions/download-artifact@v4
+        with:
+          # Put artifacts in root instead of giving them their own directories.
+          merge-multiple: true
       - name: Publish a new release
         id: publish_release
         uses: ncipollo/release-action@v1
