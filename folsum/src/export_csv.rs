@@ -1,21 +1,26 @@
-#[cfg(not(target_arch = "wasm32"))]
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::collections::HashMap;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::fs::File;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::io::Write;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::path::PathBuf;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::sync::{Arc, Mutex, MutexGuard};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::thread;
+
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-#[cfg(not(target_arch = "wasm32"))]
+
+// Internal crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use crate::sort_counts;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn export_csv(
     export_file: &Arc<Mutex<Option<PathBuf>>>,
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,

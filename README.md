@@ -58,6 +58,20 @@ $ user@host: cargo add --package xtask chrono
 $ user@host: cargo xtask build
 ```
 
+### ☑️ `cargo check`
+
+Check compilation for all targets.
+
+```console
+$ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-darwin --target wasm32-unknown-unknown --target x86_64-pc-windows-gnu
+```
+
+### 🌎 Preview WASM Builds
+
+```console
+$ user@host: trunk serve --open
+```
+
 ### 📦 `cargo build`
 
 Build for MacOS (Intel x86_64):
@@ -99,6 +113,14 @@ Build for Windows:
 ```console
 $ user@host: cargo build --release --target x86_64-pc-windows-gnu
 ```
+
+Build for WASM:
+
+```text
+$ user@host: trunk build
+```
+
+Expect to find static files in `public/`.
 
 ## 🏗️ CI/CD
 
