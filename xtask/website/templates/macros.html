@@ -10,17 +10,18 @@
         function detectPlatform() {
             const userAgent = navigator.userAgent.toLowerCase();
             if (userAgent.includes('mac')) {
-                return { platform: 'darwin', buttonText: 'Download for macOS' };
+                return { platform: 'darwin', buttonText: 'Download for macOS', supportStatus: 'supported' };
             } else if (userAgent.includes('win')) {
-                return { platform: 'win32', buttonText: 'Download for Windows' };
+                return { platform: 'win32', buttonText: 'Download for Windows', supportStatus: 'unsupported' };
             }
-            return { platform: null, buttonText: 'Unsupported Platform' };
+            return { platform: null, buttonText: 'Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
         }
 
         async function setupDownloadButton() {
-            const { platform, buttonText } = detectPlatform();
+            const { platform, buttonText, supportStatus } = detectPlatform();
             const downloadButton = document.getElementById('download-button');
             downloadButton.textContent = buttonText;
+            downloadButton.classList = supportStatus;
 
             if (platform) {
                 const release = await fetchLatestRelease();

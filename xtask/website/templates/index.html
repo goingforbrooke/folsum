@@ -58,6 +58,16 @@
         background-color: #3e8e41; /* Even darker green when clicked */
         transform: scale(0.95); /* Slight shrink when clicked */
     }
+
+    .unsupported {
+        background-color: red; /* Red background for unsupported OS */
+        cursor: not-allowed;
+    }
+
+    .unsupported:hover {
+        background-color: red;
+        transform: none;
+    }
 </style>
 {% endblock head %}
 
@@ -75,7 +85,6 @@
     </div>
     <div>
         {% if config.extra.latest_release_api_url %}
-            <h1>Download our latest release</h1>
             <button id="download-button">Download</button>
         {% endif %}
     </div>
