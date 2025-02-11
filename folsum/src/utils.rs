@@ -1,4 +1,7 @@
+// Std crates for macOS, Windows, *and* WASM builds.
 use std::collections::HashMap;
+
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 

@@ -1,31 +1,42 @@
+// Std crates for macOS, Windows, *and* WASM builds.
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-#[cfg(not(target_arch = "wasm32"))]
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::time::SystemTime;
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::time::{Duration, Instant};
+
+// External crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use chrono::{DateTime, Local};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use dirs::home_dir;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use egui::ViewportCommand;
 use egui_extras::{Column, TableBuilder};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use rfd::FileDialog;
 
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::SystemTime;
-
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::{Duration, Instant};
-#[cfg(target_arch = "wasm32")]
-use web_time::{Duration, Instant};
-
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
+
+// External crates for WASM builds.
+#[cfg(target_family = "wasm")]
+use web_time::{Duration, Instant};
+
+// Internal crates for macOS, Windows, *and* WASM builds.
 use crate::sort_counts;
-#[cfg(not(target_arch = "wasm32"))]
+
+// Internal crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use crate::{export_csv, summarize_directory};
-#[cfg(target_arch = "wasm32")]
+
+// Internal crates for WASM builds.
+#[cfg(target_family = "wasm")]
 use crate::wasm_demo_summarize_directory;
 
 
@@ -91,8 +102,9 @@ impl eframe::App for FolsumGui {
         let Self {
             extension_counts,
             total_files,
+            #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
-            #[cfg(not(target_arch = "wasm32"))]
+            #[cfg(any(target_family = "unix", target_family = "windows"))]
             export_file,
             summarization_start,
             time_taken,
@@ -108,7 +120,7 @@ impl eframe::App for FolsumGui {
             // Add a menu bar to the top of the screen.
             egui::menu::bar(ui, |ui| {
                 // Don't include a File->Quit menu item when compiling for web.
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         ctx.send_viewport_cmd(ViewportCommand::Close);
@@ -125,7 +137,7 @@ impl eframe::App for FolsumGui {
                 ui.heading("Choose a Folder to Summarize");
 
                 // Don't add a directory picker when compiling for web.
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Open folder...").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         info!("User chose summarization directory: {:?}", path);
@@ -134,14 +146,15 @@ impl eframe::App for FolsumGui {
                 }
 
                 ui.horizontal(|ui| {
-                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     // Check if the user has picked a directory to summarize.
-                    #[cfg(not(target_arch = "wasm32"))]
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No directory selected",
                     };
-                    #[cfg(target_arch = "wasm32")]
+                    #[cfg(target_family = "wasm")]
                     let shown_path = "N/A";
                     ui.label("Chosen folder:");
                     // Display the user's chosen directory in monospace font.
@@ -150,14 +163,14 @@ impl eframe::App for FolsumGui {
 
                 if ui.button("Summarize").clicked() {
                     info!("User started summarization");
-                    #[cfg(not(target_arch = "wasm32"))]
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let _result = summarize_directory(
                         &summarization_path,
                         &extension_counts,
                         &summarization_start,
                         &time_taken,
                     );
-                    #[cfg(target_arch = "wasm32")]
+                    #[cfg(target_family = "wasm")]
                     let _result = wasm_demo_summarize_directory(
                         &extension_counts,
                         &summarization_start,
@@ -176,7 +189,7 @@ impl eframe::App for FolsumGui {
 
                 ui.separator();
 
-                #[cfg(target_arch = "wasm32")]
+                #[cfg(target_family = "wasm")]
                 {
                     ui.vertical(|ui| {
                         ui.heading("Behold the Power of WASM! 🦀");
@@ -204,7 +217,7 @@ impl eframe::App for FolsumGui {
                     });
                 }
 
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Export to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
@@ -231,7 +244,7 @@ impl eframe::App for FolsumGui {
                     {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
-                    #[cfg(not(target_arch = "wasm32"))]
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let _result = export_csv(&export_file, &extension_counts);
                 };
 

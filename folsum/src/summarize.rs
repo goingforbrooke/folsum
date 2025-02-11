@@ -1,21 +1,30 @@
+// Std crates for macOS, Windows, *and* WASM builds.
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-#[cfg(not(target_arch = "wasm32"))]
-use std::time::{Duration, Instant};
-#[cfg(not(target_arch = "wasm32"))]
-use std::thread;
 
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::thread;
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::time::{Duration, Instant};
+
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-#[cfg(not(target_arch = "wasm32"))]
-use walkdir::WalkDir;
-#[cfg(target_arch = "wasm32")]
-use web_time::{Duration, Instant};
-#[cfg(target_arch = "wasm32")]
 
-#[cfg(not(target_arch = "wasm32"))]
+// External crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use walkdir::WalkDir;
+
+// External crates for WASM builds.
+#[cfg(target_family = "wasm")]
+use web_time::{Duration, Instant};
+
+
+/// Summarize directories in macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn summarize_directory(
     summarization_path: &Arc<Mutex<Option<PathBuf>>>,
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
@@ -76,7 +85,8 @@ pub fn summarize_directory(
     Ok(())
 }
 
-#[cfg(target_arch = "wasm32")]
+/// Summarize directories in WASM builds.
+#[cfg(target_family = "wasm")]
 pub fn wasm_demo_summarize_directory(
     extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
     summarization_start: &Arc<Mutex<Instant>>,

@@ -3,19 +3,28 @@
 //! `logging` sets up native logging for FolSum projects. This doesn't include WASM deployments,
 //! which need a different logger.
 
-// Standard library.
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::fs::{create_dir_all, File};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::path::{Path, PathBuf};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::SystemTime;
 
-// External crates.
+// External crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use anyhow::{bail, Result};
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use dirs::data_local_dir;
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use fern::colors::{Color, ColoredLevelConfig};
+
+// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// Project crate.
+// Internal crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use crate::debug_println;
 
 /// Create application data subdirectory for logfiles.
@@ -23,6 +32,7 @@ use crate::debug_println;
 /// A logfile directory named `logs/` for the application is
 /// created in a platform-specific app data directory. If it
 /// already exists, then nothing happens.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn create_appdata_logdir(app_name: &str) -> Result<PathBuf> {
     // Get the place on the user's box where applications can store data.
     let appdata_dir = match data_local_dir() {
@@ -41,6 +51,7 @@ fn create_appdata_logdir(app_name: &str) -> Result<PathBuf> {
 /// Create a logfile in the loging subdirectory for this application.
 ///
 /// Name the logfile `<app_name>.log`. If the logfile already exists, then nothing happens.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf> {
     let lowercased_name = app_name.to_lowercase();
     let logfile_name = format!("{}.log", lowercased_name);
@@ -50,7 +61,8 @@ fn create_logfile(app_name: &str, parent_dir: &PathBuf) -> Result<PathBuf> {
     Ok(logfile_path)
 }
 
-/// Define how log records are diplayed in the log file.
+/// Define how log records are displayed in the log file.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch> {
     let file_config = fern::Dispatch::new()
         .format(move |out, message, record| {
@@ -74,6 +86,8 @@ fn define_logfile_format(logfile_path: &PathBuf) -> Result<fern::Dispatch> {
     Ok(file_config)
 }
 
+/// Define how log lines should look in console output.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 fn define_console_format() -> Result<fern::Dispatch> {
     // Define the line color for each log level.
     let colors_line = ColoredLevelConfig::new()
@@ -145,6 +159,7 @@ fn define_console_format() -> Result<fern::Dispatch> {
 /// error!("danger will robinson");
 /// //Output: 11:58🚨logging.rsL85::testappname::logging danger will robinson
 /// ```
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn setup_native_logging(app_name: &str) -> Result<()> {
     let logdir = create_appdata_logdir(&app_name).unwrap();
     let logfile_path = create_logfile(&app_name, &logdir).unwrap();
@@ -159,7 +174,7 @@ pub fn setup_native_logging(app_name: &str) -> Result<()> {
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 #[cfg(test)]
 mod tests {
     use super::*;
