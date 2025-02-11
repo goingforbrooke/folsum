@@ -1,20 +1,20 @@
-name: 🍏 macOS Build, Bundle, and Publish
+name: 🍏 🏁 macOS and Windows Build, Bundle, and Publish
 on:
   push:
     branches:
       - main
       - 'cicd/**'
 jobs:
-  build:
+  build_macos:
     runs-on: macos-latest
-    permissions:
-      contents: write
+    outputs:
+      zip_filename: ${{ steps.create_zip_filename.outputs.zip_filename }}
     steps:
       - name: Get repository name
         id: get_repo_name
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
           fetch-depth: 0
@@ -86,15 +86,99 @@ jobs:
           # "Attach the staple" to executable for offline MacOS validation.
           echo "Attach staple"
           xcrun stapler staple "${{ steps.get_repo_name.outputs.repo_name }}.app"
-      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
-        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.get_repo_name.outputs.repo_name }}.zip
+      # Get the current SemVer from Cargo.toml. Ex. 2.0.3 would make v2.0.3 in this step.
       - name: Get current SemVer version from Cargo.toml
         id: get_current_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
-      - name: Get the last branch that was merged into the `dev` branch
-        id: get_last_dev_merge
-        # Assume that the branch was merged with `--no-ff`.
-        run: echo "branch_name=$(git log origin/dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Create a filename for the macOS binary's zip file
+        id: create_zip_filename
+        run: echo "zip_filename=${{ steps.get_repo_name.outputs.repo_name }}_${{ steps.get_current_semver.outputs.semver }}_macos-universal.zip" >> "$GITHUB_OUTPUT"
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.create_zip_filename.outputs.zip_filename }}
+      - name: Create job summary about macOS binary creation
+        run: echo "## Created universal macOS binary" >> $GITHUB_STEP_SUMMARY
+      - name: Upload macOS executable for release
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the zip file, otherwise it'll default to "artifact" and fail b/c already exists.
+          name: ${{ steps.create_zip_filename.outputs.zip_filename }}
+          path: ${{ steps.create_zip_filename.outputs.zip_filename }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+
+  build_windows:
+    runs-on: ubuntu-latest
+    outputs:
+      zip_filename: ${{ steps.create_zip_filename.outputs.zip_filename }}
+    steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
+      - name: Install Rust toolchain with M1 chip support
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-gnu
+      - name: Install cross-compilation tools for building Windows executables on Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install mingw-w64
+      - name: Set up rust build caching
+        uses: Swatinem/rust-cache@v2
+      - name: Build x86_64 Windows binary
+        run: cargo build --release --target x86_64-pc-windows-gnu
+      # Move the `*.exe` to the top level of the repo so it's easier to access.
+      - name: Move bundled `*.app` directory to top level
+        run: mv target/x86_64-pc-windows-gnu/release/${{ steps.get_repo_name.outputs.repo_name }}.exe .
+      - name: Get current SemVer version from Cargo.toml
+        id: get_current_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      - name: Create a filename for the Windows executable's zip file
+        id: create_zip_filename
+        run: echo "zip_filename=${{ steps.get_repo_name.outputs.repo_name }}_${{ steps.get_current_semver.outputs.semver }}_windows_gnu_x86_64.zip" >> "$GITHUB_OUTPUT"
+      - name: Zip the Windows executable
+        id: zip_executable
+        run: zip -j ${{ steps.create_zip_filename.outputs.zip_filename }} ${{ steps.get_repo_name.outputs.repo_name }}.exe
+      - name: Create job summary about executable creation
+        run: echo "## Created Windows executable" >> $GITHUB_STEP_SUMMARY
+      - name: Upload Windows executable for release
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the zip file, otherwise it'll default to "artifact" and fail b/c already exists.
+          name: ${{ steps.create_zip_filename.outputs.zip_filename }}
+          path: ${{ steps.create_zip_filename.outputs.zip_filename }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+
+  publish_release:
+    needs: [build_macos, build_windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # We still need to check out the code for this job so we can get the SemVer.
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      - name: Get current SemVer version from Cargo.toml
+        id: get_current_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      # Download all artifacts for this run.
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          # Put artifacts in root instead of giving them their own directories.
+          merge-multiple: true
       - name: Publish a new release
         id: publish_release
         uses: ncipollo/release-action@v1
@@ -103,10 +187,11 @@ jobs:
           # Gate release publishing to only happen on main branch. Otherwise, releasing will fail due to duplicate release names.
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
-          artifacts: ${{ steps.get_repo_name.outputs.repo_name }}.zip
+          # Expect the macOS and windows zips to be available.
+          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # New Release ${{ steps.get_bumped_semver.outputs.semver }}
+            # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
 
             This is a new release of FolSum triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
 
@@ -114,10 +199,8 @@ jobs:
 
             - Add feature X
             - Fix bug Y
-      - name: Generate "new release" message with hyperlink to release page
+      - name: Generate "new release" message with a hyperlink to the release page
         id: generate_release_message
         run: echo "message=Created new release ${{ steps.get_current_semver.outputs.semver }} at ${{ steps.publish_release.outputs.html_url }}" >> $GITHUB_OUTPUT
-      - name: Create info message about new release
-        run: echo "::notice::${{ steps.generate_release_message.outputs.message }}"
       - name: Create job summary about new release
         run: echo "## ${{ steps.generate_release_message.outputs.message }}" >> $GITHUB_STEP_SUMMARY
