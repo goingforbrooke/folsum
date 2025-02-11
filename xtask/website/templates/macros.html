@@ -10,39 +10,38 @@
             return data;
         }
 
-        function getDownloadUrl(platform, release) {
-            let assetName;
-            if (platform === 'darwin') {
-                // macOS
-                assetName = release.assets.find(asset => asset.name.includes('macos-universal')).browser_download_url;
-            } else if (platform === 'win32') {
-                // Windows
-                assetName = release.assets.find(asset => asset.name.includes('windows_gnu_x86_64')).browser_download_url;
-            }
-            return assetName;
-        }
-
         function detectPlatform() {
             const userAgent = navigator.userAgent.toLowerCase();
             if (userAgent.includes('mac')) {
-                return 'darwin'; // macOS
+                return { platform: 'darwin', buttonText: 'Download for macOS' };
             } else if (userAgent.includes('win')) {
-                return 'win32'; // Windows
+                return { platform: 'win32', buttonText: 'Download for Windows' };
             }
-            return null;
+            return { platform: null, buttonText: 'Unsupported Platform' };
         }
 
         async function setupDownloadButton() {
-            const platform = detectPlatform();
+            const { platform, buttonText } = detectPlatform();
+            const downloadButton = document.getElementById('download-button');
+            downloadButton.textContent = buttonText;
+
             if (platform) {
                 const release = await fetchLatestRelease();
-                const downloadUrl = getDownloadUrl(platform, release);
-                const downloadButton = document.getElementById('download-button');
-                downloadButton.onclick = () => {
-                    window.location.href = downloadUrl;
-                };
+                const downloadUrl = release.assets.find(asset =>
+                    (platform === 'darwin' && asset.name.includes('macos-universal')) ||
+                    (platform === 'win32' && asset.name.includes('windows_gnu_x86_64'))
+                )?.browser_download_url;
+
+                if (downloadUrl) {
+                    downloadButton.onclick = () => {
+                        window.location.href = downloadUrl;
+                    };
+                } else {
+                    downloadButton.textContent = 'No Download Available';
+                    downloadButton.disabled = true;
+                }
             } else {
-                alert('Your platform is not supported for automatic downloads.');
+                downloadButton.disabled = true;
             }
         }
 
