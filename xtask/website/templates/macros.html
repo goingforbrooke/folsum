@@ -5,7 +5,8 @@
     <!-- Place your script just before the closing </body> tag -->
     <script>
         async function fetchLatestRelease() {
-            const response = await fetch('https://api.github.com/repos/goingforbrooke/folsum/releases/latest');
+            const latest_release_api_url = "{{ config.extra.latest_release_api_url | safe }}";
+            const response = await fetch(latest_release_api_url);
             const data = await response.json();
             return data;
         }
