@@ -191,7 +191,7 @@ jobs:
           artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
-            # New Release ${{ steps.get_current_semver.outputs.semver }}
+            # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
 
             This is a new release of FolSum triggered by commit `${{ github.sha }}` on branch `${{ github.ref_name}}`.
 
