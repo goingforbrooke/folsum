@@ -1,4 +1,4 @@
-name: Build with Trunk and Deploy with GitHub Pages
+name: 🌎 Pages Build with Trunk and Deploy
 
 on:
   # Run when we do a new GitHub release.
