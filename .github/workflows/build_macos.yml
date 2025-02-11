@@ -86,11 +86,11 @@ jobs:
           # "Attach the staple" to executable for offline MacOS validation.
           echo "Attach staple"
           xcrun stapler staple "${{ steps.get_repo_name.outputs.repo_name }}.app"
-      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
-        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.get_repo_name.outputs.repo_name }}.zip
       - name: Get current SemVer version from Cargo.toml
         id: get_current_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
+        run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.get_repo_name.outputs.repo_name }}.zip
       - name: Publish a new release
         id: publish_release
         uses: ncipollo/release-action@v1
