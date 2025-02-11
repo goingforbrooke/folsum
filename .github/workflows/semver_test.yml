@@ -1,0 +1,14 @@
+name: 🍏 🏁 macOS and Windows Build, Bundle, and Publish
+on:
+  push:
+    branches:
+      - 'cicd/**'
+jobs:
+  build_macos:
+    runs-on: macos-latest
+    steps:
+      - name: Get current SemVer version from Cargo.toml
+        id: get_current_semver
+        run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
+      - name: show semver
+        run: echo "${{ steps.get_current_semver.outputs.semver }}"
