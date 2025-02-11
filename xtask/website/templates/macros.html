@@ -1,8 +1,4 @@
-{% macro add_download_button() %}
-    <h1>Download our latest release</h1>
-    <button id="download-button">Download</button>
-
-    <!-- Place your script just before the closing </body> tag -->
+{% macro download_button_javascript() %}
     <script>
         async function fetchLatestRelease() {
             const latest_release_api_url = "{{ config.extra.latest_release_api_url | safe }}";
