@@ -14,7 +14,7 @@
             } else if (userAgent.includes('win')) {
                 return { platform: 'win32', buttonText: 'Download for Windows', supportStatus: 'unsupported' };
             }
-            return { platform: null, buttonText: 'Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
+            return { platform: null, buttonText: '😢 Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
         }
 
         async function setupDownloadButton() {

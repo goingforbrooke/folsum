@@ -33,6 +33,8 @@
 <meta name="twitter:creator" content="{{ config.extra.twitter_creator_handle }}">
 <meta name="twitter:domain" content="{{ config.extra.top_level_url }}">
 
+<!-- Stylize the download button -->
+{% if config.extra.latest_release_api_url %}
 <style>
     button {
         background-color: #4CAF50; /* Green background */
@@ -43,6 +45,7 @@
         text-decoration: none; /* No underline */
         display: inline-block; /* Align properly */
         font-size: 16px; /* Font size */
+        font-family: 'Fira Sans', sans-serif;
         margin: 4px 2px; /* Margin around the button */
         cursor: pointer; /* Pointer cursor */
         border-radius: 8px; /* Rounded corners */
@@ -69,6 +72,8 @@
         transform: none;
     }
 </style>
+{% endif %}
+
 {% endblock head %}
 
 {% block hero %}
