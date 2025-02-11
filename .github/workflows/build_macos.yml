@@ -1,4 +1,4 @@
-name: 🍏 macOS Build, Bundle, and Publish
+name: 🍏 🏁 macOS and Windows Build, Bundle, and Publish
 on:
   push:
     branches:
