@@ -1,4 +1,5 @@
 {% extends "juice/templates/index.html" %}
+{% import "macros.html" as custom_macros %}
 
 {% block favicon %}
 <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -44,6 +45,11 @@
     </h3>
     <div>
         <a class="github-button" href="https://github.com/goingforbrooke/folsum" data-size="large" data-show-count="true" aria-label="Star goingforbrooke/folsum on GitHub">Star</a>
+    </div>
+    <div>
+        {% if config.extra.latest_release_api_url %}
+            {{ custom_macros::add_download_button() }}
+        {% endif %}
     </div>
 </section>
 <img class="hero-image" style="width: 50%" src="{{ get_url(path=config.extra.juice_logo_path) }}">

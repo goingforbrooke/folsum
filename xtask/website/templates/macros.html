@@ -1,0 +1,51 @@
+{% macro add_download_button() %}
+    <h1>Download our latest release</h1>
+    <button id="download-button">Download</button>
+
+    <!-- Place your script just before the closing </body> tag -->
+    <script>
+        async function fetchLatestRelease() {
+            const response = await fetch('https://api.github.com/repos/goingforbrooke/folsum/releases/latest');
+            const data = await response.json();
+            return data;
+        }
+
+        function getDownloadUrl(platform, release) {
+            let assetName;
+            if (platform === 'darwin') {
+                // macOS
+                assetName = release.assets.find(asset => asset.name.includes('macos-universal')).browser_download_url;
+            } else if (platform === 'win32') {
+                // Windows
+                assetName = release.assets.find(asset => asset.name.includes('windows_gnu_x86_64')).browser_download_url;
+            }
+            return assetName;
+        }
+
+        function detectPlatform() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.includes('mac')) {
+                return 'darwin'; // macOS
+            } else if (userAgent.includes('win')) {
+                return 'win32'; // Windows
+            }
+            return null;
+        }
+
+        async function setupDownloadButton() {
+            const platform = detectPlatform();
+            if (platform) {
+                const release = await fetchLatestRelease();
+                const downloadUrl = getDownloadUrl(platform, release);
+                const downloadButton = document.getElementById('download-button');
+                downloadButton.onclick = () => {
+                    window.location.href = downloadUrl;
+                };
+            } else {
+                alert('Your platform is not supported for automatic downloads.');
+            }
+        }
+
+        setupDownloadButton();
+    </script>
+{% endmacro add_download_button %}
