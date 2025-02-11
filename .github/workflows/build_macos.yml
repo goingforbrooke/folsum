@@ -91,10 +91,6 @@ jobs:
       - name: Get current SemVer version from Cargo.toml
         id: get_current_semver
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
-      - name: Get the last branch that was merged into the `dev` branch
-        id: get_last_dev_merge
-        # Assume that the branch was merged with `--no-ff`.
-        run: echo "branch_name=$(git log origin/dev --merges --pretty=format:"%s" | sed -n 's/^Merge branch \'\''\(.*\)'\'' into dev$/\1/p' | head -n 1)" >> "$GITHUB_OUTPUT"
       - name: Publish a new release
         id: publish_release
         uses: ncipollo/release-action@v1
