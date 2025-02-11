@@ -32,6 +32,33 @@
 <meta name="twitter:site" content="{{ config.extra.twitter_owner_handle }}">
 <meta name="twitter:creator" content="{{ config.extra.twitter_creator_handle }}">
 <meta name="twitter:domain" content="{{ config.extra.top_level_url }}">
+
+<style>
+    button {
+        background-color: #4CAF50; /* Green background */
+        color: white; /* White text */
+        border: none; /* Remove borders */
+        padding: 15px 32px; /* Some padding */
+        text-align: center; /* Centered text */
+        text-decoration: none; /* No underline */
+        display: inline-block; /* Align properly */
+        font-size: 16px; /* Font size */
+        margin: 4px 2px; /* Margin around the button */
+        cursor: pointer; /* Pointer cursor */
+        border-radius: 8px; /* Rounded corners */
+        transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth hover effect */
+    }
+
+    button:hover {
+        background-color: #45a049; /* Darker green on hover */
+        transform: scale(1.1); /* Slightly enlarge on hover */
+    }
+
+    button:active {
+        background-color: #3e8e41; /* Even darker green when clicked */
+        transform: scale(0.95); /* Slight shrink when clicked */
+    }
+</style>
 {% endblock head %}
 
 {% block hero %}
