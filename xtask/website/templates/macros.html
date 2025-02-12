@@ -1,0 +1,53 @@
+{% macro download_button_javascript() %}
+    <script>
+        async function fetchLatestRelease() {
+            console.log("Fetch latest release was called");
+            const latest_release_api_url = "{{ config.extra.latest_release_api_url | safe }}";
+            const response = await fetch(latest_release_api_url);
+            const data = await response.json();
+            return data;
+        }
+
+        function detectPlatform() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.includes('mac')) {
+                console.log("Detected user system: MacOS")
+                return { platform: 'macos', buttonText: 'Download for macOS', supportStatus: 'supported' };
+            } else if (userAgent.includes('win')) {
+                console.log("Detected user system: Windows")
+                return { platform: 'windows', buttonText: 'Download for Windows', supportStatus: 'supported' };
+            }
+            return { platform: null, buttonText: '😢 Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
+        }
+
+        async function setupDownloadButton() {
+            const { platform, buttonText, supportStatus } = detectPlatform();
+            const downloadButton = document.getElementById('download-button');
+
+            if (supportStatus == 'supported') {
+                downloadButton.textContent = buttonText;
+                downloadButton.classList = supportStatus;
+                downloadButton.disabled = false;
+            } else {
+                downloadButton.textContent = buttonText;
+                downloadButton.classList = supportStatus;
+                downloadButton.disabled = true;
+            }
+
+            downloadButton.onclick = async () => {
+                // Find out what the latest release artifacts are (limited to 60 requests per IP per day).
+                const release = await fetchLatestRelease();
+                console.log(release.assets)
+
+                const downloadUrl = release.assets.find(asset =>
+                    (platform === 'macos' && asset.name.includes('macos_universal')) ||
+                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64'))
+                )?.browser_download_url;
+
+                window.location.href = downloadUrl;
+            };
+        }
+
+        setupDownloadButton();
+    </script>
+{% endmacro add_download_button %}
