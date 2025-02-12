@@ -1,14 +1,12 @@
 name: 🌎 Pages Build with Trunk and Deploy
 
 on:
-  # Run when we do a new GitHub release.
-  release:
-    types:
-      - published
   push:
     branches:
       # Run when we push to any branch that starts with `cicd/`
       - 'cicd/**'
+      # Run when we push to `main` b/c the publish on release create or publish doesn't work.
+      - 'main'
   # Add the ability to run this workflow manually from the Actions tab.
   workflow_dispatch:
 
