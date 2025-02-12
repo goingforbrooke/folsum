@@ -40,7 +40,7 @@
                 console.log(release.assets)
 
                 const downloadUrl = release.assets.find(asset =>
-                    (platform === 'macos' && asset.name.includes('macos-universal')) ||
+                    (platform === 'macos' && asset.name.includes('macos_universal')) ||
                     (platform === 'windows' && asset.name.includes('windows_gnu_x86_64'))
                 )?.browser_download_url;
 

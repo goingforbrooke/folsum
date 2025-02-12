@@ -92,7 +92,7 @@ jobs:
         run: echo "semver=v$(cargo metadata --format-version 1 | jq -r '.packages | .[] | select(.name=="${{ steps.get_repo_name.outputs.repo_name }}") | .version')" >> "$GITHUB_OUTPUT"
       - name: Create a filename for the macOS binary's zip file
         id: create_zip_filename
-        run: echo "zip_filename=${{ steps.get_repo_name.outputs.repo_name }}_${{ steps.get_current_semver.outputs.semver }}_macos-universal.zip" >> "$GITHUB_OUTPUT"
+        run: echo "zip_filename=${{ steps.get_repo_name.outputs.repo_name }}_${{ steps.get_current_semver.outputs.semver }}_macos_universal.zip" >> "$GITHUB_OUTPUT"
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.create_zip_filename.outputs.zip_filename }}
       - name: Create job summary about macOS binary creation
