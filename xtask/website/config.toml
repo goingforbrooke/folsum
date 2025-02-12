@@ -42,6 +42,8 @@ juice_copyright_year = "2025"
 juice_copyright_person = "Brooke Deuson"
 juice_copyright_link = "https://goingforbrooke.com"
 
+latest_release_api_url = "https://api.github.com/repos/goingforbrooke/folsum/releases/latest"
+
 # G4B Custom variables.
 social_media_banner_path = "folsum_social_media_banner.png"
 
