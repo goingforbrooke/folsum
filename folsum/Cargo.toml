@@ -39,21 +39,22 @@ env_logger = "0.11.3"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 
+# Cargo Bundle items for macOS distributions.
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
 copyright = "Copyright (c) Brooke Deuson 2025. All rights reserved."
 category = "public.app-category.productivity"
 #icon = "images/icons/resized_icons/"
-icon = ["images/icons/resized_icons/folsum_icon_128px.png",
-        "images/icons/resized_icons/folsum_icon_128px@2x.png",
-        "images/icons/resized_icons/folsum_icon_16px.png",
-        "images/icons/resized_icons/folsum_icon_16px@2x.png",
-        "images/icons/resized_icons/folsum_icon_256px.png",
-        "images/icons/resized_icons/folsum_icon_256px@2x.png",
-        "images/icons/resized_icons/folsum_icon_32px.png",
-        "images/icons/resized_icons/folsum_icon_32px@2x.png",
-        "images/icons/resized_icons/folsum_icon_512px.png",
-        "images/icons/resized_icons/folsum_icon_512px@2x.png",]
+icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
+        "folsum/images/icons/resized_icons/folsum_icon_128px@2x.png",
+        "folsum/images/icons/resized_icons/folsum_icon_16px.png",
+        "folsum/images/icons/resized_icons/folsum_icon_16px@2x.png",
+        "folsum/images/icons/resized_icons/folsum_icon_256px.png",
+        "folsum/images/icons/resized_icons/folsum_icon_256px@2x.png",
+        "folsum/images/icons/resized_icons/folsum_icon_32px.png",
+        "folsum/images/icons/resized_icons/folsum_icon_32px@2x.png",
+        "folsum/images/icons/resized_icons/folsum_icon_512px.png",
+        "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
 tempdir = "0.3.7"

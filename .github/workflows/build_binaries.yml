@@ -18,6 +18,8 @@ jobs:
         with:
           # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
           fetch-depth: 0
+          # Include icon images.
+          lfs: true
       - name: Install Rust toolchain with M1 chip support
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -119,6 +121,8 @@ jobs:
         with:
           # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
           fetch-depth: 0
+          # Include icon images.
+          lfs: true
       - name: Install Rust toolchain with M1 chip support
         uses: dtolnay/rust-toolchain@stable
         with:
