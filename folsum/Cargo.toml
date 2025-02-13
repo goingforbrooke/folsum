@@ -7,6 +7,14 @@ authors = ["goingforbrooke <12855764+goingforbrooke@users.noreply.github.com>"]
 edition = "2021"
 rust-version = "1.77.2"
 
+license = "MIT"
+license-file = "LICENSE.md"
+readme = "README.md"
+# changelog = ""
+
+homepage = "https://folsum.goingforbrooke.com"
+repository = "https://github.com/goingforbrooke/folsum"
+
 [dependencies]
 # eGui dependencies.
 egui = "0.27.2"
