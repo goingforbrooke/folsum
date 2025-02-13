@@ -37,7 +37,6 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-bundle
-      # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
       - name: Create `*.app` directory structure and `.plist` file
         env:
           # Skip building binaries because they've already been built and combined.
@@ -123,7 +122,7 @@ jobs:
           fetch-depth: 0
           # Include icon images.
           lfs: true
-      - name: Install Rust toolchain with M1 chip support
+      - name: Install Rust toolchain with 64bit Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
@@ -159,8 +158,67 @@ jobs:
           # Fail the Action if no zip was found.
           if-no-files-found: error
 
+  build_debian:
+    runs-on: ubuntu-latest
+    outputs:
+      deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
+    steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
+          # Include icon images.
+          lfs: true
+      - name: Install Rust toolchain with 64-bit Linux Support
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-musl
+      - name: Install `cargo-deb` `.deb` structure
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deb
+      - name: Set up rust build caching
+        uses: Swatinem/rust-cache@v2
+      - name: Build x86_64 Windows binary
+        run: cargo build --release --target x86_64-unknown-linux-musl
+      # Move the `*.exe` to the top level of the repo so it's easier to access.
+      - name: Bundle 64-bit binary into a `.deb` package
+        # Pass `repo_name` for `--package` here so we ignore `xtask/`.
+        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target x86_64-unknown-linux-musl
+      - name: Move bundled `*.deb` file to top level
+        run: mv target/x86_64-unknown-linux-musl/debian/*.deb .
+      - name: Get `.deb` filename
+        id: get_deb_filename
+        run: |
+          set -e
+          DEB_FILES=(./*.deb)
+          if [ ${#DEB_FILES[@]} -eq 0 ]; then
+            echo "❌ No .deb file found in the current directory"
+            exit 1
+          elif [ ${#DEB_FILES[@]} -gt 1 ]; then
+            echo "❌ More than one .deb file found in the current directory: ${DEB_FILES[*]}"
+            exit 1
+          fi
+          echo "✅ Found .deb file: ${DEB_FILES[0]}"
+          echo "deb_filename=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+      - name: Create job summary about executable creation
+        run: echo "## Created `.deb` package" >> $GITHUB_STEP_SUMMARY
+      - name: Upload `.deb` package for release
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
+          name: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+
   publish_release:
-    needs: [build_macos, build_windows]
+    needs: [build_macos, build_windows, build_debian]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -181,7 +239,7 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
-          # Put artifacts in root instead of giving them their own directories.
+          # Put artifacts in root instead of giving each one its own directory.
           merge-multiple: true
       - name: Publish a new release
         id: publish_release
