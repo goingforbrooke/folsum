@@ -132,6 +132,8 @@ $ user@host: cross build --release --target x86_64-unknown-linux-musl
 
 Expect to find the binary at `folsum/target/x86_64-unknown-linux-musl/release/folsum`.
 
+For building on Apple Silicon, use the [`package_deb.Dockerfile`](./xtask/docker/package_deb.Dockerfile).
+
 
 Build for WASM:
 
