@@ -8,7 +8,6 @@ edition = "2021"
 rust-version = "1.77.2"
 
 license = "MIT"
-license-file = "LICENSE.md"
 readme = "README.md"
 # changelog = ""
 
