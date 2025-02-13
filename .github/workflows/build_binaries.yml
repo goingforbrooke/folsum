@@ -122,15 +122,15 @@ jobs:
           fetch-depth: 0
           # Include icon images.
           lfs: true
+      - name: Install cross-compilation tools for building Windows executables on Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install mingw-w64
       - name: Install Rust toolchain with 64bit Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: x86_64-pc-windows-gnu
-      - name: Install cross-compilation tools for building Windows executables on Ubuntu
-        run: |
-          sudo apt-get update
-          sudo apt-get install mingw-w64
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
       - name: Build x86_64 Windows binary
