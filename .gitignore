@@ -9,3 +9,6 @@ output.log
 target
 .vscode/
 xtask/website/public/
+*.deb
+*.exe
+*.zip
