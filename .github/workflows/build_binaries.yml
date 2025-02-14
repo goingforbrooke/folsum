@@ -204,7 +204,7 @@ jobs:
         id: get_deb_filename
         run: |
           set -e
-          DEB_FILES=(./*.deb)
+          DEB_FILES=(*.deb)
           if [ ${#DEB_FILES[@]} -eq 0 ]; then
             echo "❌ No .deb file found in the current directory"
             exit 1
