@@ -44,7 +44,8 @@
 
                 const downloadUrl = release.assets.find(asset =>
                     (platform === 'macos' && asset.name.includes('macos_universal')) ||
-                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64'))
+                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64')) ||
+                    (platform === 'linux' && asset.name.includes('amd64.deb'))
                 )?.browser_download_url;
 
                 window.location.href = downloadUrl;
