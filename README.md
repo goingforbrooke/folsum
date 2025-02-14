@@ -213,4 +213,4 @@ If you need to contact the developers, then file an issue with one of these [lab
 
 # 🪪 License
 
-Must be 16 or older and have an adult in the car during operation.
+[MIT](./LICENSE.md)
