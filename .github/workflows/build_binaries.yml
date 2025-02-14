@@ -191,6 +191,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
       - name: Build x86_64 Windows binary
         run: cargo build --release --target x86_64-unknown-linux-musl
+      # Copy README.md into `folsum/` to please `cargo deb`.
+      - name: Copy-in `README.md`
+        run: cp README.md folsum/
       # Move the `*.exe` to the top level of the repo so it's easier to access.
       - name: Bundle 64-bit binary into a `.deb` package
         # Pass `repo_name` for `--package` here so we ignore `xtask/`.
