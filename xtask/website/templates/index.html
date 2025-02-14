@@ -128,7 +128,7 @@
 {% block footer %}
 <footer>
     <small class="subtext">
-        © {{ config.extra.juice_copyright_year }} <a href={{ config.extra.juice_copyright_link }}>{{ config.extra.juice_copyright_person }}</a>
+        © {{ now() | date(format="%Y") }} <a href={{ config.extra.juice_copyright_link }}>{{ config.extra.juice_copyright_person }}</a>
     </small>
     {% if config.extra.latest_release_api_url %}
         {{ custom_macros::download_button_javascript() }}
