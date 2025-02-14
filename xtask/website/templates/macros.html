@@ -16,6 +16,9 @@
             } else if (userAgent.includes('win')) {
                 console.log("Detected user system: Windows")
                 return { platform: 'windows', buttonText: 'Download for Windows', supportStatus: 'supported' };
+            } else if (userAgent.includes('linux')) {
+                console.log("Detected user system: Linux (assuming Debian because that's all we offer)")
+                return { platform: 'linux', buttonText: 'Download for Linux (.deb)', supportStatus: 'supported' };
             }
             return { platform: null, buttonText: '😢 Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
         }
