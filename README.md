@@ -114,6 +114,27 @@ Build for Windows:
 $ user@host: cargo build --release --target x86_64-pc-windows-gnu
 ```
 
+Build for Linux (on Apple Silicon):
+
+1. Install `main` branch of `cross` because it has aarch64 support.
+
+```console
+$ user@host: cargo install cross --git https://github.com/cross-rs/cross
+```
+
+2. Ensure that Docker's running.
+
+3. Build with `cross`.
+
+```console
+$ user@host: cross build --release --target x86_64-unknown-linux-musl
+```
+
+Expect to find the binary at `folsum/target/x86_64-unknown-linux-musl/release/folsum`.
+
+For building on Apple Silicon, use the [`package_deb.Dockerfile`](./xtask/docker/package_deb.Dockerfile).
+
+
 Build for WASM:
 
 ```text
@@ -192,4 +213,4 @@ If you need to contact the developers, then file an issue with one of these [lab
 
 # 🪪 License
 
-Must be 16 or older and have an adult in the car during operation.
+[MIT](./LICENSE.md)
