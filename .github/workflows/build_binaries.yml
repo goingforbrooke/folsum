@@ -182,6 +182,7 @@ jobs:
         with:
           toolchain: stable
           targets: x86_64-unknown-linux-musl
+      # Note that .deb creation works on macOS-- Ubuntu isn't strictly necessary here.
       - name: Install `cargo-deb` `.deb` structure
         uses: baptiste0928/cargo-install@v2
         with:
