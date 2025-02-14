@@ -97,7 +97,7 @@ jobs:
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.create_zip_filename.outputs.zip_filename }}
       - name: Create job summary about macOS binary creation
-        run: echo "## Created universal macOS binary" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created universal macOS binary `${{ steps.create_zip_filename.outputs.zip_filename }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload macOS executable for release
         uses: actions/upload-artifact@v4
         with:
@@ -148,7 +148,7 @@ jobs:
         id: zip_executable
         run: zip -j ${{ steps.create_zip_filename.outputs.zip_filename }} ${{ steps.get_repo_name.outputs.repo_name }}.exe
       - name: Create job summary about executable creation
-        run: echo "## Created Windows executable" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created Windows executable `${{ steps.create_zip_filename.outputs.zip_filename }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload Windows executable for release
         uses: actions/upload-artifact@v4
         with:
@@ -215,7 +215,7 @@ jobs:
           echo "✅ Found .deb file: ${DEB_FILES[0]}"
           echo "deb_filename=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
       - name: Create job summary about executable creation
-        run: echo "## Created `.deb` package" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload `.deb` package for release
         uses: actions/upload-artifact@v4
         with:
