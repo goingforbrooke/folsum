@@ -26,6 +26,7 @@
         async function setupDownloadButton() {
             const { platform, buttonText, supportStatus } = detectPlatform();
             const downloadButton = document.getElementById('download-button');
+            const availablePlatformsText = document.getElementById('available-platforms');
 
             if (supportStatus == 'supported') {
                 downloadButton.textContent = buttonText;
@@ -36,6 +37,21 @@
                 downloadButton.classList = supportStatus;
                 downloadButton.disabled = true;
             }
+
+            // Platform labels for the display text
+            const platformLabels = {
+                macos: 'macOS',
+                windows: 'Windows',
+                linux: 'Linux (.deb)',
+            };
+
+            // Generate "Also available for..." text excluding the current platform
+            const otherPlatforms = Object.keys(platformLabels)
+                .filter(p => p !== platform)
+                .map(p => platformLabels[p])
+                .join(',  ');
+
+            availablePlatformsText.textContent = `Also available for: ${otherPlatforms}`;
 
             downloadButton.onclick = async () => {
                 // Find out what the latest release artifacts are (limited to 60 requests per IP per day).
