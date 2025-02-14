@@ -26,6 +26,7 @@
         async function setupDownloadButton() {
             const { platform, buttonText, supportStatus } = detectPlatform();
             const downloadButton = document.getElementById('download-button');
+            const availablePlatformsText = document.getElementById('available-platforms');
 
             if (supportStatus == 'supported') {
                 downloadButton.textContent = buttonText;
@@ -37,6 +38,21 @@
                 downloadButton.disabled = true;
             }
 
+            // Platform labels for the display text
+            const platformLabels = {
+                macos: 'macOS',
+                windows: 'Windows',
+                linux: 'Linux (.deb)',
+            };
+
+            // Generate "Also available for..." text excluding the current platform
+            const otherPlatforms = Object.keys(platformLabels)
+                .filter(p => p !== platform)
+                .map(p => platformLabels[p])
+                .join(',  ');
+
+            availablePlatformsText.textContent = `Also available for: ${otherPlatforms}`;
+
             downloadButton.onclick = async () => {
                 // Find out what the latest release artifacts are (limited to 60 requests per IP per day).
                 const release = await fetchLatestRelease();
@@ -44,7 +60,8 @@
 
                 const downloadUrl = release.assets.find(asset =>
                     (platform === 'macos' && asset.name.includes('macos_universal')) ||
-                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64'))
+                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64')) ||
+                    (platform === 'linux' && asset.name.includes('amd64.deb'))
                 )?.browser_download_url;
 
                 window.location.href = downloadUrl;
