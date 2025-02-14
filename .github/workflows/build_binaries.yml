@@ -29,7 +29,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       # Build binaries in parallel to speed up build times.
       - name: Build x86_64 binary and Apple Silicon binaries
-        run: cargo build --release --target x86_64-apple-darwin --target aarch64-apple-darwin
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-apple-darwin --target aarch64-apple-darwin
       # Cargo Bundle can't create universal binaries, so make one with `lipo` and put it where Cargo Bundle expects to find it (`target/release/`).
       - name: Create a universal binary from the x86_64 and ARM64 binaries and put it in `target/release/`
         run: lipo -create -output target/release/${{ steps.get_repo_name.outputs.repo_name }} -arch x86_64 target/x86_64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }} -arch arm64 target/aarch64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }}
@@ -134,7 +134,7 @@ jobs:
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
       - name: Build x86_64 Windows binary
-        run: cargo build --release --target x86_64-pc-windows-gnu
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-pc-windows-gnu
       # Move the `*.exe` to the top level of the repo so it's easier to access.
       - name: Move bundled `*.app` directory to top level
         run: mv target/x86_64-pc-windows-gnu/release/${{ steps.get_repo_name.outputs.repo_name }}.exe .
