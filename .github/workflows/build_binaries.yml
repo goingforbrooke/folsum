@@ -258,7 +258,7 @@ jobs:
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           # Expect the macOS and windows zips to be available.
-          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }}"
+          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
