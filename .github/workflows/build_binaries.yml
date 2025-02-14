@@ -29,7 +29,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
       # Build binaries in parallel to speed up build times.
       - name: Build x86_64 binary and Apple Silicon binaries
-        run: cargo build --release --target x86_64-apple-darwin --target aarch64-apple-darwin
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-apple-darwin --target aarch64-apple-darwin
       # Cargo Bundle can't create universal binaries, so make one with `lipo` and put it where Cargo Bundle expects to find it (`target/release/`).
       - name: Create a universal binary from the x86_64 and ARM64 binaries and put it in `target/release/`
         run: lipo -create -output target/release/${{ steps.get_repo_name.outputs.repo_name }} -arch x86_64 target/x86_64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }} -arch arm64 target/aarch64-apple-darwin/release/${{ steps.get_repo_name.outputs.repo_name }}
@@ -37,7 +37,6 @@ jobs:
         uses: baptiste0928/cargo-install@v2
         with:
           crate: cargo-bundle
-      # Future: Cargo Bundle will build a universal binary and bundle it into an `*.app`.
       - name: Create `*.app` directory structure and `.plist` file
         env:
           # Skip building binaries because they've already been built and combined.
@@ -98,7 +97,7 @@ jobs:
       - name: Compress *.app directory to *.zip, preserving resource fork and Finder information
         run: ditto -c -k --sequesterRsrc --keepParent ${{ steps.get_repo_name.outputs.repo_name }}.app ${{ steps.create_zip_filename.outputs.zip_filename }}
       - name: Create job summary about macOS binary creation
-        run: echo "## Created universal macOS binary" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created universal macOS binary `${{ steps.create_zip_filename.outputs.zip_filename }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload macOS executable for release
         uses: actions/upload-artifact@v4
         with:
@@ -123,19 +122,19 @@ jobs:
           fetch-depth: 0
           # Include icon images.
           lfs: true
-      - name: Install Rust toolchain with M1 chip support
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          targets: x86_64-pc-windows-gnu
       - name: Install cross-compilation tools for building Windows executables on Ubuntu
         run: |
           sudo apt-get update
           sudo apt-get install mingw-w64
+      - name: Install Rust toolchain with 64bit Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-gnu
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
       - name: Build x86_64 Windows binary
-        run: cargo build --release --target x86_64-pc-windows-gnu
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-pc-windows-gnu
       # Move the `*.exe` to the top level of the repo so it's easier to access.
       - name: Move bundled `*.app` directory to top level
         run: mv target/x86_64-pc-windows-gnu/release/${{ steps.get_repo_name.outputs.repo_name }}.exe .
@@ -149,7 +148,7 @@ jobs:
         id: zip_executable
         run: zip -j ${{ steps.create_zip_filename.outputs.zip_filename }} ${{ steps.get_repo_name.outputs.repo_name }}.exe
       - name: Create job summary about executable creation
-        run: echo "## Created Windows executable" >> $GITHUB_STEP_SUMMARY
+        run: echo "## Created Windows executable `${{ steps.create_zip_filename.outputs.zip_filename }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload Windows executable for release
         uses: actions/upload-artifact@v4
         with:
@@ -159,8 +158,75 @@ jobs:
           # Fail the Action if no zip was found.
           if-no-files-found: error
 
+  build_debian:
+    runs-on: ubuntu-latest
+    outputs:
+      deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
+    steps:
+      - name: Get repository name
+        id: get_repo_name
+        run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch all history for all tags and branches instead of `1`, which fetches only the current branch.
+          fetch-depth: 0
+          # Include icon images.
+          lfs: true
+      - name: Install musl tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools musl-dev
+      - name: Install Rust toolchain with 64-bit Linux Support
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-musl
+      # Note that .deb creation works on macOS-- Ubuntu isn't strictly necessary here.
+      - name: Install `cargo-deb` `.deb` structure
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deb
+      - name: Set up rust build caching
+        uses: Swatinem/rust-cache@v2
+      - name: Build x86_64 Windows binary
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-unknown-linux-musl
+      # Copy README.md into `folsum/` to please `cargo deb`.
+      - name: Copy-in `README.md`
+        run: cp README.md folsum/
+      # Move the `*.exe` to the top level of the repo so it's easier to access.
+      - name: Bundle 64-bit binary into a `.deb` package
+        # Pass `repo_name` for `--package` here so we ignore `xtask/`.
+        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target x86_64-unknown-linux-musl
+      - name: Move bundled `*.deb` file to top level
+        run: mv target/x86_64-unknown-linux-musl/debian/*.deb .
+      - name: Get `.deb` filename
+        id: get_deb_filename
+        run: |
+          set -e
+          DEB_FILES=(*.deb)
+          if [ ${#DEB_FILES[@]} -eq 0 ]; then
+            echo "❌ No .deb file found in the current directory"
+            exit 1
+          elif [ ${#DEB_FILES[@]} -gt 1 ]; then
+            echo "❌ More than one .deb file found in the current directory: ${DEB_FILES[*]}"
+            exit 1
+          fi
+          echo "✅ Found .deb file: ${DEB_FILES[0]}"
+          echo "deb_filename=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+      - name: Create job summary about executable creation
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename }}`" >> $GITHUB_STEP_SUMMARY
+      - name: Upload `.deb` package for release
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
+          name: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+
   publish_release:
-    needs: [build_macos, build_windows]
+    needs: [build_macos, build_windows, build_debian]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -181,7 +247,7 @@ jobs:
       - name: download artifacts
         uses: actions/download-artifact@v4
         with:
-          # Put artifacts in root instead of giving them their own directories.
+          # Put artifacts in root instead of giving each one its own directory.
           merge-multiple: true
       - name: Publish a new release
         id: publish_release
@@ -192,7 +258,7 @@ jobs:
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           # Expect the macOS and windows zips to be available.
-          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }}"
+          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
