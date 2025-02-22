@@ -40,10 +40,15 @@
 #
 # Progress: [ 60%] [#############################################################..........................................]
 
-# test run:
+# test run with display *not* set:
 #  root@AAAAAAAAAAAA:/output# folsum
 # 21:41🧊logging.rs::folsum::loggingL173 Initialized logger with target file "/root/.local/share/folsum/logs/folsum.log"
 # Error: WinitEventLoop(Os(OsError { line: 786, file: "/Users/flow/.cargo/registry/src/index.crates.io-6f17d22bba15001f/winit-0.29.15/src/platform_impl/linux/mod.rs", error: Misc("neither WAYLAND_DISPLAY nor WAYLAND_SOCKET nor DISPLAY is set.") }))
+
+# test run with display set:
+
+# 23:30🧊logging.rs::folsum::loggingL173 Initialized logger with target file "/root/.local/share/folsum/logs/folsum.log"
+# Error: WinitEventLoop(NotSupported(NotSupportedError))
 FROM ubuntu:25.04 AS deb_builder
 
 # Install basic dependencies and curl (needed for rustup)
