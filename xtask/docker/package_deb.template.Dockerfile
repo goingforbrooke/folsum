@@ -7,25 +7,25 @@
 # tera --file package_deb.template.Dockerfile --toml target_x86_64.toml > package_deb_x86_64.Dockerfile
 
 # Build with:
-# docker build -t folsum_deb_builder_x86_64 -f xtask/docker/package_deb.Dockerfile .
+# docker build -t folsum_deb_builder_x86_64 -f xtask/docker/package_deb_x86_64.Dockerfile .
 
 # Do an ephemeral run and copy out the image with:
 # docker run --rm -v $(pwd):/host_output folsum_deb_builder_x86_64
 
 # Expect to see the .deb.
-# ex. ls -> Cargo.lock  Cargo.toml  Dockerfile  folsum  folsum_2.0.3-1_amd64.deb  LICENSE.md  README.md  target  temp  xtask
+# ex. ls -> folsum_2.0.3-1_amd64.deb ...
 
 ## Build for aarch64
 # tera --file package_deb.template.Dockerfile --toml target_aarch64.toml > package_deb_aarch64.Dockerfile
 
 # Build with:
-# docker build -t folsum_deb_builder_aarch64 -f xtask/docker/package_deb.Dockerfile .
+# docker build -t folsum_deb_builder_aarch64 -f xtask/docker/package_deb_aarch64.Dockerfile .
 
 # Do an ephemeral run and copy out the image with:
 # docker run --rm -v $(pwd):/host_output folsum_deb_builder_aarch64
 
 # Expect to see the .deb.
-# ex. ls -> Cargo.lock  Cargo.toml  Dockerfile  folsum  folsum_2.0.3-1_amd64.deb  LICENSE.md  README.md  target  temp  xtask
+# ex. ls -> folsum_2.0.3-1_arm64.deb ...
 
 # # Debugging
 
