@@ -161,6 +161,9 @@ jobs:
   build_debian:
     runs-on: ubuntu-latest
     outputs:
+    strategy:
+      matrix:
+        target_arch: [x86_64, aarch64]
       deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
     steps:
       - name: Get repository name
@@ -177,7 +180,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: x86_64-unknown-linux-gnu
+          targets: ${{ matrix.target_arch }}-unknown-linux-gnu
       # Note that .deb creation works on macOS-- Ubuntu isn't strictly necessary here.
       - name: Install `cargo-deb` `.deb` structure
         uses: baptiste0928/cargo-install@v2
@@ -185,17 +188,17 @@ jobs:
           crate: cargo-deb
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
-      - name: Build x86_64 Linux binary
-        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-unknown-linux-gnu
+      - name: Build Linux binary
+        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target ${{ matrix.target_arch }}-unknown-linux-gnu
       # Copy README.md into `folsum/` to please `cargo deb`.
       - name: Copy-in `README.md`
         run: cp README.md folsum/
       # Move the `*.exe` to the top level of the repo so it's easier to access.
-      - name: Bundle 64-bit binary into a `.deb` package
+      - name: Bundle binary into a `.deb` package
         # Pass `repo_name` for `--package` here so we ignore `xtask/`.
-        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target x86_64-unknown-linux-gnu
+        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target ${{ matrix.target_arch }}-unknown-linux-gnu
       - name: Move bundled `*.deb` file to top level
-        run: mv target/x86_64-unknown-linux-gnu/debian/*.deb .
+        run: mv target/${{ matrix.target_arch }}-unknown-linux-gnu/debian/*.deb .
       - name: Get `.deb` filename
         id: get_deb_filename
         run: |
