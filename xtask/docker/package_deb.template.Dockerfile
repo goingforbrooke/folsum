@@ -3,7 +3,8 @@
 # (run all commands from repo root)
 
 # Fill Dockerfile template
-# tera package_deb.template.Dockerfile --env target_arch=x86_64 > package_deb_x86_64.Dockerfile
+# tera --file package_deb.template.Dockerfile --toml target_x86_64.toml
+# tera --file package_deb.template.Dockerfile --toml target_aarch64.toml
 
 # Build with:
 # docker build -t folsum_deb_builder -f xtask/docker/package_deb.Dockerfile .
