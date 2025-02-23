@@ -66,7 +66,7 @@
 
 # 23:30🧊logging.rs::folsum::loggingL173 Initialized logger with target file "/root/.local/share/folsum/logs/folsum.log"
 # Error: WinitEventLoop(NotSupported(NotSupportedError))
-FROM ubuntu:25.04 AS deb_builder
+FROM ubuntu:25.04 AS deb_builder_{{ target_arch }}
 
 # Install basic dependencies and curl (needed for rustup)
 RUN apt-get update && apt-get install -y \
@@ -106,9 +106,16 @@ COPY xtask/src xtask/src
 RUN cargo deb -p folsum --no-strip --no-build --target {{ target_arch }}-unknown-linux-musl
 
 # Expect the deb package in /usr/src/folsum/target/<target_arch>-unknown-linux-musl/debian/.
-# ex. /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/folsum_2.0.3-1_amd64.deb
+# ex. /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/folsum_2.0.3-1_amd64.deb \
 
-FROM --platform=linux/amd64 ubuntu:latest AS deb_extractor
+# Translate target chip architecture to form the platform tuple.
+{% if target_arch == "x86_64" %}
+    FROM --platform=linux/amd64 ubuntu:latest AS deb_extractor
+{% elif target_arch == "aarch64" %}
+    FROM --platform=linux/arm64 ubuntu:latest AS deb_extractor
+{% else %}
+    {% error "Unexpected target arch when x86_64 or aarch64 was expected: " ~ target_arch %}
+{% endif %} \
 
 VOLUME /output
 
