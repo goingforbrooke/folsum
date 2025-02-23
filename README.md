@@ -127,10 +127,10 @@ $ user@host: cargo install cross --git https://github.com/cross-rs/cross
 3. Build with `cross`.
 
 ```console
-$ user@host: cross build --release --target x86_64-unknown-linux-musl
+$ user@host: cross build --release --target x86_64-unknown-linux-gnu
 ```
 
-Expect to find the binary at `folsum/target/x86_64-unknown-linux-musl/release/folsum`.
+Expect to find the binary at `folsum/target/x86_64-unknown-linux-gnu/release/folsum`.
 
 **Build for Linux aarch64 (on Apple Silicon):**
 
@@ -145,7 +145,7 @@ $ user@host: cargo install cross --git https://github.com/cross-rs/cross
 3. Build with `cross`.
 
 ```console
-$ user@host: cross build --release --target aarch64-unknown-linux-musl
+$ user@host: cross build --release --target aarch64-unknown-linux-gnu
 ```
 
 **Packaging `.deb`**
