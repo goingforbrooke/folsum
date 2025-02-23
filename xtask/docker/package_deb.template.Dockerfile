@@ -77,7 +77,7 @@ RUN cargo install cargo-deb
 
 WORKDIR /usr/src/folsum
 
-COPY target/x86_64-unknown-linux-musl/release/folsum target/x86_64-unknown-linux-musl/release/folsum
+COPY target/{{ target_arch }}-unknown-linux-musl/release/folsum target/{{ target_arch }}-unknown-linux-musl/release/folsum
 COPY Cargo.toml Cargo.toml
 
 COPY folsum/Cargo.toml folsum/Cargo.toml
@@ -90,16 +90,16 @@ COPY xtask/Cargo.toml xtask/Cargo.toml
 COPY xtask/src xtask/src
 
 # And run:
-RUN cargo deb -p folsum --no-strip --no-build --target x86_64-unknown-linux-musl
+RUN cargo deb -p folsum --no-strip --no-build --target {{ target_arch }}-unknown-linux-musl
 
-# Expect the deb package in /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/.
+# Expect the deb package in /usr/src/folsum/target/<target_arch>-unknown-linux-musl/debian/.
 # ex. /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/folsum_2.0.3-1_amd64.deb
 
 FROM --platform=linux/amd64 ubuntu:latest AS deb_extractor
 
 VOLUME /output
 
-COPY --from=deb_builder /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/*.deb /output/
+COPY --from=deb_builder /usr/src/folsum/target/{{ target_arch }}-unknown-linux-musl/debian/*.deb /output/
 
 # Command to keep the container alive long enough for output
 CMD ["bash", "-c", "cp /output/*.deb /host_output/ && echo 'Deb package copied!'"]
