@@ -161,6 +161,7 @@ jobs:
   build_debian:
     runs-on: ubuntu-latest
     outputs:
+      deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
     strategy:
       matrix:
         target_arch: [x86_64, aarch64]
