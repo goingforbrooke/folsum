@@ -189,7 +189,7 @@ jobs:
           crate: cargo-deb
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
-      - name: Build x86_64 Windows binary
+      - name: Build x86_64 Linux binary
         run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-unknown-linux-musl
       # Copy README.md into `folsum/` to please `cargo deb`.
       - name: Copy-in `README.md`
