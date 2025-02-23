@@ -4,8 +4,9 @@
 # (assumes that you've already run the cross build command associated with a given architecture).
 
 ## Build for x86_64
+
 # Fill Dockerfile template
-# tera --file package_deb.template.Dockerfile --toml target_x86_64.toml > package_deb_x86_64.Dockerfile
+# tera --file xtask/docker/package_deb.template.Dockerfile --toml xtask/docker/target_x86_64.toml > xtask/docker/package_deb_x86_64.Dockerfile
 
 # Build with:
 # docker build -t folsum_deb_builder_x86_64 -f xtask/docker/package_deb_x86_64.Dockerfile .
@@ -17,7 +18,9 @@
 # ex. ls -> folsum_2.0.3-1_amd64.deb ...
 
 ## Build for aarch64
-# tera --file package_deb.template.Dockerfile --toml target_aarch64.toml > package_deb_aarch64.Dockerfile
+
+# Fill Dockerfile template
+# tera --file xtask/docker/package_deb.template.Dockerfile --toml xtask/docker/target_aarch64.toml > xtask/docker/package_deb_aarch64.Dockerfile
 
 # Build with:
 # docker build -t folsum_deb_builder_aarch64 -f xtask/docker/package_deb_aarch64.Dockerfile .
@@ -109,17 +112,11 @@ RUN cargo deb -p folsum --no-strip --no-build --target {{ target_arch }}-unknown
 # ex. /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/folsum_2.0.3-1_amd64.deb \
 
 # Translate target chip architecture to form the platform tuple.
-{% if target_arch == "x86_64" %}
-    FROM --platform=linux/amd64 ubuntu:latest AS deb_extractor
-{% elif target_arch == "aarch64" %}
-    FROM --platform=linux/arm64 ubuntu:latest AS deb_extractor
-{% else %}
-    {% error "Unexpected target arch when x86_64 or aarch64 was expected: " ~ target_arch %}
-{% endif %} \
+FROM ubuntu:latest AS deb_extractor_{{ target_arch }}
 
 VOLUME /output
 
-COPY --from=deb_builder /usr/src/folsum/target/{{ target_arch }}-unknown-linux-musl/debian/*.deb /output/
+COPY --from=deb_builder_{{ target_arch }} /usr/src/folsum/target/{{ target_arch }}-unknown-linux-musl/debian/*.deb /output/
 
 # Command to keep the container alive long enough for output
 CMD ["bash", "-c", "cp /output/*.deb /host_output/ && echo 'Deb package copied!'"]
