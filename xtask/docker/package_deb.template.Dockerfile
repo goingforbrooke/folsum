@@ -1,6 +1,7 @@
 # # Instructions: Building/Testing on MacOS arm64
 
 # (run all commands from repo root)
+# (assumes that you've already run the cross build command associated with a given architecture).
 
 ## Build for x86_64
 # Fill Dockerfile template
