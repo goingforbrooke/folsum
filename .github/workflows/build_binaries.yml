@@ -170,9 +170,6 @@ jobs:
         id: get_repo_name
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
       # Install aarch64 cross-compilation dependencies if it's an aarch64 build.
-      - name: Install cross compiler (for aarch64)
-        if: matrix.target_arch == 'aarch64'
-        run: sudo apt install -y crossbuild-essential-arm64
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -186,17 +183,21 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.target_arch }}-unknown-linux-gnu
       # Note that .deb creation works on macOS-- Ubuntu isn't strictly necessary here.
-      - name: Install `cargo-deb` `.deb` structure
-        uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-deb
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
+      - name: Install `cross`
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cross
       - name: Build Linux binary
-        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target ${{ matrix.target_arch }}-unknown-linux-gnu
+        run: cross build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target ${{ matrix.target_arch }}-unknown-linux-gnu
       # Copy README.md into `folsum/` to please `cargo deb`.
       - name: Copy-in `README.md`
         run: cp README.md folsum/
+      - name: Install `cargo-deb` for packaging binaries in `.deb` files
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deb
       # Move the `*.exe` to the top level of the repo so it's easier to access.
       - name: Bundle binary into a `.deb` package
         # Pass `repo_name` for `--package` here so we ignore `xtask/`.
