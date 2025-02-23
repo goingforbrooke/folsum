@@ -172,7 +172,7 @@ jobs:
       # Install aarch64 cross-compilation dependencies if it's an aarch64 build.
       - name: Install cross compiler (for aarch64)
         if: matrix.target_arch == 'aarch64'
-        run: sudo apt install -y gcc-aarch64-linux-gnu
+        run: sudo apt install -y crossbuild-essential-arm64
       - name: Checkout code
         uses: actions/checkout@v4
         with:
