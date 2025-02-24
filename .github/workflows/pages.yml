@@ -3,8 +3,6 @@ name: 🌎 Pages Build with Trunk and Deploy
 on:
   push:
     branches:
-      # Run when we push to any branch that starts with `cicd/`
-      - 'cicd/**'
       # Run when we push to `main` b/c the publish on release create or publish doesn't work.
       - 'main'
   # Add the ability to run this workflow manually from the Actions tab.
