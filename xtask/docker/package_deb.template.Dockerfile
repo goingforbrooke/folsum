@@ -1,15 +1,35 @@
 # # Instructions: Building/Testing on MacOS arm64
 
 # (run all commands from repo root)
+# (assumes that you've already run the cross build command associated with a given architecture).
+
+## Build for x86_64
+
+# Fill Dockerfile template
+# tera --file xtask/docker/package_deb.template.Dockerfile --toml xtask/docker/target_x86_64.toml > xtask/docker/package_deb_x86_64.Dockerfile
 
 # Build with:
-# docker build -t folsum_deb_builder -f xtask/docker/package_deb.Dockerfile .
+# docker build -t folsum_deb_builder_x86_64 -f xtask/docker/package_deb_x86_64.Dockerfile .
 
 # Do an ephemeral run and copy out the image with:
-# docker run --rm -v $(pwd):/host_output folsum_deb_builder
+# docker run --rm -v $(pwd):/host_output folsum_deb_builder_x86_64
 
 # Expect to see the .deb.
-# ex. ls -> Cargo.lock  Cargo.toml  Dockerfile  folsum  folsum_2.0.3-1_amd64.deb  LICENSE.md  README.md  target  temp  xtask
+# ex. ls -> folsum_2.0.3-1_amd64.deb ...
+
+## Build for aarch64
+
+# Fill Dockerfile template
+# tera --file xtask/docker/package_deb.template.Dockerfile --toml xtask/docker/target_aarch64.toml > xtask/docker/package_deb_aarch64.Dockerfile
+
+# Build with:
+# docker build -t folsum_deb_builder_aarch64 -f xtask/docker/package_deb_aarch64.Dockerfile .
+
+# Do an ephemeral run and copy out the image with:
+# docker run --rm -v $(pwd):/host_output folsum_deb_builder_aarch64
+
+# Expect to see the .deb.
+# ex. ls -> folsum_2.0.3-1_arm64.deb ...
 
 # # Debugging
 
@@ -40,11 +60,16 @@
 #
 # Progress: [ 60%] [#############################################################..........................................]
 
-# test run:
+# test run with display *not* set:
 #  root@AAAAAAAAAAAA:/output# folsum
 # 21:41🧊logging.rs::folsum::loggingL173 Initialized logger with target file "/root/.local/share/folsum/logs/folsum.log"
 # Error: WinitEventLoop(Os(OsError { line: 786, file: "/Users/flow/.cargo/registry/src/index.crates.io-6f17d22bba15001f/winit-0.29.15/src/platform_impl/linux/mod.rs", error: Misc("neither WAYLAND_DISPLAY nor WAYLAND_SOCKET nor DISPLAY is set.") }))
-FROM ubuntu:25.04 AS deb_builder
+
+# test run with display set:
+
+# 23:30🧊logging.rs::folsum::loggingL173 Initialized logger with target file "/root/.local/share/folsum/logs/folsum.log"
+# Error: WinitEventLoop(NotSupported(NotSupportedError))
+FROM ubuntu:25.04 AS deb_builder_{{ target_arch }}
 
 # Install basic dependencies and curl (needed for rustup)
 RUN apt-get update && apt-get install -y \
@@ -68,7 +93,7 @@ RUN cargo install cargo-deb
 
 WORKDIR /usr/src/folsum
 
-COPY target/x86_64-unknown-linux-musl/release/folsum target/x86_64-unknown-linux-musl/release/folsum
+COPY target/{{ target_arch }}-unknown-linux-gnu/release/folsum target/{{ target_arch }}-unknown-linux-gnu/release/folsum
 COPY Cargo.toml Cargo.toml
 
 COPY folsum/Cargo.toml folsum/Cargo.toml
@@ -81,16 +106,17 @@ COPY xtask/Cargo.toml xtask/Cargo.toml
 COPY xtask/src xtask/src
 
 # And run:
-RUN cargo deb -p folsum --no-strip --no-build --target x86_64-unknown-linux-musl
+RUN cargo deb -p folsum --no-strip --no-build --target {{ target_arch }}-unknown-linux-gnu
 
-# Expect the deb package in /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/.
-# ex. /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/folsum_2.0.3-1_amd64.deb
+# Expect the deb package in /usr/src/folsum/target/<target_arch>-unknown-linux-gnu/debian/.
+# ex. /usr/src/folsum/target/x86_64-unknown-linux-gnu/debian/folsum_2.0.3-1_amd64.deb \
 
-FROM --platform=linux/amd64 ubuntu:latest AS deb_extractor
+# Translate target chip architecture to form the platform tuple.
+FROM ubuntu:latest AS deb_extractor_{{ target_arch }}
 
 VOLUME /output
 
-COPY --from=deb_builder /usr/src/folsum/target/x86_64-unknown-linux-musl/debian/*.deb /output/
+COPY --from=deb_builder_{{ target_arch }} /usr/src/folsum/target/{{ target_arch }}-unknown-linux-gnu/debian/*.deb /output/
 
 # Command to keep the container alive long enough for output
 CMD ["bash", "-c", "cp /output/*.deb /host_output/ && echo 'Deb package copied!'"]
