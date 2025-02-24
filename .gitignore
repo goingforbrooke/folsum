@@ -12,3 +12,6 @@ xtask/website/public/
 *.deb
 *.exe
 *.zip
+
+xtask/docker/package_deb_x86_64.Dockerfile
+xtask/docker/package_deb_aarch64.Dockerfile

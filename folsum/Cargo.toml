@@ -17,12 +17,8 @@ repository = "https://github.com/goingforbrooke/folsum"
 [dependencies]
 # eGui dependencies.
 egui = "0.27.2"
-eframe = { version = "0.27.2", default-features = false, features = [
-    "accesskit",     # Make egui comptaible with screen readers. NOTE: adds a lot of dependencies.
-    "default_fonts", # Embed the default egui fonts.
-    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
-    "persistence",   # Enable restoring app state when restarting the app.
-] }
+# Enable restoring app state with the "persistence" feature.
+eframe = { version = "0.27.2", default-features = true, features = ["persistence"] }
 log = "0.4"
 chrono = "0.4.38"
 dirs = "5.0.1"

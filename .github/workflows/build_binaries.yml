@@ -161,11 +161,16 @@ jobs:
   build_debian:
     runs-on: ubuntu-latest
     outputs:
-      deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
+      deb_filename_x86_64: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+      deb_filename_aarch64: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
+    strategy:
+      matrix:
+        target_arch: [x86_64, aarch64]
     steps:
       - name: Get repository name
         id: get_repo_name
         run: echo "repo_name=$(basename $GITHUB_REPOSITORY)" >> "$GITHUB_OUTPUT"
+      # Install aarch64 cross-compilation dependencies if it's an aarch64 build.
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -173,33 +178,33 @@ jobs:
           fetch-depth: 0
           # Include icon images.
           lfs: true
-      - name: Install musl tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools musl-dev
       - name: Install Rust toolchain with 64-bit Linux Support
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-          targets: x86_64-unknown-linux-musl
+          targets: ${{ matrix.target_arch }}-unknown-linux-gnu
       # Note that .deb creation works on macOS-- Ubuntu isn't strictly necessary here.
-      - name: Install `cargo-deb` `.deb` structure
-        uses: baptiste0928/cargo-install@v2
-        with:
-          crate: cargo-deb
       - name: Set up rust build caching
         uses: Swatinem/rust-cache@v2
-      - name: Build x86_64 Windows binary
-        run: cargo build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target x86_64-unknown-linux-musl
+      - name: Install `cross`
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cross
+      - name: Build Linux binary
+        run: cross build --package ${{ steps.get_repo_name.outputs.repo_name }} --release --target ${{ matrix.target_arch }}-unknown-linux-gnu
       # Copy README.md into `folsum/` to please `cargo deb`.
       - name: Copy-in `README.md`
         run: cp README.md folsum/
+      - name: Install `cargo-deb` for packaging binaries in `.deb` files
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: cargo-deb
       # Move the `*.exe` to the top level of the repo so it's easier to access.
-      - name: Bundle 64-bit binary into a `.deb` package
+      - name: Bundle binary into a `.deb` package
         # Pass `repo_name` for `--package` here so we ignore `xtask/`.
-        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target x86_64-unknown-linux-musl
+        run: cargo deb --package ${{ steps.get_repo_name.outputs.repo_name }} --no-strip --no-build --target ${{ matrix.target_arch }}-unknown-linux-gnu
       - name: Move bundled `*.deb` file to top level
-        run: mv target/x86_64-unknown-linux-musl/debian/*.deb .
+        run: mv target/${{ matrix.target_arch }}-unknown-linux-gnu/debian/*.deb .
       - name: Get `.deb` filename
         id: get_deb_filename
         run: |
@@ -213,15 +218,34 @@ jobs:
             exit 1
           fi
           echo "✅ Found .deb file: ${DEB_FILES[0]}"
-          echo "deb_filename=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          
+          if [ "${{ matrix.target_arch }}" == "x86_64" ]; then
+            echo "deb_filename_x86_64=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ matrix.target_arch }}" == "aarch64" ]; then
+            echo "deb_filename_aarch64=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Create job summary about executable creation
-        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename }}`" >> $GITHUB_STEP_SUMMARY
+        if: matrix.target_arch == 'x86_64'
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}`" >> $GITHUB_STEP_SUMMARY
+      - name: Create job summary about executable creation
+        if: matrix.target_arch == 'aarch64'
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload `.deb` package for release
+        if: matrix.target_arch == 'x86_64'
         uses: actions/upload-artifact@v4
         with:
           # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
-          name: ${{ steps.get_deb_filename.outputs.deb_filename }}
-          path: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          name: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+      - name: Upload `.deb` package for release
+        if: matrix.target_arch == 'aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
+          name: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
           # Fail the Action if no zip was found.
           if-no-files-found: error
 
@@ -258,7 +282,7 @@ jobs:
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           # Expect the macOS and windows zips to be available.
-          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename }}"
+          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename_x86_64 }}, ${{ needs.build_debian.outputs.deb_filename_aarch64 }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
