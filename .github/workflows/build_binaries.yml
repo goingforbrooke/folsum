@@ -161,7 +161,8 @@ jobs:
   build_debian:
     runs-on: ubuntu-latest
     outputs:
-      deb_filename: ${{ steps.get_deb_filename.outputs.deb_filename }}
+      deb_filename_x86_64: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+      deb_filename_aarch64: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
     strategy:
       matrix:
         target_arch: [x86_64, aarch64]
@@ -217,15 +218,34 @@ jobs:
             exit 1
           fi
           echo "✅ Found .deb file: ${DEB_FILES[0]}"
-          echo "deb_filename=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          
+          if [ "${{ matrix.target_arch }}" == "x86_64" ]; then
+            echo "deb_filename_x86_64=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ matrix.target_arch }}" == "aarch64" ]; then
+            echo "deb_filename_aarch64=${DEB_FILES[0]}" >> "$GITHUB_OUTPUT"
+          fi
       - name: Create job summary about executable creation
-        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename }}`" >> $GITHUB_STEP_SUMMARY
+        if: matrix.target_arch == 'x86_64'
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}`" >> $GITHUB_STEP_SUMMARY
+      - name: Create job summary about executable creation
+        if: matrix.target_arch == 'aarch64'
+        run: echo "## Created `.deb` package `${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}`" >> $GITHUB_STEP_SUMMARY
       - name: Upload `.deb` package for release
+        if: matrix.target_arch == 'x86_64'
         uses: actions/upload-artifact@v4
         with:
           # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
-          name: ${{ steps.get_deb_filename.outputs.deb_filename }}
-          path: ${{ steps.get_deb_filename.outputs.deb_filename }}
+          name: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename_x86_64 }}
+          # Fail the Action if no zip was found.
+          if-no-files-found: error
+      - name: Upload `.deb` package for release
+        if: matrix.target_arch == 'aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          # Give the artifact the same name as the .deb file, otherwise it'll default to "artifact" and fail b/c already exists (from other builds running in parallel).
+          name: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
+          path: ${{ steps.get_deb_filename.outputs.deb_filename_aarch64 }}
           # Fail the Action if no zip was found.
           if-no-files-found: error
 
@@ -262,7 +282,7 @@ jobs:
           draft: ${{ github.ref == 'refs/heads/main' && 'false' || 'true' }}
           commit: main
           # Expect the macOS and windows zips to be available.
-          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename }}"
+          artifacts: "${{ needs.build_macos.outputs.zip_filename }},${{ needs.build_windows.outputs.zip_filename }},${{ needs.build_debian.outputs.deb_filename_x86_64 }}, ${{ needs.build_debian.outputs.deb_filename_aarch64 }}"
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             # New Release: ${{ steps.get_repo_name.outputs.repo_name }} ${{ steps.get_current_semver.outputs.semver }}
