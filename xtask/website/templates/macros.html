@@ -1,73 +1,105 @@
 {% macro download_button_javascript() %}
-    <script>
-        async function fetchLatestRelease() {
-            console.log("Fetch latest release was called");
-            const latest_release_api_url = "{{ config.extra.latest_release_api_url | safe }}";
-            const response = await fetch(latest_release_api_url);
-            const data = await response.json();
-            return data;
-        }
+<script>
+    async function fetchLatestRelease() {
+        console.log("Fetch latest release was called");
+        const latest_release_api_url = "{{ config.extra.latest_release_api_url | safe }}";
+        const response = await fetch(latest_release_api_url);
+        const data = await response.json();
+        return data;
+    }
 
-        function detectPlatform() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            if (userAgent.includes('mac')) {
-                console.log("Detected user system: MacOS")
-                return { platform: 'macos', buttonText: 'Download for macOS', supportStatus: 'supported' };
-            } else if (userAgent.includes('win')) {
-                console.log("Detected user system: Windows")
-                return { platform: 'windows', buttonText: 'Download for Windows', supportStatus: 'supported' };
-            } else if (userAgent.includes('linux')) {
-                console.log("Detected user system: Linux (assuming Debian because that's all we offer)")
-                return { platform: 'linux', buttonText: 'Download for Linux (.deb)', supportStatus: 'supported' };
-            }
-            return { platform: null, buttonText: '😢 Sorry, your platform isn\'t supported (yet)', supportStatus: 'unsupported'};
-        }
+    function detectPlatform() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const platformInfo = {
+            platform: null,
+            arch: null,
+            buttonText: '😢 Sorry, your platform isn\'t supported (yet)',
+            supportStatus: 'unsupported'
+        };
 
-        async function setupDownloadButton() {
-            const { platform, buttonText, supportStatus } = detectPlatform();
-            const downloadButton = document.getElementById('download-button');
-            const availablePlatformsText = document.getElementById('available-platforms');
+        if (userAgent.includes('mac')) {
+            console.log("Detected user system: macOS");
+            platformInfo.platform = 'macos';
+            platformInfo.buttonText = 'Download for macOS x86_64/aarch64 Universal (.app)';
+            platformInfo.supportStatus = 'supported';
+        } else if (userAgent.includes('win')) {
+            console.log("Detected user system: Windows");
+            platformInfo.platform = 'windows';
+            platformInfo.buttonText = 'Download for Windows x86_64 (.exe)';
+            platformInfo.supportStatus = 'supported';
+        } else if (userAgent.includes('linux')) {
+            console.log("Detected user system: Linux");
 
-            if (supportStatus == 'supported') {
-                downloadButton.textContent = buttonText;
-                downloadButton.classList = supportStatus;
-                downloadButton.disabled = false;
+            // Detecting architecture explicitly
+            if (userAgent.includes('aarch64') || userAgent.includes('arm64')) {
+                console.log("Detected architecture: arm64");
+                platformInfo.arch = 'arm64';
+            } else if (userAgent.includes('x86_64') || userAgent.includes('amd64')) {
+                console.log("Detected architecture: amd64");
+                platformInfo.arch = 'amd64';
+            // Assume amd64 if no Linux architecture is found.
             } else {
-                downloadButton.textContent = buttonText;
-                downloadButton.classList = supportStatus;
-                downloadButton.disabled = true;
+                console.log("Architecture not explicitly detected, defaulting to amd64");
+                platformInfo.arch = 'amd64';
             }
 
-            // Platform labels for the display text
-            const platformLabels = {
-                macos: 'macOS',
-                windows: 'Windows',
-                linux: 'Linux (.deb)',
-            };
-
-            // Generate "Also available for..." text excluding the current platform
-            const otherPlatforms = Object.keys(platformLabels)
-                .filter(p => p !== platform)
-                .map(p => platformLabels[p])
-                .join(',  ');
-
-            availablePlatformsText.textContent = `Also available for: ${otherPlatforms}`;
-
-            downloadButton.onclick = async () => {
-                // Find out what the latest release artifacts are (limited to 60 requests per IP per day).
-                const release = await fetchLatestRelease();
-                console.log(release.assets)
-
-                const downloadUrl = release.assets.find(asset =>
-                    (platform === 'macos' && asset.name.includes('macos_universal')) ||
-                    (platform === 'windows' && asset.name.includes('windows_gnu_x86_64')) ||
-                    (platform === 'linux' && asset.name.includes('amd64.deb'))
-                )?.browser_download_url;
-
-                window.location.href = downloadUrl;
-            };
+            platformInfo.platform = 'linux';
+            platformInfo.buttonText = `Download for Linux ${platformInfo.arch} (.deb)`;
+            platformInfo.supportStatus = 'supported';
         }
 
-        setupDownloadButton();
-    </script>
+        return platformInfo;
+    }
+
+    async function setupDownloadButton() {
+        const { platform, arch, buttonText, supportStatus } = detectPlatform();
+        const downloadButton = document.getElementById('download-button');
+        const availablePlatformsText = document.getElementById('available-platforms');
+
+        if (supportStatus === 'supported') {
+            downloadButton.textContent = buttonText;
+            downloadButton.classList = supportStatus;
+            downloadButton.disabled = false;
+        } else {
+            downloadButton.textContent = buttonText;
+            downloadButton.classList = supportStatus;
+            downloadButton.disabled = true;
+        }
+
+        // Platform labels for the display text
+        const platformLabels = {
+            macos: 'macOS x86_64/aarch64 Universal (.app)',
+            windows: 'Windows x86_64 (.exe)',
+            linux_amd64: 'Linux x86_64 (.deb)',
+            linux_arm64: 'Linux arm64 (.deb)'
+        };
+
+        // Generate "Also available for..." text excluding the current detected platform
+        let otherPlatforms = Object.keys(platformLabels)
+            .filter(p => !(p === platform || (platform === 'linux' && p.startsWith('linux_' + arch))))
+            .map(p => platformLabels[p])
+            .join(', ');
+
+        availablePlatformsText.textContent = `Also available for: ${otherPlatforms}`;
+
+        downloadButton.onclick = async () => {
+            const release = await fetchLatestRelease();
+            console.log(release.assets);
+
+            const downloadUrl = release.assets.find(asset =>
+                (platform === 'macos' && asset.name.includes('macos_universal')) ||
+                (platform === 'windows' && asset.name.includes('windows_gnu_x86_64')) ||
+                (platform === 'linux' && asset.name.includes(`${arch}.deb`))
+            )?.browser_download_url;
+
+            if (downloadUrl) {
+                window.location.href = downloadUrl;
+            } else {
+                alert("No matching download available for your system.");
+            }
+        };
+    }
+
+    setupDownloadButton();
+</script>
 {% endmacro add_download_button %}
