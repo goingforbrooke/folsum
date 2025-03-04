@@ -127,7 +127,7 @@ impl eframe::App for FolsumGui {
                     }
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
-                egui::widgets::global_dark_light_mode_switch(ui);
+                egui::widgets::global_theme_preference_switch(ui);
             });
         });
 
