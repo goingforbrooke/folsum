@@ -16,10 +16,10 @@ repository = "https://github.com/goingforbrooke/folsum"
 
 [dependencies]
 # eGui dependencies.
-egui = "0.30.0"
+egui = "0.31.0"
 # Enable restoring app state with the "persistence" feature.
-eframe = { version = "0.30.0", default-features = true, features = ["persistence"] }
-egui_extras = "0.30.0"
+eframe = { version = "0.31.0", default-features = true, features = ["persistence"] }
+egui_extras = "0.31.0"
 
 anyhow = "1.0.97"
 chrono = "0.4"
