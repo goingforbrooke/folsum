@@ -24,7 +24,7 @@ fn setup_native_eframe() -> eframe::Result<()> {
     eframe::run_native(
         &APP_NAME,
         native_options,
-        Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
+        Box::new(|cc| Ok(Box::new(folsum::FolsumGui::new(cc)))),
     )?;
     info!("Initialized native eframe");
     Ok(())
