@@ -1,5 +1,4 @@
 // Std crates for macOS, Windows, *and* WASM builds.
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -29,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::sort_counts;
+use crate::FoundFile;
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -39,14 +38,13 @@ use crate::{export_csv, summarize_directory};
 #[cfg(target_family = "wasm")]
 use crate::wasm_demo_summarize_directory;
 
-
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // Define default fields when deserializing old state.
 pub struct FolsumGui {
     // Unique file extensions and the number of times each one was encountered.
     #[serde(skip)]
-    extension_counts: Arc<Mutex<HashMap<String, u32>>>,
+    file_paths: Arc<Mutex<Vec<FoundFile>>>,
     // Number of files summarized, which doesn't include files and directories that were skipped.
     #[serde(skip)]
     total_files: u32,
@@ -66,7 +64,7 @@ pub struct FolsumGui {
 impl Default for FolsumGui {
     fn default() -> Self {
         Self {
-            extension_counts: Arc::new(Mutex::new(HashMap::new())),
+            file_paths: Arc::new(Mutex::new(vec![FoundFile::default()])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
             export_file: Arc::new(Mutex::new(None)),
@@ -100,7 +98,7 @@ impl eframe::App for FolsumGui {
     // Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
-            extension_counts,
+            file_paths,
             total_files,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
@@ -112,7 +110,7 @@ impl eframe::App for FolsumGui {
         } = self;
 
         // Update the count of total files summarized.
-        *total_files = extension_counts.lock().unwrap().values().sum();
+        *total_files = file_paths.lock().unwrap().len() as u32;
         // Update the screen on each iteration, bounded by the refresh rate of the user's screen.
         ctx.request_repaint();
 
@@ -166,13 +164,13 @@ impl eframe::App for FolsumGui {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let _result = summarize_directory(
                         &summarization_path,
-                        &extension_counts,
+                        &file_paths,
                         &summarization_start,
                         &time_taken,
                     );
                     #[cfg(target_family = "wasm")]
                     let _result = wasm_demo_summarize_directory(
-                        &extension_counts,
+                        &file_paths,
                         &summarization_start,
                         &time_taken,
                     );
@@ -245,7 +243,7 @@ impl eframe::App for FolsumGui {
                         *export_file = Arc::new(Mutex::new(Some(path)));
                     }
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let _result = export_csv(&export_file, &extension_counts);
+                    let _result = export_csv(&export_file, &file_paths);
                 };
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
@@ -263,9 +261,10 @@ impl eframe::App for FolsumGui {
                 ui.heading("Summarization by File Extension");
                 ui.separator();
             });
-            let locked_exts = extension_counts.lock().unwrap();
-            // Sort extension counts in descending order, then alphabetically.
-            let ext_info = sort_counts(&*locked_exts);
+
+            // todo: Sort paths alphabetically before displaying in table.
+            let file_paths_locked = file_paths.lock().unwrap();
+
             // todo: Optimize table display by efficiently displaying viewable rows with `show_rows()`.
             // Create a scrollable table that (inefficiently) shows all rows, whether they're in the "viewport" or not.
             TableBuilder::new(ui)
@@ -275,20 +274,21 @@ impl eframe::App for FolsumGui {
                 .column(Column::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
-                        ui.heading("File Extension");
+                        ui.heading("File Path");
                     });
                     header.col(|ui| {
-                        ui.heading("Occurrences");
+                        ui.heading("MD5 Hash");
                     });
                 })
                 .body(|mut body| {
-                    for (extension_name, times_seen) in ext_info.iter() {
+                    for found_file in file_paths_locked.iter() {
                         body.row(15.0, |mut row| {
                             row.col(|ui| {
-                                ui.label(extension_name.to_string());
+                                let show_path: String = String::from(found_file.file_path.to_string_lossy());
+                                ui.label(show_path);
                             });
                             row.col(|ui| {
-                                ui.label(times_seen.to_string());
+                                ui.label(found_file.md5_hash.to_string());
                             });
                         });
                     }

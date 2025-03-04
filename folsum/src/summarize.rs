@@ -1,6 +1,4 @@
 // Std crates for macOS, Windows, *and* WASM builds.
-use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -22,12 +20,14 @@ use walkdir::WalkDir;
 #[cfg(target_family = "wasm")]
 use web_time::{Duration, Instant};
 
+// Internal crates for macOS, Windows, *and* WASM builds.
+use crate::FoundFile;
 
-/// Summarize directories in macOS and Windows builds.
+/// Summarize directories in native builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn summarize_directory(
     summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
 ) -> Result<(), &'static str> {
@@ -35,19 +35,17 @@ pub fn summarize_directory(
     // If the user picked a directory to summarize....
     if locked_path.is_some() {
         // ...then recursively count file extensions in the chosen directory.
-        // Reset file extension counts to zero.
-        *extension_counts.lock().unwrap() = HashMap::new();
+
+        // Reset file findings.
+        *file_paths.lock().unwrap() = vec![FoundFile::default()];
 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let extension_counts_copy = Arc::clone(&extension_counts);
+        let file_paths_copy = Arc::clone(&file_paths);
         let summarization_path_copy = Arc::clone(&summarization_path);
         let start_copy = Arc::clone(&summarization_start);
         let time_taken_copy = Arc::clone(&time_taken);
 
         thread::spawn(move || {
-            // Categorize extensionless files as "No extension."
-            let default_extension = OsString::from("No extension");
-
             // Start the stopwatch for summarization time.
             let mut locked_start_copy = start_copy.lock().unwrap();
             *locked_start_copy = Instant::now();
@@ -68,14 +66,18 @@ pub fn summarize_directory(
             {
                 trace!("Found file: {:?}", &entry.path());
                 // Extract the file extension from the file's name.
-                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
-                let show_ext: String = String::from(file_ext.to_string_lossy());
+                let file_path: PathBuf = entry.into_path();
                 // Lock the extension counts variable so we can add a file to it.
-                let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
-                // Add newly encountered file extensions to known file extensions with a counter of 0.
-                let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
-                // Increment the counter for known file extensions by one.
-                *counter += 1;
+                let mut locked_paths_copy = file_paths_copy.lock().unwrap();
+
+                let found_file = FoundFile {
+                    file_path,
+                    md5_hash: 0,
+                };
+
+                // Add newly encountered file paths to known file paths.
+                locked_paths_copy.push(found_file);
+
                 // Update the summarization time stopwatch.
                 let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
                 *locked_time_taken_copy = locked_start_copy.elapsed();

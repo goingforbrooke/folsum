@@ -1,6 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod common;
+pub use common::FoundFile;
 
 mod export_csv;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -18,6 +19,3 @@ mod summarize;
 pub use summarize::summarize_directory;
 #[cfg(target_family = "wasm")]
 pub use summarize::wasm_demo_summarize_directory;
-
-mod utils;
-pub use utils::sort_counts;
