@@ -61,4 +61,7 @@ icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
-tempdir = "0.3.7"
+rand = "0.9.0"
+tempfile = "3.18.0"
+test-log = "0.2.17"
+tracing = "0.1.41"
