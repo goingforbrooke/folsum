@@ -196,11 +196,14 @@ fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf
 fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
     let temp_dir = tempdir().unwrap();
 
-    for testfile_path in desired_filepaths {
-        if let Some(file_parent) = testfile_path.parent() {
+    for relative_testfile_path in desired_filepaths {
+        // Put "faked files" in the temp dir so they're removed at the end of the test.
+        let absolute_testfile_path: PathBuf = [temp_dir.as_ref(), relative_testfile_path].iter().collect();
+
+        if let Some(file_parent) = absolute_testfile_path.parent() {
             create_dir_all(file_parent)?;
         }
-        File::create(testfile_path)?;
+        File::create(absolute_testfile_path)?;
     }
     // Return the tempdir handle so the calling function can keep it alive.
     Ok(temp_dir)
@@ -220,7 +223,6 @@ mod tests {
         let actual_file_paths = generate_fake_file_paths(20, 3);
 
         create_fake_files(&actual_file_paths)?;
-
 
         Ok(())
     }
