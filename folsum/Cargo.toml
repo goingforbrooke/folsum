@@ -33,6 +33,7 @@ rfd = "0.15.2"
 serde = { version = "1.0.218", features = ["derive"] }
 walkdir = "2.5.0"
 web-time = "1.1.0"
+md5 = "0.7.0"
 
 # Native builds:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

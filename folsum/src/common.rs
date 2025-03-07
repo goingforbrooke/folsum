@@ -1,3 +1,6 @@
+// Std crates for macOS, Windows, *and* WASM builds.
+use std::path::PathBuf;
+
 /// Add a debug-only `println!` macro
 ///
 /// This ignores `--release`s, so stdout will only show in `cargo build` and `cargo run`.
@@ -8,6 +11,13 @@ macro_rules! debug_println {
         #[cfg(debug_assertions)]
         println!($($arg)*);
     };
+}
+
+/// Files found by FolSum.
+#[derive(Debug, Default)]
+pub struct FoundFile {
+    pub file_path: PathBuf,
+    pub md5_hash: u32,
 }
 
 #[cfg(test)]

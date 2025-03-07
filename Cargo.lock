@@ -2009,6 +2009,7 @@ dependencies = [
  "humantime",
  "itertools 0.14.0",
  "log",
+ "md5",
  "rfd",
  "serde",
  "tempdir",
