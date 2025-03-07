@@ -90,77 +90,138 @@ pub fn summarize_directory(
 /// Summarize directories in WASM builds.
 #[cfg(target_family = "wasm")]
 pub fn wasm_demo_summarize_directory(
-    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    summarization_path: &Arc<Mutex<Option<PathBuf>>>,
+    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
     ) {
     // ...then recursively count file extensions in the chosen directory.
-    // Reset file extension counts to zero.
-    *extension_counts.lock().unwrap() = HashMap::new();
 
-    // Copy the Arcs of persistent members so they can be accessed by a separate thread. let extension_counts_copy = Arc::clone(&extension_counts);
+    // Reset file findings.
+    *file_paths.lock().unwrap() = vec![FoundFile::default()];
+
+    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let start_copy = Arc::clone(&summarization_start);
     let time_taken_copy = Arc::clone(&time_taken);
-    let extension_counts_copy = Arc::clone(&extension_counts);
+    let file_paths_copy = Arc::clone(&file_paths);
 
     // We usually do this in a separate thread, which `web_sys`'s (Web)workers would do a good job of simulating.
     // We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
-
-    // Categorize extensionless files as "No extension."
-    let default_extension = OsString::from("No extension");
 
     // Start the stopwatch for summarization time.
     let mut locked_start_copy = start_copy.lock().unwrap();
     *locked_start_copy = Instant::now();
     info!("Started summarization");
 
+    // todo: add (faked) WASM summarization.
+}
 
-    // File extensions for our demo.
-    let demo_file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
-                                               "jpg", "png", "gif", "mp4", "avi",
-                                               "mkv", "dll", "sys", "app", "dmg",
-                                               "zip", "iso", "pages", "numbers",
-                                               "7zip", "html", "py", "rs", "js",
-                                               "rs"];
+/// Compile fake file path code for unit tests and WASM builds b/c browser demo.
 
-    // Generate numbers to sequentially assign as theoretical quantities of each file extension.
-    let fibonacci_numbers = |n: usize| -> u32 {
-        let mut a = 0;
-        let mut b = 1;
-        for _ in 0..n {
-            let temp = a;
-            a = b;
-            b = temp + b;
+// Std test/demo crates.
+#[cfg(any(test, target_family = "wasm"))]
+use std::fs::{create_dir_all, File};
+
+// External test/demo crates.
+#[cfg(any(test, target_family = "wasm"))]
+use rand::distr::Alphanumeric;
+#[cfg(any(test, target_family = "wasm"))]
+use rand::{rng, Rng};
+#[cfg(any(test, target_family = "wasm"))]
+use tempfile::{tempdir, TempDir};
+
+/// Create an "answer key" of fake file paths.
+///
+/// These will be used to create "fake files" for testing things like `summarize_directory`. This
+/// fixture would be under `#[cfg(test)]`, but we need it for WASM builds so the browser demo has
+/// something so summarize.
+///
+/// * `base_dir` - The root directory where the fake files will eventually be created.
+/// * `total_files` - The total number of fake file paths to generate.
+/// * `max_depth` - The maximum directory depth for the fake files.
+/// * `extensions` - A slice of file extensions to randomly choose from.
+#[cfg(any(test, target_family = "wasm"))]
+fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf> {
+    // Persist the random number generator to avoid re-initialization.
+    let mut random_number_generator = rng();
+
+    let mut fake_paths = Vec::new();
+
+    // For each file that we need to create...
+    for _ in 0..total_files {
+        // Decide the depth for this file's directory.
+        let current_depth = random_number_generator.random_range(0..=max_depth);
+
+        let mut dir_paths = PathBuf::new();
+        // Create a subdirectory at the current depth.
+        for _ in 0..current_depth {
+            // Create an eight character random dir name.
+            let dir_name: String = (&mut random_number_generator)
+                .sample_iter(&Alphanumeric)
+                .take(8)
+                .map(char::from)
+                .collect();
+            // Add the new directory to the stack.
+            dir_paths.push(dir_name);
         }
-        a
-    };
 
-    // Create fake (Fibonacci) counts for each file extension.
-    let demo_file_counts: HashMap<&str, u32> = demo_file_extensions.iter().enumerate().map(|(index, item)| {
-        let fib_num = fibonacci_numbers(index);
-        (*item, fib_num)
-    }).collect();
+        // Create a ten character filename.
+        let file_stem: String = rng()
+            .sample_iter(&Alphanumeric)
+            .take(10)
+            .map(char::from)
+            .collect();
 
-    // Create a file path for each the "fake file."
-    let demo_file_paths: Vec<PathBuf> = demo_file_counts.iter().flat_map(|(file_extension, counter)| {
-        let filename = format!("some_filename.{file_extension}");
-        (0..*counter).map(move |_| PathBuf::from(&filename))
-    }).collect();
+        // File types for browser demos and unit tests.
+        let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
+                                              "jpg", "png", "gif", "mp4", "avi",
+                                              "mkv", "dll", "sys", "app", "dmg",
+                                              "zip", "iso", "pages", "numbers",
+                                              "7zip", "html", "py", "rs", "js",
+                                              "rs"];
 
-    // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-    for entry in demo_file_paths {
-        trace!("Found file: {:?}", &entry);
-        // Extract the file extension from the file's name.
-        let file_ext: &OsStr = entry.extension().unwrap_or(&default_extension);
-        let show_ext: String = String::from(file_ext.to_string_lossy());
-        // Lock the extension counts variable so we can add a file to it.
-        let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
-        // Add newly encountered file extensions to known file extensions with a counter of 0.
-        let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
-        // Increment the counter for known file extensions by one.
-        *counter += 1;
-        // Update the summarization time stopwatch.
-        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
-        *locked_time_taken_copy = locked_start_copy.elapsed();
+        // Choose a random extension from the provided list.
+        let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
+
+        // Create the full file name with extension.
+        let file_name = format!("{}.{}", file_stem, this_extension);
+        let file_path = dir_paths.join(file_name);
+        fake_paths.push(file_path);
+    }
+    fake_paths
+}
+
+#[cfg(any(test, target_family = "wasm"))]
+/// Test fixture/ demo setup: Create "fake files" to summarize in demos and unit tests.
+fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
+    let temp_dir = tempdir().unwrap();
+
+    for testfile_path in desired_filepaths {
+        if let Some(file_parent) = testfile_path.parent() {
+            create_dir_all(file_parent)?;
+        }
+        File::create(testfile_path)?;
+    }
+    // Return the tempdir handle so the calling function can keep it alive.
+    Ok(temp_dir)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::summarize::{create_fake_files, generate_fake_file_paths};
+
+    #[allow(unused)]
+    use tracing::{debug, error, info, trace, warn};
+
+    /// Ensure that [`summarize_directory`] successfully finds directory contents.
+    #[test_log::test]
+    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+        // Set up the test by creating "fake files" to summarize.
+        let actual_file_paths = generate_fake_file_paths(20, 3);
+
+        create_fake_files(&actual_file_paths)?;
+
+
+        Ok(())
     }
 }
