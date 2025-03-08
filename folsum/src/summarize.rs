@@ -156,7 +156,6 @@ use tempfile::{tempdir, TempDir};
 /// * `total_files` - The total number of fake file paths to generate.
 /// * `max_depth` - The maximum directory depth for the fake files.
 /// * `extensions` - A slice of file extensions to randomly choose from.
-#[cfg(any(test, target_family = "wasm"))]
 fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf> {
     // Persist the random number generator to avoid re-initialization.
     let mut random_number_generator = rng();
