@@ -90,7 +90,6 @@ pub fn summarize_directory(
 /// Summarize directories in WASM builds.
 #[cfg(target_family = "wasm")]
 pub fn wasm_demo_summarize_directory(
-    summarization_path: &Arc<Mutex<Option<PathBuf>>>,
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
@@ -113,7 +112,24 @@ pub fn wasm_demo_summarize_directory(
     *locked_start_copy = Instant::now();
     info!("Started summarization");
 
-    // todo: add (faked) WASM summarization.
+    // Set up the demo by creating "fake files" to summarize.
+    let actual_file_paths = generate_fake_file_paths(20, 3);
+
+    // (Fake) WASM summarization.
+    for file_path in actual_file_paths {
+        // Pretend like a FoundFile for this item already existed.
+        let found_file = FoundFile {file_path, md5_hash: 0};
+
+        trace!("Found file: {:?}", &found_file);
+        let mut locked_paths_copy= file_paths_copy.lock().unwrap();
+
+        // Add newly encountered file paths to known file paths.
+        locked_paths_copy.push(found_file);
+
+        // Update the summarization time stopwatch.
+        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+        *locked_time_taken_copy = locked_start_copy.elapsed();
+    }
 }
 
 /// Compile fake file path code for unit tests and WASM builds b/c browser demo.
@@ -127,7 +143,7 @@ use std::fs::{create_dir_all, File};
 use rand::distr::Alphanumeric;
 #[cfg(any(test, target_family = "wasm"))]
 use rand::{rng, Rng};
-#[cfg(any(test, target_family = "wasm"))]
+#[cfg(test)]
 use tempfile::{tempdir, TempDir};
 
 /// Create an "answer key" of fake file paths.
@@ -191,30 +207,30 @@ fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf
     fake_paths
 }
 
-#[cfg(any(test, target_family = "wasm"))]
-/// Test fixture/ demo setup: Create "fake files" to summarize in demos and unit tests.
-fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
-    let temp_dir = tempdir().unwrap();
-
-    for relative_testfile_path in desired_filepaths {
-        // Put "faked files" in the temp dir so they're removed at the end of the test.
-        let absolute_testfile_path: PathBuf = [temp_dir.as_ref(), relative_testfile_path].iter().collect();
-
-        if let Some(file_parent) = absolute_testfile_path.parent() {
-            create_dir_all(file_parent)?;
-        }
-        File::create(absolute_testfile_path)?;
-    }
-    // Return the tempdir handle so the calling function can keep it alive.
-    Ok(temp_dir)
-}
-
 #[cfg(test)]
 mod tests {
     use crate::summarize::{create_fake_files, generate_fake_file_paths};
 
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
+
+    /// Test fixture/ demo setup: Create "fake files" to summarize in demos and unit tests.
+    fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
+        let temp_dir = tempdir().unwrap();
+
+        for relative_testfile_path in desired_filepaths {
+            // Put "faked files" in the temp dir so they're removed at the end of the test.
+            let absolute_testfile_path: PathBuf = [temp_dir.as_ref(), relative_testfile_path].iter().collect();
+
+            if let Some(file_parent) = absolute_testfile_path.parent() {
+                create_dir_all(file_parent)?;
+            }
+            File::create(absolute_testfile_path)?;
+        }
+        // Return the tempdir handle so the calling function can keep it alive.
+        Ok(temp_dir)
+    }
+
 
     /// Ensure that [`summarize_directory`] successfully finds directory contents.
     #[test_log::test]
