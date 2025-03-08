@@ -136,15 +136,11 @@ pub fn wasm_demo_summarize_directory(
     }
 }
 
-/// Compile fake file path code for unit tests and WASM builds b/c browser demo.
-
 // External test/demo crates.
-#[cfg(any(test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, target_family = "wasm"))]
 use rand::distr::Alphanumeric;
-#[cfg(any(test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, target_family = "wasm"))]
 use rand::{rng, Rng};
-#[cfg(test)]
-use tempfile::{tempdir, TempDir};
 
 /// Create an "answer key" of fake file paths.
 ///
@@ -156,6 +152,9 @@ use tempfile::{tempdir, TempDir};
 /// * `total_files` - The total number of fake file paths to generate.
 /// * `max_depth` - The maximum directory depth for the fake files.
 /// * `extensions` - A slice of file extensions to randomly choose from.
+#[cfg(any(debug_assertions, test, target_family = "wasm"))]
+// Needs to be available for the browser demo and native unit tests (but not native builds).
+#[allow(unused)]
 fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf> {
     // Persist the random number generator to avoid re-initialization.
     let mut random_number_generator = rng();
@@ -218,7 +217,6 @@ mod tests {
     use tempfile::{tempdir, TempDir};
 
     /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
-    #[cfg(target_family = "wasm")]
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
         let temp_dir = tempdir().unwrap();
 

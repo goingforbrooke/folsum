@@ -10,6 +10,7 @@ use std::error::Error;
 #[cfg(target_family = "wasm")]
 use web_sys;
 // Add `dyn_into` for getting HTML canvas in WASM builds.
+#[cfg(target_family = "wasm")]
 use web_sys::wasm_bindgen::JsCast;
 
 // External crates for macOS, Windows, *and* WASM builds.
