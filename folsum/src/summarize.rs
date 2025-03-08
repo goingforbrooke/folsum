@@ -110,7 +110,6 @@ pub fn wasm_demo_summarize_directory(
 
     // Set up the browser demo by creating "fake files" to summarize.
     let actual_file_paths = generate_fake_file_paths(20, 3);
-    create_fake_files(&actual_file_paths)?;
 
     // Start the stopwatch for summarization time.
     let mut locked_start_copy = start_copy.lock().unwrap();
@@ -138,10 +137,6 @@ pub fn wasm_demo_summarize_directory(
 }
 
 /// Compile fake file path code for unit tests and WASM builds b/c browser demo.
-
-// Std test/demo crates.
-#[cfg(any(test, target_family = "wasm"))]
-use std::fs::{create_dir_all, File};
 
 // External test/demo crates.
 #[cfg(any(test, target_family = "wasm"))]
@@ -223,7 +218,8 @@ mod tests {
     use tracing::{debug, error, info, trace, warn};
     use tempfile::{tempdir, TempDir};
 
-    /// Test fixture/ demo setup: Create "fake files" to summarize in demos and unit tests.
+    /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
+    #[cfg(target_family = "wasm")]
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
         let temp_dir = tempdir().unwrap();
 
