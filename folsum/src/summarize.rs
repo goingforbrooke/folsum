@@ -105,7 +105,12 @@ pub fn wasm_demo_summarize_directory(
     let file_paths_copy = Arc::clone(&file_paths);
 
     // We usually do this in a separate thread, which `web_sys`'s (Web)workers would do a good job of simulating.
-    // We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
+    // Temp: We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
+    // todo: add `web_sys` (Web)workers to WASM demo so the GUI doesn't hang for larger file counts.
+
+    // Set up the browser demo by creating "fake files" to summarize.
+    let actual_file_paths = generate_fake_file_paths(20, 3);
+    create_fake_files(&actual_file_paths)?;
 
     // Start the stopwatch for summarization time.
     let mut locked_start_copy = start_copy.lock().unwrap();
@@ -209,10 +214,14 @@ fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf
 
 #[cfg(test)]
 mod tests {
-    use crate::summarize::{create_fake_files, generate_fake_file_paths};
+    use std::path::PathBuf;
+    use std::fs::{create_dir_all, File};
+
+    use crate::summarize::generate_fake_file_paths;
 
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
+    use tempfile::{tempdir, TempDir};
 
     /// Test fixture/ demo setup: Create "fake files" to summarize in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
@@ -237,7 +246,6 @@ mod tests {
     fn test_directory_summarization() -> Result<(), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
         let actual_file_paths = generate_fake_file_paths(20, 3);
-
         create_fake_files(&actual_file_paths)?;
 
         Ok(())
