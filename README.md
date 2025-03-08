@@ -68,8 +68,16 @@ $ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-dar
 
 ### 🌎 Preview WASM Builds
 
+Preview
+
 ```console
 $ user@host: trunk serve --open
+```
+
+Build and check (with `rand` flag).
+
+```console
+$ RUSTFLAGS='--cfg getrandom_backend="wasm_js"' cargo build --target wasm32-unknown-unknown
 ```
 
 ### 📦 `cargo build`
