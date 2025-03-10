@@ -71,7 +71,7 @@ $ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-dar
 Preview
 
 ```console
-$ user@host: trunk serve --open
+$ user@host: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve --open
 ```
 
 Build and check (with `rand` flag).
