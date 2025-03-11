@@ -207,10 +207,13 @@ fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
     use std::fs::{create_dir_all, File};
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+    use std::time::{Duration, Instant};
 
-    use crate::summarize::generate_fake_file_paths;
+    use crate::summarize::{summarize_directory, generate_fake_file_paths};
+    use crate::FoundFile;
 
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
@@ -234,12 +237,33 @@ mod tests {
     }
 
 
-    /// Ensure that [`summarize_directory`] successfully finds directory contents.
+    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
     #[test_log::test]
     fn test_directory_summarization() -> Result<(), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
         let actual_file_paths = generate_fake_file_paths(20, 3);
-        create_fake_files(&actual_file_paths)?;
+        let tempdir_handle = create_fake_files(&actual_file_paths)?;
+
+        // Extract the tempdir containing the files to test against.
+        let testdir_path = tempdir_handle.into_path();
+
+        // Set up "dummy" datastores so we can run the test.
+        let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
+        let file_paths = Arc::new(Mutex::new(vec![FoundFile::default()]));
+        let summarization_start = Arc::new(Mutex::new(Instant::now()));
+        let time_taken = Arc::new(Mutex::new(Duration::ZERO));
+
+        // Summarize the tempfiles.
+        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken);
+
+        // Lock the dummy file tracker so we can check its contents.
+        let mut locked_paths_copy = file_paths.lock().unwrap();
+
+        // Check if the summarization was successful.
+        for found_file in locked_paths_copy.iter() {
+            let file_path = found_file.file_path.clone();
+            eprintln!("file_path = {:#?}", file_path);
+        }
 
         Ok(())
     }
