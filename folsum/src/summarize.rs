@@ -232,9 +232,10 @@ pub mod tests {
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
     use crate::FoundFile;
 
+    use test_log;
+    use tempfile::{tempdir, TempDir};
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
-    use tempfile::{tempdir, TempDir};
 
     /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
