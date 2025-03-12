@@ -226,6 +226,7 @@ pub mod tests {
     use std::fs::{create_dir_all, File};
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
+    #[cfg(test)]
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
