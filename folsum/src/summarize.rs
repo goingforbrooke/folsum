@@ -276,6 +276,9 @@ mod tests {
         // Summarize the tempfiles.
         summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
 
+        // Destroy the test files b/c we're done summarizing them.
+        drop(tempdir_handle);
+
         // Assume that summarization will complete in less than a second.
         sleep(Duration::from_secs(1));
 
@@ -289,9 +292,6 @@ mod tests {
                                                  "Expected to find {actual_file_path:?} \
                                                   in {expected_file_paths:?}");
         }
-
-        // Destroy the test files b/c we're done summarizing them.
-        drop(tempdir_handle);
 
 
         Ok(())
