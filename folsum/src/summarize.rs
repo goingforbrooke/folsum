@@ -37,7 +37,7 @@ pub fn summarize_directory(
         // ...then recursively count file extensions in the chosen directory.
 
         // Reset file findings.
-        *file_paths.lock().unwrap() = vec![FoundFile::default()];
+        *file_paths.lock().unwrap() = vec![];
 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let file_paths_copy = Arc::clone(&file_paths);
@@ -70,16 +70,19 @@ pub fn summarize_directory(
                         debug!("Found file: {:?}", &entry.path());
                         // Extract the file extension from the file's name.
                         let file_path: PathBuf = entry.into_path();
-                        // Lock the extension counts variable so we can add a file to it.
-                        let mut locked_paths_copy = file_paths_copy.lock().unwrap();
-
                         let found_file = FoundFile {
                             file_path,
                             md5_hash: 0,
                         };
 
+                        // Lock the extension counts variable so we can add a file to it.
+                        let mut locked_paths_copy = file_paths_copy.lock().unwrap();
+
                         // Add newly encountered file paths to known file paths.
                         locked_paths_copy.push(found_file);
+
+                        // Release the file paths lock so the GUI can update.
+                        drop(locked_paths_copy);
 
                         // Update the summarization time stopwatch.
                         let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
@@ -216,6 +219,7 @@ mod tests {
     use std::fs::{create_dir_all, File};
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
+    use std::thread::sleep;
     use std::time::{Duration, Instant};
 
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
@@ -258,24 +262,31 @@ mod tests {
 
         // Set up "dummy" datastores so we can run the test.
         let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
-        let file_paths = Arc::new(Mutex::new(vec![FoundFile::default()]));
+        let file_paths = Arc::new(Mutex::new(vec![]));
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
         // Summarize the tempfiles.
         summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
 
-        // Destroy the test files b/c we're done summarizing them.
-        drop(tempdir_handle);
+        // Assume that summarization will complete in less than a second.
+        sleep(Duration::from_secs(1));
 
         // Lock the dummy file tracker so we can check its contents.
-        let mut locked_paths_copy = file_paths.lock().unwrap();
+        let locked_paths_copy = file_paths.lock().unwrap();
 
         // Check if the summarization was successful.
         for found_file in locked_paths_copy.iter() {
+            let thing = found_file.file_path.clone();
+            eprintln!("found_file = {:#?}", found_file);
+            println!("Checking {thing:?} against {locked_paths_copy:?}");
             assert!(actual_file_paths.contains(&found_file.file_path));
             eprintln!("found_file = {:#?}", found_file);
         }
+
+        // Destroy the test files b/c we're done summarizing them.
+        drop(tempdir_handle);
+
 
         Ok(())
     }
