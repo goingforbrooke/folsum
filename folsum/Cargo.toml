@@ -80,5 +80,5 @@ bench = []
 
 # Criterion benchmarking (https://bheisler.github.io/criterion.rs/book/getting_started.html).
 [[bench]]
-name = "test_directory_summarization"
+name = "benchmark_directory_summarization"
 harness = false

@@ -222,7 +222,7 @@ fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
 }
 
 #[cfg(any(test, feature = "bench"))]
-mod tests {
+pub mod tests {
     use std::fs::{create_dir_all, File};
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
@@ -255,10 +255,16 @@ mod tests {
         Ok(temp_dir)
     }
 
-
-    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
-    #[test_log::test]
-    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+    /// Run directory summarization in a temporary directory of "fake" files.
+    ///
+    /// This is abstracted away from [`test_directory_summarization`] so it can be called by the benchmarker.
+    ///
+    /// # Returns
+    ///
+    /// Tuple:
+    /// - datastore variable (to check at the end of a test)
+    /// - `Vec<PathBuf>` of file paths that we expect to find
+    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
         let expected_file_paths = generate_fake_file_paths(20, 3);
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
@@ -279,6 +285,16 @@ mod tests {
         // Destroy the test files b/c we're done summarizing them.
         drop(tempdir_handle);
 
+        // Return the datastore variable so the unit test can verify what's been summarized.
+        Ok((file_paths, expected_file_paths))
+    }
+
+
+    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
+    #[test_log::test]
+    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths)= run_fake_summarization()?;
+
         // Assume that summarization will complete in less than a second.
         sleep(Duration::from_secs(1));
 
@@ -292,7 +308,6 @@ mod tests {
                                                  "Expected to find {actual_file_path:?} \
                                                   in {expected_file_paths:?}");
         }
-
 
         Ok(())
     }

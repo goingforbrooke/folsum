@@ -19,3 +19,5 @@ mod summarize;
 pub use summarize::summarize_directory;
 #[cfg(target_family = "wasm")]
 pub use summarize::wasm_demo_summarize_directory;
+#[cfg(feature = "bench")]
+pub use summarize::tests::run_fake_summarization;
