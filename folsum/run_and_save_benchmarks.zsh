@@ -16,3 +16,7 @@ mkdir -p "$TARGET_DIR"
 cp -r ../target/criterion/* "$TARGET_DIR"
 
 echo "Benchmark results have been archived to $TARGET_DIR"
+
+cargo flamegraph --root --bench benchmark_directory_summarization --features bench -- --bench
+
+mv flamegraph.svg "$TARGET_DIR"
