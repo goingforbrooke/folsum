@@ -153,9 +153,9 @@ pub fn wasm_demo_summarize_directory(
 }
 
 // External test/demo crates.
-#[cfg(any(debug_assertions, test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
 use rand::distr::Alphanumeric;
-#[cfg(any(debug_assertions, test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
 use rand::{rng, Rng};
 
 /// Create an "answer key" of fake file paths.
