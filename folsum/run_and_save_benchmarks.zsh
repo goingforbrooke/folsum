@@ -20,3 +20,7 @@ echo "Benchmark results have been archived to $TARGET_DIR"
 cargo flamegraph --root --bench benchmark_directory_summarization --features bench -- --bench
 
 mv flamegraph.svg "$TARGET_DIR"
+
+echo "Flamegraph profiling results have been archived to $TARGET_DIR"
+
+echo "If you want to view the flamegraph, then do so with a browser b/c Inkscape doesn't do interactive SVGs"
