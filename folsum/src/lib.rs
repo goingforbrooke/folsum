@@ -21,3 +21,6 @@ pub use summarize::summarize_directory;
 pub use summarize::wasm_demo_summarize_directory;
 #[cfg(feature = "bench")]
 pub use summarize::tests::run_fake_summarization;
+
+mod hashers;
+pub use hashers::get_md5_hash;
