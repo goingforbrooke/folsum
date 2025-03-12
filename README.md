@@ -66,6 +66,14 @@ Check compilation for all targets.
 $ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-darwin --target wasm32-unknown-unknown --target x86_64-pc-windows-gnu
 ```
 
+### 🔥 Testing
+
+```console
+$ user@host: RUST_LOG=DEBUG cargo nextest run test_dir --nocapture --features bench
+```
+
+### 📈 Benchmarks
+
 ### 🌎 Preview WASM Builds
 
 Preview

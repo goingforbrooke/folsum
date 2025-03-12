@@ -153,9 +153,9 @@ pub fn wasm_demo_summarize_directory(
 }
 
 // External test/demo crates.
-#[cfg(any(debug_assertions, test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
 use rand::distr::Alphanumeric;
-#[cfg(any(debug_assertions, test, target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
 use rand::{rng, Rng};
 
 /// Create an "answer key" of fake file paths.
@@ -168,8 +168,8 @@ use rand::{rng, Rng};
 /// * `total_files` - The total number of fake file paths to generate.
 /// * `max_depth` - The maximum directory depth for the fake files.
 /// * `extensions` - A slice of file extensions to randomly choose from.
-#[cfg(any(debug_assertions, test, target_family = "wasm"))]
-// Needs to be available for the browser demo and native unit tests (but not native builds).
+// Make available for `cargo check`, native unit tests, benchmarks, and the browser demo (but not native builds).
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
 #[allow(unused)]
 fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
     // Persist the random number generator to avoid re-initialization.
@@ -221,8 +221,8 @@ fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
     fake_paths
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(any(test, feature = "bench"))]
+pub mod tests {
     use std::fs::{create_dir_all, File};
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
@@ -232,9 +232,10 @@ mod tests {
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
     use crate::FoundFile;
 
+    use test_log;
+    use tempfile::{tempdir, TempDir};
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
-    use tempfile::{tempdir, TempDir};
 
     /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
@@ -255,10 +256,16 @@ mod tests {
         Ok(temp_dir)
     }
 
-
-    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
-    #[test_log::test]
-    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+    /// Run directory summarization in a temporary directory of "fake" files.
+    ///
+    /// This is abstracted away from [`test_directory_summarization`] so it can be called by the benchmarker.
+    ///
+    /// # Returns
+    ///
+    /// Tuple:
+    /// - datastore variable (to check at the end of a test)
+    /// - `Vec<PathBuf>` of file paths that we expect to find
+    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
         let expected_file_paths = generate_fake_file_paths(20, 3);
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
@@ -279,6 +286,16 @@ mod tests {
         // Destroy the test files b/c we're done summarizing them.
         drop(tempdir_handle);
 
+        // Return the datastore variable so the unit test can verify what's been summarized.
+        Ok((file_paths, expected_file_paths))
+    }
+
+
+    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
+    #[test_log::test]
+    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths)= run_fake_summarization()?;
+
         // Assume that summarization will complete in less than a second.
         sleep(Duration::from_secs(1));
 
@@ -292,7 +309,6 @@ mod tests {
                                                  "Expected to find {actual_file_path:?} \
                                                   in {expected_file_paths:?}");
         }
-
 
         Ok(())
     }

@@ -36,6 +36,11 @@ getrandom = {version = "0.3.1", features = ["wasm_js"]}
 rfd = "0.15.2"
 # Serde for app persistence.
 serde = { version = "1.0.218", features = ["derive"] }
+# Tempfiles for unit tests and benchmarks. Not in `dev-dependencies` b/c needed for benchmarks.
+tempfile = { version = "3.18.0", optional = true }
+# Show `tracing` log output in tests.
+test-log = { version = "0.2.17", optional = true}
+tracing = "0.1.41"
 walkdir = "2.5.0"
 web-time = "1.1.0"
 md5 = "0.7.0"
@@ -68,7 +73,14 @@ icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
+criterion = "0.5.1"
 pretty_assertions = "1.4.1"
-tempfile = "3.18.0"
-test-log = "0.2.17"
-tracing = "0.1.41"
+
+[features]
+# Don't compile benchmark code unless we're benchmarking.
+bench = ["tempfile", "test-log"]
+
+# Criterion benchmarking (https://bheisler.github.io/criterion.rs/book/getting_started.html).
+[[bench]]
+name = "benchmark_directory_summarization"
+harness = false
