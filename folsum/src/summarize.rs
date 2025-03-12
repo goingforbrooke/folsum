@@ -230,7 +230,9 @@ mod tests {
             if let Some(file_parent) = absolute_testfile_path.parent() {
                 create_dir_all(file_parent)?;
             }
-            File::create(absolute_testfile_path)?;
+            File::create(&absolute_testfile_path)?;
+
+            println!("Created test file: {absolute_testfile_path:?}");
         }
         // Return the tempdir handle so the calling function can keep it alive.
         Ok(temp_dir)
@@ -254,15 +256,16 @@ mod tests {
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
 
         // Summarize the tempfiles.
-        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken);
+        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
 
         // Lock the dummy file tracker so we can check its contents.
         let mut locked_paths_copy = file_paths.lock().unwrap();
 
         // Check if the summarization was successful.
         for found_file in locked_paths_copy.iter() {
-            let file_path = found_file.file_path.clone();
-            eprintln!("file_path = {:#?}", file_path);
+            //let file_path = found_file.file_path.clone();
+            //eprintln!("file_path = {:#?}", file_path);
+            eprintln!("found_file = {:#?}", found_file);
         }
 
         Ok(())
