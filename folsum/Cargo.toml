@@ -36,6 +36,7 @@ getrandom = {version = "0.3.1", features = ["wasm_js"]}
 rfd = "0.15.2"
 # Serde for app persistence.
 serde = { version = "1.0.218", features = ["derive"] }
+tracing = "0.1.41"
 walkdir = "2.5.0"
 web-time = "1.1.0"
 md5 = "0.7.0"
@@ -72,7 +73,6 @@ criterion = "0.5.1"
 pretty_assertions = "1.4.1"
 tempfile = "3.18.0"
 test-log = "0.2.17"
-tracing = "0.1.41"
 
 [features]
 # Don't compile benchmark code unless we're benchmarking.
