@@ -62,16 +62,23 @@ pub fn summarize_directory(
                     info!("Started recursing through {provided_path:?}");
 
                     // Recursively iterate through each subdirectory.
-                    for entry in WalkDir::new(provided_path)
+                    for dir_entry in WalkDir::new(provided_path)
                         .min_depth(1)
                         .into_iter()
                         .filter_map(Result::ok)
+                        // Ignore subdirectories at all depths.
+                        .filter(|dir_entry| !dir_entry.file_type().is_dir())
                     {
-                        debug!("Found file: {:?}", &entry.path());
+                        let found_file: PathBuf = dir_entry.into_path();
+                        debug!("Found file: {found_file:?}");
+
+                        // todo: Handle relative path prefix strip errors.
+                        // Convert from absolute path to a relative (to given directory) path.
+                        let relative_path = found_file.strip_prefix(provided_path).unwrap();
+
                         // Extract the file extension from the file's name.
-                        let file_path: PathBuf = entry.into_path();
                         let found_file = FoundFile {
-                            file_path,
+                            file_path: relative_path.to_path_buf(),
                             md5_hash: 0,
                         };
 
@@ -164,7 +171,7 @@ use rand::{rng, Rng};
 #[cfg(any(debug_assertions, test, target_family = "wasm"))]
 // Needs to be available for the browser demo and native unit tests (but not native builds).
 #[allow(unused)]
-fn generate_fake_file_paths(total_files: usize, max_depth: usize) -> Vec<PathBuf> {
+fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
     // Persist the random number generator to avoid re-initialization.
     let mut random_number_generator = rng();
 
@@ -253,8 +260,8 @@ mod tests {
     #[test_log::test]
     fn test_directory_summarization() -> Result<(), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
-        let actual_file_paths = generate_fake_file_paths(20, 3);
-        let tempdir_handle = create_fake_files(&actual_file_paths)?;
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+        let tempdir_handle = create_fake_files(&expected_file_paths)?;
 
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.as_ref().to_path_buf();
@@ -276,12 +283,11 @@ mod tests {
         let locked_paths_copy = file_paths.lock().unwrap();
 
         // Check if the summarization was successful.
-        for found_file in locked_paths_copy.iter() {
-            let thing = found_file.file_path.clone();
-            eprintln!("found_file = {:#?}", found_file);
-            println!("Checking {thing:?} against {locked_paths_copy:?}");
-            assert!(actual_file_paths.contains(&found_file.file_path));
-            eprintln!("found_file = {:#?}", found_file);
+        for actual_found_file in locked_paths_copy.iter() {
+            let actual_file_path = &actual_found_file.file_path;
+            assert!(expected_file_paths.contains(actual_file_path),
+                                                 "Expected to find {actual_file_path:?} \
+                                                  in {expected_file_paths:?}");
         }
 
         // Destroy the test files b/c we're done summarizing them.
