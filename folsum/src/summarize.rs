@@ -57,6 +57,11 @@ pub fn summarize_directory(
             // Release the mutex lock on the chosen path so extension count table can update.
             drop(locked_summarization_path);
 
+            match summarization_path_copy {
+                Some(ref provided_path) => info!("Recursing through {provided_path:?}"),
+                None => error!("No summarization path was provided"),
+            }
+
             // Recursively iterate through each subdirectory and don't add subdirectories to the result.
             for entry in WalkDir::new(summarization_path_copy.unwrap())
                 .min_depth(1)
@@ -64,7 +69,7 @@ pub fn summarize_directory(
                 .filter_map(Result::ok)
                 .filter(|e| !e.file_type().is_dir())
             {
-                trace!("Found file: {:?}", &entry.path());
+                info!("Found file: {:?}", &entry.path());
                 // Extract the file extension from the file's name.
                 let file_path: PathBuf = entry.into_path();
                 // Lock the extension counts variable so we can add a file to it.
@@ -248,6 +253,8 @@ mod tests {
 
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.into_path();
+
+        println!("testdir_path = {:#?}", testdir_path);
 
         // Set up "dummy" datastores so we can run the test.
         let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
