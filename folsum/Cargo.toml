@@ -73,3 +73,12 @@ pretty_assertions = "1.4.1"
 tempfile = "3.18.0"
 test-log = "0.2.17"
 tracing = "0.1.41"
+
+[features]
+# Don't compile benchmark code unless we're benchmarking.
+bench = []
+
+# Criterion benchmarking (https://bheisler.github.io/criterion.rs/book/getting_started.html).
+[[bench]]
+name = "test_directory_summarization"
+harness = false
