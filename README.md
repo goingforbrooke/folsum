@@ -74,6 +74,12 @@ $ user@host: RUST_LOG=DEBUG cargo nextest run test_dir --nocapture --features be
 
 ### 📈 Benchmarks
 
+```console
+$ user@host: cargo bench --features bench
+```
+
+Benchmark files can be found in `folsum/target/criterion/benchmark_directory_summarization/`.
+
 ### 🌎 Preview WASM Builds
 
 Preview
