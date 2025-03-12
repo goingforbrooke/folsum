@@ -68,6 +68,7 @@ icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
+criterion = "0.5.1"
 pretty_assertions = "1.4.1"
 tempfile = "3.18.0"
 test-log = "0.2.17"
