@@ -14,7 +14,8 @@ use std::thread;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// Internal crates for macOS, Windows, *and* WASM builds.
+// Internal crates macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 use crate::FoundFile;
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]

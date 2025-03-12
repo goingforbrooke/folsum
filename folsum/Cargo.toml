@@ -15,11 +15,12 @@ homepage = "https://folsum.goingforbrooke.com"
 repository = "https://github.com/goingforbrooke/folsum"
 
 [dependencies]
+### Web and Native
 # eGui dependencies.
-egui = "0.31.0"
+egui = "0.31.1"
 # Enable restoring app state with the "persistence" feature.
-eframe = { version = "0.31.0", default-features = true, features = ["persistence"] }
-egui_extras = "0.31.0"
+eframe = { version = "0.31.1", default-features = true, features = ["persistence"] }
+egui_extras = "0.31.1"
 
 anyhow = "1.0.97"
 chrono = "0.4"
@@ -28,6 +29,10 @@ fern = { version = "0.7.1", features = ["colored"] }
 humantime = "2.1.0"
 itertools = "0.14.0"
 log = "0.4"
+# Random number generation for the browser demo.
+rand = "0.9.0"
+# Activate the `wasm_js` so WASM builds work.
+getrandom = {version = "0.3.1", features = ["wasm_js"]}
 rfd = "0.15.2"
 # Serde for app persistence.
 serde = { version = "1.0.218", features = ["derive"] }
@@ -35,20 +40,22 @@ walkdir = "2.5.0"
 web-time = "1.1.0"
 md5 = "0.7.0"
 
-# Native builds:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+### Native
+[target.'cfg(any(target_family = "unix", target_family = "windows"))'.dependencies]
 env_logger = "0.11.3"
 
-# web:
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+### Web
+
+[target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "0.4"
+# DOM manipulation to remove loading text.
+web-sys = {version="0.3.70", features = ["HtmlCanvasElement"] }
 
 # Cargo Bundle items for macOS distributions.
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
 copyright = "Copyright (c) Brooke Deuson 2025. All rights reserved."
 category = "public.app-category.productivity"
-#icon = "images/icons/resized_icons/"
 icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_128px@2x.png",
         "folsum/images/icons/resized_icons/folsum_icon_16px.png",
@@ -61,4 +68,7 @@ icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
-tempdir = "0.3.7"
+pretty_assertions = "1.4.1"
+tempfile = "3.18.0"
+test-log = "0.2.17"
+tracing = "0.1.41"
