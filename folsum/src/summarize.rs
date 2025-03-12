@@ -8,6 +8,9 @@ use std::thread;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
 
+// Internal crates for macOS, Windows, *and* WASM builds.
+use crate::get_md5_hash;
+
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
@@ -75,11 +78,12 @@ pub fn summarize_directory(
                         // todo: Handle relative path prefix strip errors.
                         // Convert from absolute path to a relative (to given directory) path.
                         let relative_path = found_file.strip_prefix(provided_path).unwrap();
+                        let relative_path = relative_path.to_path_buf();
 
                         // Extract the file extension from the file's name.
                         let found_file = FoundFile {
-                            file_path: relative_path.to_path_buf(),
-                            md5_hash: 0,
+                            file_path: relative_path.clone(),
+                            md5_hash: get_md5_hash(&relative_path).unwrap(),
                         };
 
                         // Lock the extension counts variable so we can add a file to it.

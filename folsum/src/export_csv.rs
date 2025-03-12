@@ -33,7 +33,7 @@ pub fn export_csv(
         let locked_file_paths: MutexGuard<'_, Vec<FoundFile>> = file_paths_copy.lock().unwrap();
         for found_file in locked_file_paths.iter() {
             let show_path = found_file.file_path.to_string_lossy();
-            let file_md5 = found_file.md5_hash;
+            let file_md5 = &found_file.md5_hash;
             // Ensure that there are no commas or newlines in this extension's name that would disrupt the output format.
             // todo: Replace problematic CSV characters with a placeholder instead of erroring out.
             assert!(!show_path.contains('\n') && !show_path.contains(','));
