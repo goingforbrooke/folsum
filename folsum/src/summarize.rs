@@ -58,34 +58,35 @@ pub fn summarize_directory(
             drop(locked_summarization_path);
 
             match summarization_path_copy {
-                Some(ref provided_path) => info!("Recursing through {provided_path:?}"),
+                Some(ref provided_path) => {
+                    info!("Started recursing through {provided_path:?}");
+
+                    // Recursively iterate through each subdirectory.
+                    for entry in WalkDir::new(provided_path)
+                        .min_depth(1)
+                        .into_iter()
+                        .filter_map(Result::ok)
+                    {
+                        debug!("Found file: {:?}", &entry.path());
+                        // Extract the file extension from the file's name.
+                        let file_path: PathBuf = entry.into_path();
+                        // Lock the extension counts variable so we can add a file to it.
+                        let mut locked_paths_copy = file_paths_copy.lock().unwrap();
+
+                        let found_file = FoundFile {
+                            file_path,
+                            md5_hash: 0,
+                        };
+
+                        // Add newly encountered file paths to known file paths.
+                        locked_paths_copy.push(found_file);
+
+                        // Update the summarization time stopwatch.
+                        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+                        *locked_time_taken_copy = locked_start_copy.elapsed();
+                    }
+                },
                 None => error!("No summarization path was provided"),
-            }
-
-            // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-            for entry in WalkDir::new(summarization_path_copy.unwrap())
-                .min_depth(1)
-                .into_iter()
-                .filter_map(Result::ok)
-                .filter(|e| !e.file_type().is_dir())
-            {
-                info!("Found file: {:?}", &entry.path());
-                // Extract the file extension from the file's name.
-                let file_path: PathBuf = entry.into_path();
-                // Lock the extension counts variable so we can add a file to it.
-                let mut locked_paths_copy = file_paths_copy.lock().unwrap();
-
-                let found_file = FoundFile {
-                    file_path,
-                    md5_hash: 0,
-                };
-
-                // Add newly encountered file paths to known file paths.
-                locked_paths_copy.push(found_file);
-
-                // Update the summarization time stopwatch.
-                let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
-                *locked_time_taken_copy = locked_start_copy.elapsed();
             }
         });
     };
@@ -237,7 +238,7 @@ mod tests {
             }
             File::create(&absolute_testfile_path)?;
 
-            println!("Created test file: {absolute_testfile_path:?}");
+            debug!("Created test file: {absolute_testfile_path:?}");
         }
         // Return the tempdir handle so the calling function can keep it alive.
         Ok(temp_dir)
@@ -252,9 +253,8 @@ mod tests {
         let tempdir_handle = create_fake_files(&actual_file_paths)?;
 
         // Extract the tempdir containing the files to test against.
-        let testdir_path = tempdir_handle.into_path();
-
-        println!("testdir_path = {:#?}", testdir_path);
+        let testdir_path = tempdir_handle.as_ref().to_path_buf();
+        debug!("(Test) testdir_path = {:#?}", testdir_path);
 
         // Set up "dummy" datastores so we can run the test.
         let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
@@ -265,13 +265,15 @@ mod tests {
         // Summarize the tempfiles.
         summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
 
+        // Destroy the test files b/c we're done summarizing them.
+        drop(tempdir_handle);
+
         // Lock the dummy file tracker so we can check its contents.
         let mut locked_paths_copy = file_paths.lock().unwrap();
 
         // Check if the summarization was successful.
         for found_file in locked_paths_copy.iter() {
-            //let file_path = found_file.file_path.clone();
-            //eprintln!("file_path = {:#?}", file_path);
+            assert!(actual_file_paths.contains(&found_file.file_path));
             eprintln!("found_file = {:#?}", found_file);
         }
 
