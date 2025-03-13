@@ -136,7 +136,7 @@ impl eframe::App for FolsumGui {
 
                 // Don't add a directory picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Open folder...").clicked() {
+                if ui.button("Choose folder to summarize").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         info!("User chose summarization directory: {:?}", path);
                         *summarization_path = Arc::new(Mutex::new(Some(path)));
@@ -159,7 +159,7 @@ impl eframe::App for FolsumGui {
                     ui.monospace(shown_path);
                 });
 
-                if ui.button("Summarize").clicked() {
+                if ui.button("Summarize folder").clicked() {
                     info!("User started summarization");
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let _result = summarize_directory(
