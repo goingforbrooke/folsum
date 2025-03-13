@@ -216,7 +216,7 @@ impl eframe::App for FolsumGui {
                 }
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Export to CSV").clicked() {
+                if ui.button("Export folder summary to CSV").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
                     // Prepend the date (YY_MM_DD) to the filename.
