@@ -66,7 +66,7 @@ pub struct FolsumGui {
 impl Default for FolsumGui {
     fn default() -> Self {
         Self {
-            file_paths: Arc::new(Mutex::new(vec![FoundFile::default()])),
+            file_paths: Arc::new(Mutex::new(vec![])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
             verification_file_path: Arc::new(Mutex::new(None)),
