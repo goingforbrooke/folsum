@@ -72,18 +72,14 @@ pub fn summarize_directory(
                         // Ignore subdirectories at all depths.
                         .filter(|dir_entry| !dir_entry.file_type().is_dir())
                     {
-                        let found_file: PathBuf = dir_entry.into_path();
-                        debug!("Found file: {found_file:?}");
+                        let foundfile_path: PathBuf = dir_entry.into_path();
+                        debug!("Found directory (file) entry: {foundfile_path:?}");
 
-                        // todo: Handle relative path prefix strip errors.
-                        // Convert from absolute path to a relative (to given directory) path.
-                        let relative_path = found_file.strip_prefix(provided_path).unwrap();
-                        let relative_path = relative_path.to_path_buf();
-
-                        // Extract the file extension from the file's name.
                         let found_file = FoundFile {
-                            file_path: relative_path.clone(),
-                            md5_hash: get_md5_hash(&relative_path).unwrap(),
+                            // todo: Handle relative path prefix strip errors.
+                            // Convert from absolute path to a relative (to given directory) path.
+                            file_path: foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf(),
+                            md5_hash: get_md5_hash(&foundfile_path).unwrap(),
                         };
 
                         // Lock the extension counts variable so we can add a file to it.
