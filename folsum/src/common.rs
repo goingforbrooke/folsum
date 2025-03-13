@@ -16,8 +16,10 @@ macro_rules! debug_println {
 /// Files found by FolSum.
 #[derive(Debug, Default)]
 pub struct FoundFile {
+    // Relative path from the summarization directory to the file.
     pub file_path: PathBuf,
-    pub md5_hash: u32,
+    // MD5 digest as a hexadecimal string.
+    pub md5_hash: String,
 }
 
 #[cfg(test)]
