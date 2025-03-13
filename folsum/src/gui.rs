@@ -227,7 +227,20 @@ impl eframe::App for FolsumGui {
                 // Don't add a verification file picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Choose verification file").clicked() {
-                    if let Some(path) = FileDialog::new().pick_file() {
+                    // Open the "Save export file as" dialog.
+                    let starting_directory = match verification_file_path.lock().unwrap().clone() {
+                        // Open the verification file chooser in the same dir as the previous export.
+                        Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
+                        // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
+                        None => home_dir().expect("Failed to get user's home directory"),
+                    };
+                    if let Some(path) = FileDialog::new()
+                        // Add `.csv` to the end of the user's chosen name for the CSV export.
+                        .add_filter("csv", &["csv"])
+                        .set_title("Choose FolSum CSV file to verify against")
+                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                        .set_directory(starting_directory)
+                        .pick_file() {
                         info!("User chose verification file: {:?}", path);
                         *verification_file_path = Arc::new(Mutex::new(Some(path)));
                     }
@@ -251,7 +264,9 @@ impl eframe::App for FolsumGui {
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Verify Folder").clicked() {
-                    // todo: Folder verification.
+                    info!("User started verification");
+                    // todo: Ensure that summarization is complete and already run (greyed out until then).
+                    // todo: Verify in-memory summarization against csv file.
                 }
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
