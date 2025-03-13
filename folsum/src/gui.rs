@@ -51,6 +51,8 @@ pub struct FolsumGui {
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     #[serde(skip)]
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
+    #[serde(skip)]
+    verification_file_path: Arc<Mutex<Option<PathBuf>>>,
     // User's chosen directory and filename for CSV exports.
     export_file: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
@@ -67,6 +69,7 @@ impl Default for FolsumGui {
             file_paths: Arc::new(Mutex::new(vec![FoundFile::default()])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
+            verification_file_path: Arc::new(Mutex::new(None)),
             export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
@@ -103,6 +106,8 @@ impl eframe::App for FolsumGui {
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
+            verification_file_path,
+            #[cfg(any(target_family = "unix", target_family = "windows"))]
             export_file,
             summarization_start,
             time_taken,
@@ -132,11 +137,11 @@ impl eframe::App for FolsumGui {
         egui::SidePanel::left("left_panel")
             .resizable(false)
             .show(ctx, |ui| {
-                ui.heading("Choose a Folder to Summarize");
+                ui.heading("Summarize a Folder");
 
                 // Don't add a directory picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose folder to summarize").clicked() {
+                if ui.button("Choose folder").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         info!("User chose summarization directory: {:?}", path);
                         *summarization_path = Arc::new(Mutex::new(Some(path)));
@@ -214,6 +219,43 @@ impl eframe::App for FolsumGui {
                         ui.separator();
                     });
                 }
+
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                ui.heading("Verify a Folder");
+
+
+                // Don't add a verification file picker when compiling for web.
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                if ui.button("Choose verification file").clicked() {
+                    if let Some(path) = FileDialog::new().pick_file() {
+                        info!("User chose verification file: {:?}", path);
+                        *verification_file_path = Arc::new(Mutex::new(Some(path)));
+                    }
+                }
+
+                ui.horizontal(|ui| {
+                    // Check if the user has picked a FolSum CSV to verify against.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                        let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                        let shown_path: &str = match &*locked_path {
+                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                        None => "No verification file selected",
+                    };
+                    #[cfg(target_family = "wasm")]
+                        let shown_path = "N/A";
+                    ui.label("Verification file:");
+                    // Display the user's chosen directory in monospace font.
+                    ui.monospace(shown_path);
+                });
+
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                if ui.button("Verify Folder").clicked() {
+                    // todo: Folder verification.
+                }
+
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                ui.separator();
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Export folder summary to CSV").clicked() {
