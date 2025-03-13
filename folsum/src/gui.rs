@@ -236,9 +236,9 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     // Check if the user has picked a FolSum CSV to verify against.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
+                    let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let shown_path: &str = match &*locked_path {
+                    let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No verification file selected",
                     };
