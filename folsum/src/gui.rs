@@ -75,7 +75,7 @@ impl Default for FolsumGui {
             export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
-            summarization_status: SummarizationStatus::NotStarted,
+            summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
         }
     }
 }
@@ -308,7 +308,10 @@ impl eframe::App for FolsumGui {
                     let summarization_table_has_data = !file_paths_locked.is_empty();
 
                     // Check if summarization is done.
-                    let summarization_done = matches!(summarization_status, SummarizationStatus::Done);
+                    let locked_summarization_status = summarization_status.lock().unwrap();
+                    let summarization_status_copy = locked_summarization_status.clone();
+                    drop(locked_summarization_status);
+                    let summarization_done = matches!(summarization_status_copy, SummarizationStatus::Done);
 
                     // If a summary's already been run...
                     if summarization_table_has_data && summarization_done {

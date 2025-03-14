@@ -26,6 +26,7 @@ use web_time::{Duration, Instant};
 // Internal crates for macOS, Windows, *and* WASM builds.
 use crate::FoundFile;
 
+#[derive(Clone)]
 pub enum SummarizationStatus {
     NotStarted,
     InProgress,
