@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::FoundFile;
+use crate::{FoundFile, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -49,7 +49,6 @@ pub struct FolsumGui {
     #[serde(skip)]
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
-    #[serde(skip)]
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
     #[serde(skip)]
     verification_file_path: Arc<Mutex<Option<PathBuf>>>,
@@ -299,6 +298,7 @@ impl eframe::App for FolsumGui {
                     ui.monospace(shown_path);
                 });
 
+                // todo: Grey out/disable the "Verify Folder" button if requesite conditions aren't met.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Verify Folder").clicked() {
                     info!("User started verification");
@@ -306,21 +306,39 @@ impl eframe::App for FolsumGui {
                     // Check if summarization table has data.
                     let file_paths_locked = file_paths.lock().unwrap();
                     let summarization_table_has_data = !file_paths_locked.is_empty();
+                    if summarization_table_has_data {
+                        debug!("✅ Data in summarization table");
+                    } else {
+                        debug!("❌ No data in summarization table");
+                    }
 
                     // Check if summarization is done.
                     let locked_summarization_status = summarization_status.lock().unwrap();
                     let summarization_status_copy = locked_summarization_status.clone();
                     drop(locked_summarization_status);
-                    let summarization_done = matches!(summarization_status_copy, SummarizationStatus::Done);
 
-                    // If a summary's already been run...
-                    if summarization_table_has_data && summarization_done {
+                    let summarization_complete = match summarization_status_copy {
+                        SummarizationStatus::NotStarted => {
+                            warn!("❌ Nothing has been summarized, so nothing can be verified");
+                            false
+                        }
+                        SummarizationStatus::InProgress => {
+                            warn!("❌ In progress summarization means that nothing can be verified");
+                            false
+                        }
+                        SummarizationStatus::Done => {
+                            debug!("✅ Data in summarization table, so verification can proceed");
+                            true
+                        }
+                    };
+
+                    // If everything's ready to verify...
+                    if summarization_table_has_data && summarization_complete {
                         // ... then ensure that its contents match the verification file.
-
+                        verify_summarization(&file_paths, &verification_file_path, &summarization_path).unwrap();
+                    } else {
+                        info!("Skipping user-requested verification because conditions weren't met")
                     }
-
-                    // todo: Load CSV file into ephemeral Vec of FoundFiles
-                    // todo: Check each summary table item against csv file.
                 }
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]

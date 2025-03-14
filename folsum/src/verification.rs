@@ -140,9 +140,12 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
         Some(first_line) => first_line?,
         None => bail!("Found nothing in first line of file"),
     };
-    match first_line_content == CSV_HEADERS.to_string() {
+    // Remove the trailing newline in the header check b/c the line iterator does it too.
+    match first_line_content == CSV_HEADERS.trim().to_string() {
         true => info!("Identified {verification_file_path:?} as a valid FolSum CSV export"),
-        false => bail!("The file {verification_file_path:?} is an invalid FolSum CSV export"),
+        false => bail!("The file {verification_file_path:?} \
+                        is an invalid FolSum CSV export. Found {first_line_content:?} \
+                        when {CSV_HEADERS:?} was expected"),
     };
 
     let mut verification_entries: Vec<FoundFile> = vec![];
