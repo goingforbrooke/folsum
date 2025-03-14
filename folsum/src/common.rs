@@ -1,3 +1,6 @@
+// Std crates for macOS, Windows, *and* WASM builds.
+use std::path::PathBuf;
+
 /// Add a debug-only `println!` macro
 ///
 /// This ignores `--release`s, so stdout will only show in `cargo build` and `cargo run`.
@@ -8,6 +11,25 @@ macro_rules! debug_println {
         #[cfg(debug_assertions)]
         println!($($arg)*);
     };
+}
+
+pub const CSV_HEADERS: &str = "File Path, MD5 Hash\n";
+
+#[derive(Clone, Debug)]
+pub enum DirectoryVerificationStatus {
+    Unverified,
+    InProgress,
+    Verified,
+    VerificationFailed,
+}
+
+/// Files found by FolSum.
+#[derive(Clone, Debug, Default)]
+pub struct FoundFile {
+    // Relative path from the summarization directory to the file.
+    pub file_path: PathBuf,
+    // MD5 digest as a hexadecimal string.
+    pub md5_hash: String,
 }
 
 #[cfg(test)]

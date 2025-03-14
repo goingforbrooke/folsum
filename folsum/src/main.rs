@@ -6,6 +6,13 @@
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::error::Error;
 
+// External crates for WASM builds.
+#[cfg(target_family = "wasm")]
+use web_sys;
+// Add `dyn_into` for getting HTML canvas in WASM builds.
+#[cfg(target_family = "wasm")]
+use web_sys::wasm_bindgen::JsCast;
+
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
@@ -24,7 +31,7 @@ fn setup_native_eframe() -> eframe::Result<()> {
     eframe::run_native(
         &APP_NAME,
         native_options,
-        Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
+        Box::new(|cc| Ok(Box::new(folsum::FolsumGui::new(cc)))),
     )?;
     info!("Initialized native eframe");
     Ok(())
@@ -47,13 +54,38 @@ fn main() {
     let web_options = eframe::WebOptions::default();
 
     wasm_bindgen_futures::spawn_local(async {
-        eframe::WebRunner::new()
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
+
+        let canvas = document
+            .get_element_by_id("the_canvas_id")
+            .expect("Failed to find the_canvas_id")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("the_canvas_id was not a HtmlCanvasElement");
+
+        let start_result = eframe::WebRunner::new()
             .start(
-                "the_canvas_id", // hardcode it
+                canvas,
                 web_options,
-                Box::new(|cc| Box::new(folsum::FolsumGui::new(cc))),
+                Box::new(|cc| Ok(Box::new(folsum::FolsumGui::new(cc)))),
             )
-            .await
-            .expect("failed to start eframe");
+            .await;
+
+        // Remove loading text and spinner.
+        if let Some(loading_text) = document.get_element_by_id("loading_text") {
+            match start_result {
+                Ok(_) => {
+                    loading_text.remove();
+                }
+                Err(e) => {
+                    loading_text.set_inner_html(
+                        "<p> The app has crashed. See the developer console for details. </p>",
+                    );
+                    panic!("Failed to start eframe: {e:?}");
+                }
+            }
+        }
     });
 }

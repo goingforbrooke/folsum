@@ -66,10 +66,40 @@ Check compilation for all targets.
 $ user@host: cargo check --target x86_64-apple-darwin --target aarch64-apple-darwin --target wasm32-unknown-unknown --target x86_64-pc-windows-gnu
 ```
 
-### 🌎 Preview WASM Builds
+### ✅ Testing
 
 ```console
-$ user@host: trunk serve --open
+$ user@host: RUST_LOG=DEBUG cargo nextest run test_dir --nocapture --features bench
+```
+
+### 📈🔥 Benchmarks and Profiling
+
+Run and save benchmarks:
+
+From `folsum/folsum/`, run:
+
+```console
+$ user@host: ./run_and_save_benchmarks.zsh
+```
+
+Behind the scenes, this script runs `cargo bench --features bench`, which creates benchmark files in `folsum/target/criterion/benchmark_directory_summarization/`. These are saved to `folsum/folsum/benchmarks/<todays_date>_historical_benchmark`.
+
+Behind the scenes, this runs `cargo flamegraph --root --bench benchmark_directory_summarization --features bench -- --bench`, which creates `flamegraph.svg` in the current working directory and copies it inside of `folsum/folsum/benchmarks/<todays_date>_historical_benchmark/`
+
+Running `cargo flamegraph` also runs benchmarks, which would usually be accomplished by `cargo bench --features bench`.
+
+### 🌎 Preview WASM Builds
+
+Preview
+
+```console
+$ user@host: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve --open
+```
+
+Build and check (with `rand` flag).
+
+```console
+$ RUSTFLAGS='--cfg getrandom_backend="wasm_js"' cargo build --target wasm32-unknown-unknown
 ```
 
 ### 📦 `cargo build`

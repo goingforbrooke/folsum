@@ -1,6 +1,4 @@
 // Std crates for macOS, Windows, *and* WASM builds.
-use std::collections::HashMap;
-use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -9,6 +7,9 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
+
+// Internal crates for macOS, Windows, *and* WASM builds.
+use crate::{get_md5_hash, DirectoryVerificationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -22,143 +23,317 @@ use walkdir::WalkDir;
 #[cfg(target_family = "wasm")]
 use web_time::{Duration, Instant};
 
+// Internal crates for macOS, Windows, *and* WASM builds.
+use crate::FoundFile;
 
-/// Summarize directories in macOS and Windows builds.
+#[derive(Clone)]
+pub enum SummarizationStatus {
+    NotStarted,
+    InProgress,
+    Done,
+}
+
+/// Summarize directories in native builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn summarize_directory(
     summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
+    summarization_status: &Arc<Mutex<SummarizationStatus>>,
+    directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
 ) -> Result<(), &'static str> {
+
     let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
     // If the user picked a directory to summarize....
     if locked_path.is_some() {
         // ...then recursively count file extensions in the chosen directory.
-        // Reset file extension counts to zero.
-        *extension_counts.lock().unwrap() = HashMap::new();
+
+        // Reset file findings.
+        *file_paths.lock().unwrap() = vec![];
+
+        *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
+        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
+
+        // Note that summarization is in progress.
 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let extension_counts_copy = Arc::clone(&extension_counts);
+        let file_paths_copy = Arc::clone(&file_paths);
         let summarization_path_copy = Arc::clone(&summarization_path);
         let start_copy = Arc::clone(&summarization_start);
         let time_taken_copy = Arc::clone(&time_taken);
 
         thread::spawn(move || {
-            // Categorize extensionless files as "No extension."
-            let default_extension = OsString::from("No extension");
-
             // Start the stopwatch for summarization time.
             let mut locked_start_copy = start_copy.lock().unwrap();
             *locked_start_copy = Instant::now();
             info!("Started summarization");
 
             let locked_summarization_path = summarization_path_copy.lock().unwrap();
-            // Clone the user's chosen path so we can release it's lock, allowing live table updates.
+            // Clone the user's chosen path so we can release its lock, allowing live table updates.
             let summarization_path_copy = locked_summarization_path.clone();
-            // Release the mutex lock on the chosen path so extension count table can update.
+            // Release the mutex lock on the chosen path so the summarization count table can update.
             drop(locked_summarization_path);
 
-            // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-            for entry in WalkDir::new(summarization_path_copy.unwrap())
-                .min_depth(1)
-                .into_iter()
-                .filter_map(Result::ok)
-                .filter(|e| !e.file_type().is_dir())
-            {
-                trace!("Found file: {:?}", &entry.path());
-                // Extract the file extension from the file's name.
-                let file_ext: &OsStr = entry.path().extension().unwrap_or(&default_extension);
-                let show_ext: String = String::from(file_ext.to_string_lossy());
-                // Lock the extension counts variable so we can add a file to it.
-                let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
-                // Add newly encountered file extensions to known file extensions with a counter of 0.
-                let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
-                // Increment the counter for known file extensions by one.
-                *counter += 1;
-                // Update the summarization time stopwatch.
-                let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
-                *locked_time_taken_copy = locked_start_copy.elapsed();
+            match summarization_path_copy {
+                Some(ref provided_path) => {
+                    info!("Started recursing through {provided_path:?}");
+
+                    // Recursively iterate through each subdirectory.
+                    for dir_entry in WalkDir::new(provided_path)
+                        // Don't consider the top-level directory as an item.
+                        .min_depth(1)
+                        .into_iter()
+                        .filter_map(Result::ok)
+                        // Ignore subdirectories at all depths.
+                        .filter(|dir_entry| !dir_entry.file_type().is_dir())
+                    {
+                        let foundfile_path: PathBuf = dir_entry.into_path();
+                        debug!("Found directory (file) entry: {foundfile_path:?}");
+
+                        let found_file = FoundFile {
+                            // todo: Handle relative path prefix strip errors.
+                            // Convert from absolute path to a relative (to given directory) path.
+                            file_path: foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf(),
+                            md5_hash: get_md5_hash(&foundfile_path).unwrap(),
+                        };
+
+                        // Lock the extension counts variable so we can add a file to it.
+                        let mut locked_paths_copy = file_paths_copy.lock().unwrap();
+
+                        // Add newly encountered file paths to known file paths.
+                        locked_paths_copy.push(found_file);
+
+                        // Release the file paths lock so the GUI can update.
+                        drop(locked_paths_copy);
+
+                        // Update the summarization time stopwatch.
+                        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
+                        *locked_time_taken_copy = locked_start_copy.elapsed();
+                    }
+                    // End of loop
+                },
+                None => error!("No summarization path was provided"),
             }
         });
     };
+    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
     Ok(())
 }
 
 /// Summarize directories in WASM builds.
 #[cfg(target_family = "wasm")]
 pub fn wasm_demo_summarize_directory(
-    extension_counts: &Arc<Mutex<HashMap<String, u32>>>,
+    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
+    summarization_status: &Arc<Mutex<SummarizationStatus>>,
     ) {
+    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
     // ...then recursively count file extensions in the chosen directory.
-    // Reset file extension counts to zero.
-    *extension_counts.lock().unwrap() = HashMap::new();
 
-    // Copy the Arcs of persistent members so they can be accessed by a separate thread. let extension_counts_copy = Arc::clone(&extension_counts);
+    // Reset file findings.
+    *file_paths.lock().unwrap() = vec![FoundFile::default()];
+
+    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let start_copy = Arc::clone(&summarization_start);
     let time_taken_copy = Arc::clone(&time_taken);
-    let extension_counts_copy = Arc::clone(&extension_counts);
+    let file_paths_copy = Arc::clone(&file_paths);
 
     // We usually do this in a separate thread, which `web_sys`'s (Web)workers would do a good job of simulating.
-    // We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
+    // Temp: We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
+    // todo: add `web_sys` (Web)workers to WASM demo so the GUI doesn't hang for larger file counts.
 
-    // Categorize extensionless files as "No extension."
-    let default_extension = OsString::from("No extension");
+    // Set up the browser demo by creating "fake files" to summarize.
+    let actual_file_paths = generate_fake_file_paths(20, 3);
 
     // Start the stopwatch for summarization time.
     let mut locked_start_copy = start_copy.lock().unwrap();
     *locked_start_copy = Instant::now();
     info!("Started summarization");
 
+    // Set up the demo by creating "fake files" to summarize.
+    let actual_file_paths = generate_fake_file_paths(20, 3);
 
-    // File extensions for our demo.
-    let demo_file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
-                                               "jpg", "png", "gif", "mp4", "avi",
-                                               "mkv", "dll", "sys", "app", "dmg",
-                                               "zip", "iso", "pages", "numbers",
-                                               "7zip", "html", "py", "rs", "js",
-                                               "rs"];
+    // (Fake) WASM summarization.
+    for file_path in actual_file_paths {
+        // Pretend like a FoundFile for this item already existed.
+        let found_file = FoundFile {file_path, md5_hash: 0};
 
-    // Generate numbers to sequentially assign as theoretical quantities of each file extension.
-    let fibonacci_numbers = |n: usize| -> u32 {
-        let mut a = 0;
-        let mut b = 1;
-        for _ in 0..n {
-            let temp = a;
-            a = b;
-            b = temp + b;
-        }
-        a
-    };
+        trace!("Found file: {:?}", &found_file);
+        let mut locked_paths_copy= file_paths_copy.lock().unwrap();
 
-    // Create fake (Fibonacci) counts for each file extension.
-    let demo_file_counts: HashMap<&str, u32> = demo_file_extensions.iter().enumerate().map(|(index, item)| {
-        let fib_num = fibonacci_numbers(index);
-        (*item, fib_num)
-    }).collect();
+        // Add newly encountered file paths to known file paths.
+        locked_paths_copy.push(found_file);
 
-    // Create a file path for each the "fake file."
-    let demo_file_paths: Vec<PathBuf> = demo_file_counts.iter().flat_map(|(file_extension, counter)| {
-        let filename = format!("some_filename.{file_extension}");
-        (0..*counter).map(move |_| PathBuf::from(&filename))
-    }).collect();
-
-    // Recursively iterate through each subdirectory and don't add subdirectories to the result.
-    for entry in demo_file_paths {
-        trace!("Found file: {:?}", &entry);
-        // Extract the file extension from the file's name.
-        let file_ext: &OsStr = entry.extension().unwrap_or(&default_extension);
-        let show_ext: String = String::from(file_ext.to_string_lossy());
-        // Lock the extension counts variable so we can add a file to it.
-        let mut locked_counts_copy = extension_counts_copy.lock().unwrap();
-        // Add newly encountered file extensions to known file extensions with a counter of 0.
-        let counter: &mut u32 = locked_counts_copy.entry(show_ext).or_insert(0);
-        // Increment the counter for known file extensions by one.
-        *counter += 1;
         // Update the summarization time stopwatch.
         let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
         *locked_time_taken_copy = locked_start_copy.elapsed();
+    }
+
+    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
+}
+
+// External test/demo crates.
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
+use rand::distr::Alphanumeric;
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
+use rand::{rng, Rng};
+
+/// Create an "answer key" of fake file paths.
+///
+/// These will be used to create "fake files" for testing things like `summarize_directory`. This
+/// fixture would be under `#[cfg(test)]`, but we need it for WASM builds so the browser demo has
+/// something so summarize.
+///
+/// * `base_dir` - The root directory where the fake files will eventually be created.
+/// * `total_files` - The total number of fake file paths to generate.
+/// * `max_depth` - The maximum directory depth for the fake files.
+/// * `extensions` - A slice of file extensions to randomly choose from.
+// Make available for `cargo check`, native unit tests, benchmarks, and the browser demo (but not native builds).
+#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
+#[allow(unused)]
+fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
+    // Persist the random number generator to avoid re-initialization.
+    let mut random_number_generator = rng();
+
+    let mut fake_paths = Vec::new();
+
+    // For each file that we need to create...
+    for _ in 0..total_files {
+        // Decide the depth for this file's directory.
+        let current_depth = random_number_generator.random_range(0..=max_depth);
+
+        let mut dir_paths = PathBuf::new();
+        // Create a subdirectory at the current depth.
+        for _ in 0..current_depth {
+            // Create an eight character random dir name.
+            let dir_name: String = (&mut random_number_generator)
+                .sample_iter(&Alphanumeric)
+                .take(8)
+                .map(char::from)
+                .
+                    collect();
+            // Add the new directory to the stack.
+            dir_paths.push(dir_name);
+        }
+
+        // Create a ten character filename.
+        let file_stem: String = rng()
+            .sample_iter(&Alphanumeric)
+            .take(10)
+            .map(char::from)
+            .collect();
+
+        // File types for browser demos and unit tests.
+        let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
+                                              "jpg", "png", "gif", "mp4", "avi",
+                                              "mkv", "dll", "sys", "app", "dmg",
+                                              "zip", "iso", "pages", "numbers",
+                                              "7zip", "html", "py", "rs", "js",
+                                              "rs"];
+
+        // Choose a random extension from the provided list.
+        let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
+
+        // Create the full file name with extension.
+        let file_name = format!("{}.{}", file_stem, this_extension);
+        let file_path = dir_paths.join(file_name);
+        fake_paths.push(file_path);
+    }
+    fake_paths
+}
+
+#[cfg(any(test, feature = "bench"))]
+pub mod tests {
+    use std::fs::{create_dir_all, File};
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+    #[cfg(test)]
+    use std::thread::sleep;
+    use std::time::{Duration, Instant};
+
+    use crate::summarize::{summarize_directory, generate_fake_file_paths};
+    use crate::FoundFile;
+
+    use test_log;
+    use tempfile::{tempdir, TempDir};
+    #[allow(unused)]
+    use tracing::{debug, error, info, trace, warn};
+
+    /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
+    fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
+        let temp_dir = tempdir().unwrap();
+
+        for relative_testfile_path in desired_filepaths {
+            // Put "faked files" in the temp dir so they're removed at the end of the test.
+            let absolute_testfile_path: PathBuf = [temp_dir.as_ref(), relative_testfile_path].iter().collect();
+
+            if let Some(file_parent) = absolute_testfile_path.parent() {
+                create_dir_all(file_parent)?;
+            }
+            File::create(&absolute_testfile_path)?;
+
+            debug!("Created test file: {absolute_testfile_path:?}");
+        }
+        // Return the tempdir handle so the calling function can keep it alive.
+        Ok(temp_dir)
+    }
+
+    /// Run directory summarization in a temporary directory of "fake" files.
+    ///
+    /// This is abstracted away from [`test_directory_summarization`] so it can be called by the benchmarker.
+    ///
+    /// # Returns
+    ///
+    /// Tuple:
+    /// - datastore variable (to check at the end of a test)
+    /// - `Vec<PathBuf>` of file paths that we expect to find
+    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>), anyhow::Error> {
+        // Set up the test by creating "fake files" to summarize.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+        let tempdir_handle = create_fake_files(&expected_file_paths)?;
+
+        // Extract the tempdir containing the files to test against.
+        let testdir_path = tempdir_handle.as_ref().to_path_buf();
+        debug!("(Test) testdir_path = {:#?}", testdir_path);
+
+        // Set up "dummy" datastores so we can run the test.
+        let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
+        let file_paths = Arc::new(Mutex::new(vec![]));
+        let summarization_start = Arc::new(Mutex::new(Instant::now()));
+        let time_taken = Arc::new(Mutex::new(Duration::ZERO));
+
+        // Summarize the tempfiles.
+        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
+
+        // Destroy the test files b/c we're done summarizing them.
+        drop(tempdir_handle);
+
+        // Return the datastore variable so the unit test can verify what's been summarized.
+        Ok((file_paths, expected_file_paths))
+    }
+
+
+    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
+    #[test_log::test]
+    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths)= run_fake_summarization()?;
+
+        // Assume that summarization will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        // Lock the dummy file tracker so we can check its contents.
+        let locked_paths_copy = file_paths.lock().unwrap();
+
+        // Check if the summarization was successful.
+        for actual_found_file in locked_paths_copy.iter() {
+            let actual_file_path = &actual_found_file.file_path;
+            assert!(expected_file_paths.contains(actual_file_path),
+                                                 "Expected to find {actual_file_path:?} \
+                                                  in {expected_file_paths:?}");
+        }
+
+        Ok(())
     }
 }

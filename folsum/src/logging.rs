@@ -180,12 +180,12 @@ mod tests {
     use super::*;
     use crate::common::test_utilities::TempHomeEnvVar;
 
-    use tempdir::TempDir;
+    use tempfile::tempdir;
 
     #[test]
     fn test_create_appdata_logdir() {
         // Create temporary directory that'll be deleted when it goes out of scope.
-        let temp_dir = TempDir::new("test_create_logdir").unwrap();
+        let temp_dir = tempdir().unwrap();
 
         // Use the tempdir by manipulating `dirs` crate's use of `$HOME`.
         // Set testing environment variable that'll be removed when this goes out of scope.

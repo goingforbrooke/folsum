@@ -2,7 +2,7 @@
 name = "folsum"
 description = "Summarize the contents of a directory with a GUI"
 default-run = "folsum"
-version = "2.0.3"
+version = "2.1.0"
 authors = ["goingforbrooke <12855764+goingforbrooke@users.noreply.github.com>"]
 edition = "2021"
 rust-version = "1.77.2"
@@ -15,39 +15,52 @@ homepage = "https://folsum.goingforbrooke.com"
 repository = "https://github.com/goingforbrooke/folsum"
 
 [dependencies]
+### Web and Native
 # eGui dependencies.
-egui = "0.27.2"
+egui = "0.31.1"
 # Enable restoring app state with the "persistence" feature.
-eframe = { version = "0.27.2", default-features = true, features = ["persistence"] }
+eframe = { version = "0.31.1", default-features = true, features = ["persistence"] }
+egui_extras = "0.31.1"
+
+anyhow = "1.0.97"
+chrono = "0.4"
+dirs = "6.0"
+fern = { version = "0.7.1", features = ["colored"] }
+humantime = "2.1.0"
+itertools = "0.14.0"
 log = "0.4"
-chrono = "0.4.38"
-dirs = "5.0.1"
-egui_extras = "0.27.2"
-itertools = "0.12.1"
-rfd = "0.14.1"
+# Random number generation for the browser demo.
+rand = "0.9.0"
+# Activate the `wasm_js` so WASM builds work.
+getrandom = {version = "0.3.1", features = ["wasm_js"]}
+rfd = "0.15.2"
+# Serde for app persistence.
+serde = { version = "1.0.218", features = ["derive"] }
+# Tempfiles for unit tests and benchmarks. Not in `dev-dependencies` b/c needed for benchmarks.
+tempfile = { version = "3.18.0", optional = true }
+# Show `tracing` log output in tests.
+test-log = { version = "0.2.17", optional = true}
+tracing = "0.1.41"
 walkdir = "2.5.0"
 web-time = "1.1.0"
+md5 = "0.7.0"
 
-# Serde for app persistence.
-serde = { version = "1.0.199", features = ["derive"] }
-fern = { version = "0.6.2", features = ["colored"] }
-humantime = "2.1.0"
-anyhow = "1.0.82"
-
-# native:
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+### Native
+[target.'cfg(any(target_family = "unix", target_family = "windows"))'.dependencies]
 env_logger = "0.11.3"
 
-# web:
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+### Web
+
+[target.'cfg(target_family = "wasm")'.dependencies]
 wasm-bindgen-futures = "0.4"
+# DOM manipulation to remove loading text.
+web-sys = {version="0.3.70", features = ["HtmlCanvasElement"] }
 
 # Cargo Bundle items for macOS distributions.
 [package.metadata.bundle]
 identifier = "com.bytesluice.folsum"
 copyright = "Copyright (c) Brooke Deuson 2025. All rights reserved."
 category = "public.app-category.productivity"
-#icon = "images/icons/resized_icons/"
 icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_128px@2x.png",
         "folsum/images/icons/resized_icons/folsum_icon_16px.png",
@@ -60,4 +73,14 @@ icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
         "folsum/images/icons/resized_icons/folsum_icon_512px@2x.png",]
 
 [dev-dependencies]
-tempdir = "0.3.7"
+criterion = "0.5.1"
+pretty_assertions = "1.4.1"
+
+[features]
+# Don't compile benchmark code unless we're benchmarking.
+bench = ["tempfile", "test-log"]
+
+# Criterion benchmarking (https://bheisler.github.io/criterion.rs/book/getting_started.html).
+[[bench]]
+name = "benchmark_directory_summarization"
+harness = false
