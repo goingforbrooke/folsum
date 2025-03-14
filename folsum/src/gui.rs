@@ -62,7 +62,7 @@ pub struct FolsumGui {
     #[serde(skip)]
     time_taken: Arc<Mutex<Duration>>,
     #[serde(skip)]
-    summarization_status: SummarizationStatus,
+    summarization_status: Arc<Mutex<SummarizationStatus>>,
 }
 
 impl Default for FolsumGui {
@@ -176,12 +176,14 @@ impl eframe::App for FolsumGui {
                         &file_paths,
                         &summarization_start,
                         &time_taken,
+                        &summarization_status,
                     );
                     #[cfg(target_family = "wasm")]
                     let _result = wasm_demo_summarize_directory(
                         &file_paths,
                         &summarization_start,
                         &time_taken,
+                        &summarization_status,
                     );
                 };
 

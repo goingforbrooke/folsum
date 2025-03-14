@@ -39,7 +39,10 @@ pub fn summarize_directory(
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
+    summarization_status: &Arc<Mutex<SummarizationStatus>>,
 ) -> Result<(), &'static str> {
+    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
+
     let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
     // If the user picked a directory to summarize....
     if locked_path.is_some() {
@@ -110,6 +113,7 @@ pub fn summarize_directory(
             }
         });
     };
+    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
     Ok(())
 }
 
@@ -119,7 +123,9 @@ pub fn wasm_demo_summarize_directory(
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
+    summarization_status: &Arc<Mutex<SummarizationStatus>>,
     ) {
+    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
     // ...then recursively count file extensions in the chosen directory.
 
     // Reset file findings.
@@ -160,6 +166,8 @@ pub fn wasm_demo_summarize_directory(
         let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
         *locked_time_taken_copy = locked_start_copy.elapsed();
     }
+
+    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
 }
 
 // External test/demo crates.
