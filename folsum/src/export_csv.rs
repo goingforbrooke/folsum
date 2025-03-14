@@ -16,7 +16,8 @@ use log::{debug, error, info, trace, warn};
 
 // Internal crates macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::FoundFile;
+use crate::{CSV_HEADERS, FoundFile};
+
 
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn export_csv(
@@ -29,7 +30,7 @@ pub fn export_csv(
     let export_file: Arc<Mutex<Option<PathBuf>>> = export_file.clone();
     thread::spawn(move || {
         // Make a place to put file paths that'll be written to the CSV file and include column headers.
-        let mut csv_rows = String::from("File Path, MD5 Hash\n");
+        let mut csv_rows = CSV_HEADERS.to_string();
         let locked_file_paths: MutexGuard<'_, Vec<FoundFile>> = file_paths_copy.lock().unwrap();
         for found_file in locked_file_paths.iter() {
             let show_path = found_file.file_path.to_string_lossy();

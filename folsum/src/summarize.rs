@@ -26,6 +26,12 @@ use web_time::{Duration, Instant};
 // Internal crates for macOS, Windows, *and* WASM builds.
 use crate::FoundFile;
 
+pub enum SummarizationStatus {
+    NotStarted,
+    InProgress,
+    Done,
+}
+
 /// Summarize directories in native builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn summarize_directory(
@@ -42,6 +48,8 @@ pub fn summarize_directory(
         // Reset file findings.
         *file_paths.lock().unwrap() = vec![];
 
+        // Note that summarization is in progress.
+
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
         let file_paths_copy = Arc::clone(&file_paths);
         let summarization_path_copy = Arc::clone(&summarization_path);
@@ -55,9 +63,9 @@ pub fn summarize_directory(
             info!("Started summarization");
 
             let locked_summarization_path = summarization_path_copy.lock().unwrap();
-            // Clone the user's chosen path so we can release it's lock, allowing live table updates.
+            // Clone the user's chosen path so we can release its lock, allowing live table updates.
             let summarization_path_copy = locked_summarization_path.clone();
-            // Release the mutex lock on the chosen path so extension count table can update.
+            // Release the mutex lock on the chosen path so the summarization count table can update.
             drop(locked_summarization_path);
 
             match summarization_path_copy {
@@ -66,6 +74,7 @@ pub fn summarize_directory(
 
                     // Recursively iterate through each subdirectory.
                     for dir_entry in WalkDir::new(provided_path)
+                        // Don't consider the top-level directory as an item.
                         .min_depth(1)
                         .into_iter()
                         .filter_map(Result::ok)
@@ -95,6 +104,7 @@ pub fn summarize_directory(
                         let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
                         *locked_time_taken_copy = locked_start_copy.elapsed();
                     }
+                    // End of loop
                 },
                 None => error!("No summarization path was provided"),
             }
@@ -190,7 +200,8 @@ fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
                 .sample_iter(&Alphanumeric)
                 .take(8)
                 .map(char::from)
-                .collect();
+                .
+                    collect();
             // Add the new directory to the stack.
             dir_paths.push(dir_name);
         }

@@ -32,7 +32,7 @@ use crate::FoundFile;
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, summarize_directory};
+use crate::{export_csv, summarize_directory, SummarizationStatus};
 
 // Internal crates for WASM builds.
 #[cfg(target_family = "wasm")]
@@ -61,6 +61,8 @@ pub struct FolsumGui {
     // Amount of time that it takes to summarize a directory.
     #[serde(skip)]
     time_taken: Arc<Mutex<Duration>>,
+    #[serde(skip)]
+    summarization_status: SummarizationStatus,
 }
 
 impl Default for FolsumGui {
@@ -73,6 +75,7 @@ impl Default for FolsumGui {
             export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
+            summarization_status: SummarizationStatus::NotStarted,
         }
     }
 }
@@ -111,6 +114,7 @@ impl eframe::App for FolsumGui {
             export_file,
             summarization_start,
             time_taken,
+            summarization_status,
             ..
         } = self;
 
@@ -265,8 +269,22 @@ impl eframe::App for FolsumGui {
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Verify Folder").clicked() {
                     info!("User started verification");
-                    // todo: Ensure that summarization is complete and already run (greyed out until then).
-                    // todo: Verify in-memory summarization against csv file.
+
+                    // Check if summarization table has data.
+                    let file_paths_locked = file_paths.lock().unwrap();
+                    let summarization_table_has_data = !file_paths_locked.is_empty();
+
+                    // Check if summarization is done.
+                    let summarization_done = matches!(summarization_status, SummarizationStatus::Done);
+
+                    // If a summary's already been run...
+                    if summarization_table_has_data && summarization_done {
+                        // ... then ensure that its contents match the verification file.
+
+                    }
+
+                    // todo: Load CSV file into ephemeral Vec of FoundFiles
+                    // todo: Check each summary table item against csv file.
                 }
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]

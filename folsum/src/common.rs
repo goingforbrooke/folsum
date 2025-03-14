@@ -13,8 +13,10 @@ macro_rules! debug_println {
     };
 }
 
+pub const CSV_HEADERS: &str = "File Path, MD5 Hash\n";
+
 /// Files found by FolSum.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FoundFile {
     // Relative path from the summarization directory to the file.
     pub file_path: PathBuf,
