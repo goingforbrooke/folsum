@@ -50,7 +50,6 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
-    #[serde(skip)]
     verification_file_path: Arc<Mutex<Option<PathBuf>>>,
     // User's chosen directory and filename for CSV exports.
     export_file: Arc<Mutex<Option<PathBuf>>>,

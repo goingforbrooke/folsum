@@ -24,14 +24,14 @@ use log::{debug, error, info, trace, warn};
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                             verification_file_path: &Arc<Mutex<Option<PathBuf>>>,
-                            summarization_path: &Arc<Mutex<Option<PathBuf>>>, ) -> Result<Vec<(FoundFile, FileVerificationStatus)>, anyhow::Error> {
+                            summarization_path: &Arc<Mutex<Option<PathBuf>>>, ) -> Result<(), anyhow::Error> {
 
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
     let verification_file_path = Arc::clone(&verification_file_path);
     let summarization_path = Arc::clone(&summarization_path);
 
-    let thread_handle = thread::spawn(move || {
+    let _thread_handle = thread::spawn(move || {
         let locked_verification_file_path = verification_file_path.lock().unwrap();
         let verification_file_path_copy = locked_verification_file_path.clone();
         drop(locked_verification_file_path);
@@ -67,7 +67,7 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         info!("Completed verification");
         Ok(verification_failures)
     });
-    thread_handle.join().unwrap()
+    Ok(())
 }
 
 #[derive(Debug, Default)]
@@ -84,17 +84,19 @@ fn verify_file(verification_entry: &FoundFile,
                summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileVerificationStatus, anyhow::Error> {
     // Grab a file lock so we can filter for matching summarized files.
     let locked_summarized_files = summarized_files.lock().unwrap();
+    let copied_summarized_files = locked_summarized_files.clone();
+    // Drop the lock so the GUI can update.
+    drop(locked_summarized_files);
     // Find entries from the verification file with paths that match this summarized file.
-    let with_matching_paths: Vec<FoundFile> = locked_summarized_files
+    let with_matching_paths: Vec<FoundFile> = copied_summarized_files
         .iter()
-        .filter(|verification_entry| {
-            verification_entry.file_path == verification_entry.file_path
+        // Find every summarized file with a path that matches this verification entry.
+        .filter(|summarized_file| {
+            summarized_file.file_path == verification_entry.file_path
         })
         // Clone matches b/c we need to release the lock and the memory cost is tiny.
         .cloned()
         .collect();
-    // Drop the lock so the GUI can update.
-    drop(locked_summarized_files);
 
     let file_path_matches = match with_matching_paths.len() {
         0 => {
@@ -109,7 +111,9 @@ fn verify_file(verification_entry: &FoundFile,
         _ => {
             let verification_entry_path = &verification_entry.file_path;
             // todo: Figure out what to do if more than one matching paths were found during verification.
-            bail!("Found more than one summarized file with a path matching the verification entry {verification_entry_path:?} {with_matching_paths:?}");
+            let error_message = format!("Found more than one summarized file with a path matching the verification entry {verification_entry_path:?} {with_matching_paths:?}");
+            error!("{error_message}");
+            bail!(error_message);
         }
     };
 
