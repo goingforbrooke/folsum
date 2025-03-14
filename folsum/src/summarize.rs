@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::get_md5_hash;
+use crate::{get_md5_hash, DirectoryVerificationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -41,8 +41,8 @@ pub fn summarize_directory(
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
     summarization_status: &Arc<Mutex<SummarizationStatus>>,
+    directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
 ) -> Result<(), &'static str> {
-    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
 
     let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
     // If the user picked a directory to summarize....
@@ -51,6 +51,9 @@ pub fn summarize_directory(
 
         // Reset file findings.
         *file_paths.lock().unwrap() = vec![];
+
+        *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
+        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
 
         // Note that summarization is in progress.
 

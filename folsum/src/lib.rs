@@ -1,7 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod common;
-pub use common::{CSV_HEADERS, FoundFile};
+pub use common::{CSV_HEADERS, FoundFile, DirectoryVerificationStatus};
 
 mod export_csv;
 #[cfg(any(target_family = "unix", target_family = "windows"))]

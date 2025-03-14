@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization};
+use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -61,6 +61,8 @@ pub struct FolsumGui {
     time_taken: Arc<Mutex<Duration>>,
     #[serde(skip)]
     summarization_status: Arc<Mutex<SummarizationStatus>>,
+    #[serde(skip)]
+    directory_verification_status: Arc<Mutex<DirectoryVerificationStatus>>,
 }
 
 impl Default for FolsumGui {
@@ -74,6 +76,7 @@ impl Default for FolsumGui {
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
+            directory_verification_status: Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified)),
         }
     }
 }
@@ -113,6 +116,7 @@ impl eframe::App for FolsumGui {
             summarization_start,
             time_taken,
             summarization_status,
+            directory_verification_status,
             ..
         } = self;
 
@@ -175,6 +179,7 @@ impl eframe::App for FolsumGui {
                         &summarization_start,
                         &time_taken,
                         &summarization_status,
+                        &directory_verification_status,
                     );
                     #[cfg(target_family = "wasm")]
                     let _result = wasm_demo_summarize_directory(
@@ -334,11 +339,28 @@ impl eframe::App for FolsumGui {
                     // If everything's ready to verify...
                     if summarization_table_has_data && summarization_complete {
                         // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &verification_file_path, &summarization_path).unwrap();
+                        verify_summarization(&file_paths, &verification_file_path, &summarization_path, &directory_verification_status).unwrap();
                     } else {
                         info!("Skipping user-requested verification because conditions weren't met")
                     }
                 }
+
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                ui.horizontal(|ui| {
+                    let locked_directory_verification_status = directory_verification_status.lock().unwrap();
+                    let directory_verification_status_copy = locked_directory_verification_status.clone();
+                    drop(locked_directory_verification_status);
+                    let shown_directory_verification_status = match directory_verification_status_copy {
+                        DirectoryVerificationStatus::Unverified => "contents haven't been verified",
+                        DirectoryVerificationStatus::InProgress => "verification in progress",
+                        DirectoryVerificationStatus::Verified => "contents passed verification",
+                        DirectoryVerificationStatus::VerificationFailed => "at least one item failed verification",
+                    };
+
+                    ui.label("Folder verification status: ");
+                    // Display the user's chosen directory in monospace font.
+                    ui.label(shown_directory_verification_status);
+                });
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.separator();

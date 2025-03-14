@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, FoundFile, get_md5_hash};
+use crate::{CSV_HEADERS, FoundFile, get_md5_hash, DirectoryVerificationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -24,14 +24,18 @@ use log::{debug, error, info, trace, warn};
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                             verification_file_path: &Arc<Mutex<Option<PathBuf>>>,
-                            summarization_path: &Arc<Mutex<Option<PathBuf>>>, ) -> Result<(), anyhow::Error> {
-
+                            summarization_path: &Arc<Mutex<Option<PathBuf>>>,
+                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
     let verification_file_path = Arc::clone(&verification_file_path);
     let summarization_path = Arc::clone(&summarization_path);
+    let directory_verification_status = Arc::clone(&directory_verification_status);
 
     let _thread_handle = thread::spawn(move || {
+        // Note that directory verification has begun.
+        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
+
         let locked_verification_file_path = verification_file_path.lock().unwrap();
         let verification_file_path_copy = locked_verification_file_path.clone();
         drop(locked_verification_file_path);
@@ -58,8 +62,12 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         }
 
         if verification_failures.is_empty() {
+            // Note that directory verification was successful.
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
             info!("Summarized files passed verification");
         } else {
+            // Note that directory verification was unsuccessful.
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
             let failure_count = verification_failures.len();
             info!("Found {failure_count:?} summarized files failed verification")
         }
