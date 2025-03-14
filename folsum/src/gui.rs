@@ -159,7 +159,7 @@ impl eframe::App for FolsumGui {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                        None => "No directory selected",
+                        None => "No folder selected",
                     };
                     #[cfg(target_family = "wasm")]
                     let shown_path = "N/A";
