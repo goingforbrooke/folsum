@@ -7,6 +7,10 @@ use log::{debug, error, info, trace, warn};
 use md5::compute as compute_md5;
 
 /// Get the MD5 hash of a file.
+///
+/// # Parameters
+///
+/// - `file_path`: Absolute path to the file that we'd like to hash.
 pub fn get_md5_hash(file_path: &PathBuf) -> Result<String, anyhow::Error> {
     let loaded_bytes = fs::read(file_path)?;
     let computed_digest = compute_md5(&loaded_bytes);
