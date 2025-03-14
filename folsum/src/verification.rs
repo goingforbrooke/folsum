@@ -4,6 +4,9 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::thread;
 
 // Internal crates for native and WASM builds.
 use crate::{CSV_HEADERS, FoundFile, get_md5_hash};
@@ -15,42 +18,56 @@ use anyhow::bail;
 use log::{debug, error, info, trace, warn};
 
 /// Verify summarization against (CSV) verification file.
+///
+/// # Returns
+///
+/// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                             verification_file_path: &Arc<Mutex<Option<PathBuf>>>,
                             summarization_path: &Arc<Mutex<Option<PathBuf>>>, ) -> Result<Vec<(FoundFile, FileVerificationStatus)>, anyhow::Error> {
-    let locked_verification_file_path = verification_file_path.lock().unwrap();
-    let verification_file_path_copy = locked_verification_file_path.clone();
-    drop(locked_verification_file_path);
-    let verification_entries = match verification_file_path_copy {
-        Some(verification_file_path) => {
-            load_verification_entries(&verification_file_path)?
-        },
-        None => bail!("No verification file"),
-    };
 
-    // todo: Figure out what to do if something more than what's in the verification file is encountered.
+    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
+    let summarized_files = Arc::clone(&summarized_files);
+    let verification_file_path = Arc::clone(&verification_file_path);
+    let summarization_path = Arc::clone(&summarization_path);
 
-    let mut verification_failures: Vec<(FoundFile, FileVerificationStatus)> = vec![];
-    // For each previously-found entry from the verification file...
-    for verification_entry in verification_entries {
-        // ... check if there's a matching summarization file.
-        let verification_status = verify_file(&verification_entry, summarized_files, summarization_path)?;
-        // If something doesn't match...
-        if !verification_status.file_path_matches || !verification_status.md5_hash_matches {
-            // ... then note it.
-            verification_failures.push((verification_entry, verification_status))
+    let thread_handle = thread::spawn(move || {
+        let locked_verification_file_path = verification_file_path.lock().unwrap();
+        let verification_file_path_copy = locked_verification_file_path.clone();
+        drop(locked_verification_file_path);
+        let verification_entries = match verification_file_path_copy {
+            Some(verification_file_path) => {
+                load_verification_entries(&verification_file_path)?
+            },
+            None => bail!("No verification file"),
+        };
+
+        // todo: Figure out what to do if something more than what's in the verification file is encountered.
+
+        let mut verification_failures: Vec<(FoundFile, FileVerificationStatus)> = vec![];
+        // For each (previously-found) verification entry from the verification file...
+        for verification_entry in verification_entries {
+            // ... check if there's a matching summarization file.
+            let verification_status = verify_file(&verification_entry, &summarized_files, &summarization_path)?;
+            // If something doesn't match...
+            if !verification_status.file_path_matches || !verification_status.md5_hash_matches {
+                // ... then note it.
+                verification_failures.push((verification_entry.clone(), verification_status))
+            }
+            debug!("Assessed verification entry {verification_entry:?}");
         }
-    }
 
-    if verification_failures.is_empty() {
-        info!("Summarized files passed verification");
-    } else {
-        let failure_count = verification_failures.len();
-        info!("Found {failure_count:?} summarized files failed verification")
-    }
+        if verification_failures.is_empty() {
+            info!("Summarized files passed verification");
+        } else {
+            let failure_count = verification_failures.len();
+            info!("Found {failure_count:?} summarized files failed verification")
+        }
 
-    info!("Completed verification");
-    Ok(verification_failures)
+        info!("Completed verification");
+        Ok(verification_failures)
+    });
+    thread_handle.join().unwrap()
 }
 
 #[derive(Debug, Default)]
@@ -127,6 +144,8 @@ fn verify_file(verification_entry: &FoundFile,
         md5_hash_matches,
     };
 
+    debug!("Completed verification assessment for verification entry {verification_entry:?}");
+
     Ok(verification_status)
 }
 
@@ -174,6 +193,7 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
         verification_entries.push(found_file);
     }
 
-    info!("Loaded verification entries");
+    let verification_entry_count = verification_entries.len();
+    info!("Loaded {verification_entry_count:?} verification entries");
     Ok(verification_entries)
 }
