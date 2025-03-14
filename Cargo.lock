@@ -2102,7 +2102,7 @@ checksum = "a0d2fde1f7b3d48b8395d5f2de76c18a528bd6a9cdde438df747bfcba3e05d6f"
 
 [[package]]
 name = "folsum"
-version = "2.0.3"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "chrono",
