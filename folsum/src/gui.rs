@@ -194,6 +194,37 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
+                if ui.button("Export folder summary to CSV").clicked() {
+                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+                    let formatted_date = date_today.format("%y_%m_%d").to_string();
+                    // Prepend the date (YY_MM_DD) to the filename.
+                    let export_filename = format!("{formatted_date}_folsum_export");
+                    // Open the "Save export file as" dialog.
+                    let starting_directory = match export_file.lock().unwrap().clone() {
+                        // Open the export dialog in the same dir as the previous export.
+                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
+                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
+                        None => home_dir().expect("Failed to get user's home directory"),
+                    };
+                    trace!("Found user's home directory: {:?}", &starting_directory);
+                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
+                    if let Some(path) = FileDialog::new()
+                        // Add `.csv` to the end of the user's chosen name for the CSV export.
+                        .add_filter("csv", &["csv"])
+                        .set_title("Export extension counts to CSV file")
+                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                        .set_directory(starting_directory)
+                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
+                        .set_file_name(&export_filename)
+                        .save_file()
+                    {
+                        *export_file = Arc::new(Mutex::new(Some(path)));
+                    }
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                        let _result = export_csv(&export_file, &file_paths);
+                };
+
                 ui.separator();
 
                 #[cfg(target_family = "wasm")]
@@ -289,37 +320,6 @@ impl eframe::App for FolsumGui {
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.separator();
-
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Export folder summary to CSV").clicked() {
-                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-                    let formatted_date = date_today.format("%y_%m_%d").to_string();
-                    // Prepend the date (YY_MM_DD) to the filename.
-                    let export_filename = format!("{formatted_date}_folsum_export");
-                    // Open the "Save export file as" dialog.
-                    let starting_directory = match export_file.lock().unwrap().clone() {
-                        // Open the export dialog in the same dir as the previous export.
-                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
-                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory"),
-                    };
-                    trace!("Found user's home directory: {:?}", &starting_directory);
-                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
-                    if let Some(path) = FileDialog::new()
-                        // Add `.csv` to the end of the user's chosen name for the CSV export.
-                        .add_filter("csv", &["csv"])
-                        .set_title("Export extension counts to CSV file")
-                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                        .set_directory(starting_directory)
-                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
-                        .set_file_name(&export_filename)
-                        .save_file()
-                    {
-                        *export_file = Arc::new(Mutex::new(Some(path)));
-                    }
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let _result = export_csv(&export_file, &file_paths);
-                };
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                     egui::warn_if_debug_build(ui);
