@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{get_md5_hash, DirectoryVerificationStatus};
+use crate::{DirectoryVerificationStatus, get_md5_hash, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -25,13 +25,6 @@ use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
 use crate::FoundFile;
-
-#[derive(Clone)]
-pub enum SummarizationStatus {
-    NotStarted,
-    InProgress,
-    Done,
-}
 
 /// Summarize directories in native builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]

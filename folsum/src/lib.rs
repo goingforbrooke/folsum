@@ -1,7 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod common;
-pub use common::{CSV_HEADERS, FoundFile, DirectoryVerificationStatus};
+pub use common::{CSV_HEADERS, FoundFile, DirectoryVerificationStatus, SummarizationStatus};
 
 mod export_csv;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -24,8 +24,6 @@ pub use summarize::summarize_directory;
 // Summarization items for WASM builds.
 #[cfg(target_family = "wasm")]
 pub use summarize::wasm_demo_summarize_directory;
-// Summarization items for all builds.
-pub use summarize::SummarizationStatus;
 // Summarization benchmarks for native builds.
 #[cfg(feature = "bench")]
 pub use summarize::tests::run_fake_summarization;
