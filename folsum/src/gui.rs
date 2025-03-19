@@ -369,8 +369,12 @@ impl eframe::App for FolsumGui {
                     egui::warn_if_debug_build(ui);
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.0;
-                        ui.label("written with love by ");
+                        ui.label("written with love by Brooke Deuson ");
+                        ui.label("(");
                         ui.hyperlink_to("goingforbrooke", "https://goingforbrooke.com");
+                        ui.label(") ");
+                        ui.label("for ");
+                        ui.hyperlink_to("Trafficking Free Tomorrow", "https://traffickingfreetomorrow.com");
                     });
                 });
             });
