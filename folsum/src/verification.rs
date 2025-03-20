@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, FoundFile, get_md5_hash, DirectoryVerificationStatus};
+use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileVerificationStatusStruct, FoundFile, get_md5_hash};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -48,7 +48,7 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         // todo: Figure out what to do if something more than what's in the verification file is encountered.
 
-        let mut verification_failures: Vec<(FoundFile, FileVerificationStatus)> = vec![];
+        let mut verification_failures: Vec<(FoundFile, FileVerificationStatusStruct)> = vec![];
         // For each (previously-found) verification entry from the verification file...
         for verification_entry in verification_entries {
             // ... check if there's a matching summarization file.
@@ -78,18 +78,12 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
     Ok(())
 }
 
-#[derive(Debug, Default)]
-pub struct FileVerificationStatus {
-    file_path_matches: bool,
-    md5_hash_matches: bool,
-}
-
 /// Look up a previously-found [`FoundFile`] verification entry in the summarized output.
 ///
 /// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
 fn verify_file(verification_entry: &FoundFile,
                summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-               summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileVerificationStatus, anyhow::Error> {
+               summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileVerificationStatusStruct, anyhow::Error> {
     // Grab a file lock so we can filter for matching summarized files.
     let locked_summarized_files = summarized_files.lock().unwrap();
     let copied_summarized_files = locked_summarized_files.clone();
@@ -151,7 +145,7 @@ fn verify_file(verification_entry: &FoundFile,
         trace!("MD5 hashes don't match");
     }
 
-    let verification_status = FileVerificationStatus {
+    let verification_status = FileVerificationStatusStruct {
         file_path_matches,
         md5_hash_matches,
     };

@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileVerificationStatus};
+use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileVerificationStatusEnum, FileVerificationStatusStruct};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -434,10 +434,10 @@ impl eframe::App for FolsumGui {
                             });
                             row.col(|ui| {
                                 let display_verification_status = match &found_file.file_verification_status {
-                                    FileVerificationStatus::Unverified => "Unverified",
-                                    FileVerificationStatus::InProgress => "Verifying...",
-                                    FileVerificationStatus::Verified => "Verified",
-                                    FileVerificationStatus::VerificationFailed => "Failed verification",
+                                    FileVerificationStatusEnum::Unverified => "Unverified",
+                                    FileVerificationStatusEnum::InProgress => "Verifying...",
+                                    FileVerificationStatusEnum::Verified => "Verified",
+                                    FileVerificationStatusEnum::VerificationFailed => "Failed verification",
                                 };
                                 ui.label(display_verification_status);
                             });
