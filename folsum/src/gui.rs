@@ -190,6 +190,21 @@ impl eframe::App for FolsumGui {
                     );
                 };
 
+                // Show the summarization status to the user.
+                ui.horizontal(|ui| {
+                    let locked_summarization_status = summarization_status.lock().unwrap();
+                    let summarization_status_copy = locked_summarization_status.clone();
+                    drop(locked_summarization_status);
+
+                    let display_summarization_status = match summarization_status_copy {
+                        SummarizationStatus::NotStarted => "Not started",
+                        SummarizationStatus::InProgress => "In progress",
+                        SummarizationStatus::Done => "Done",
+                    };
+
+                    ui.label(format!("Summarization status: {display_summarization_status}"));
+                });
+
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
