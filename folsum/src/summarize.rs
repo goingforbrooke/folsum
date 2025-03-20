@@ -51,10 +51,11 @@ pub fn summarize_directory(
         // Note that summarization is in progress.
 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let file_paths_copy = Arc::clone(&file_paths);
         let summarization_path_copy = Arc::clone(&summarization_path);
+        let file_paths_copy = Arc::clone(&file_paths);
         let start_copy = Arc::clone(&summarization_start);
         let time_taken_copy = Arc::clone(&time_taken);
+        let summarization_status_copy = Arc::clone(&summarization_status);
 
         thread::spawn(move || {
             // Start the stopwatch for summarization time.
@@ -108,9 +109,9 @@ pub fn summarize_directory(
                 },
                 None => error!("No summarization path was provided"),
             }
+            *summarization_status_copy.lock().unwrap() = SummarizationStatus::Done;
         });
     };
-    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
     Ok(())
 }
 
