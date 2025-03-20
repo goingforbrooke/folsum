@@ -16,7 +16,7 @@ macro_rules! debug_println {
 pub const CSV_HEADERS: &str = "File Path, MD5 Hash\n";
 
 
-// Where we are in summarizing a directory's contents.
+// Point in the summarization process of a directory's contents.
 #[derive(Clone)]
 pub enum SummarizationStatus {
     NotStarted,
@@ -25,6 +25,7 @@ pub enum SummarizationStatus {
 }
 
 
+/// Integrity of the whole directory being summarized.
 #[derive(Clone, Debug)]
 pub enum DirectoryVerificationStatus {
     Unverified,
@@ -33,6 +34,15 @@ pub enum DirectoryVerificationStatus {
     VerificationFailed,
 }
 
+/// Integrity of a file in a directory that's being summarized.
+#[derive(Clone, Debug, Default)]
+pub enum FileVerificationStatus {
+    #[default]
+    Unverified,
+    InProgress,
+    Verified,
+    VerificationFailed,
+}
 
 /// Files found by FolSum.
 #[derive(Clone, Debug, Default)]
@@ -41,8 +51,19 @@ pub struct FoundFile {
     pub file_path: PathBuf,
     // MD5 digest as a hexadecimal string.
     pub md5_hash: String,
+    // Whether the file passed verification.
+    pub file_verification_status: FileVerificationStatus,
 }
 
+impl FoundFile {
+    pub fn new(file_path: PathBuf, md5_hash: String) -> Self {
+        Self {
+            file_path,
+            md5_hash,
+            file_verification_status: FileVerificationStatus::default(),
+        }
+    }
+}
 
 #[cfg(test)]
 pub mod test_utilities {

@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus};
+use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileVerificationStatus};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -410,12 +410,16 @@ impl eframe::App for FolsumGui {
                 .striped(true)
                 .column(Column::initial(150.0).at_least(150.0))
                 .column(Column::remainder().at_least(60.0))
+                .column(Column::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
                         ui.heading("File Path");
                     });
                     header.col(|ui| {
                         ui.heading("MD5 Hash");
+                    });
+                    header.col(|ui| {
+                        ui.heading("Verification Status");
                     });
                 })
                 .body(|mut body| {
@@ -427,6 +431,15 @@ impl eframe::App for FolsumGui {
                             });
                             row.col(|ui| {
                                 ui.label(found_file.md5_hash.to_string());
+                            });
+                            row.col(|ui| {
+                                let display_verification_status = match &found_file.file_verification_status {
+                                    FileVerificationStatus::Unverified => "Unverified",
+                                    FileVerificationStatus::InProgress => "Verifying...",
+                                    FileVerificationStatus::Verified => "Verified",
+                                    FileVerificationStatus::VerificationFailed => "Failed verification",
+                                };
+                                ui.label(display_verification_status);
                             });
                         });
                     }

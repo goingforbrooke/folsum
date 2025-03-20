@@ -1,7 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod common;
-pub use common::{CSV_HEADERS, FoundFile, DirectoryVerificationStatus, SummarizationStatus};
+pub use common::{CSV_HEADERS, DirectoryVerificationStatus, FileVerificationStatus, FoundFile, SummarizationStatus};
 
 mod export_csv;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -12,9 +12,7 @@ pub use gui::FolsumGui;
 
 mod hashers;
 pub use hashers::get_md5_hash;
-
-mod logging;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
+ mod logging; #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub use logging::setup_native_logging;
 
 mod summarize;

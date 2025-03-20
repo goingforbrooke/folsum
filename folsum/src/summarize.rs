@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, get_md5_hash, SummarizationStatus};
+use crate::{DirectoryVerificationStatus, FileVerificationStatus, get_md5_hash, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -85,12 +85,11 @@ pub fn summarize_directory(
                         let foundfile_path: PathBuf = dir_entry.into_path();
                         debug!("Found directory (file) entry: {foundfile_path:?}");
 
-                        let found_file = FoundFile {
-                            // todo: Handle relative path prefix strip errors.
-                            // Convert from absolute path to a relative (to given directory) path.
-                            file_path: foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf(),
-                            md5_hash: get_md5_hash(&foundfile_path).unwrap(),
-                        };
+                        // Convert from absolute path to a relative (to given directory) path.
+                        // todo: Handle relative path prefix strip errors.
+                        let file_path = foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf();
+                        let md5_hash = get_md5_hash(&foundfile_path).unwrap();
+                        let found_file = FoundFile::new(file_path, md5_hash);
 
                         // Lock the extension counts variable so we can add a file to it.
                         let mut locked_paths_copy = file_paths_copy.lock().unwrap();

@@ -197,10 +197,9 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
         let extracted_file_path = row_columns[0].trim();
         let extracted_md5_hash = row_columns[1].trim();
 
-        let found_file = FoundFile {
-            file_path: PathBuf::from(extracted_file_path),
-            md5_hash: extracted_md5_hash.to_string(),
-        };
+        let file_path = PathBuf::from(extracted_file_path);
+        let md5_hash = extracted_md5_hash.to_string();
+        let found_file = FoundFile::new(file_path, md5_hash);
 
         verification_entries.push(found_file);
     }
