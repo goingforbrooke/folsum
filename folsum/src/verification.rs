@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, IntegrityDetail, FoundFile, get_md5_hash};
+use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, IntegrityDetail, FoundFile};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -52,13 +52,12 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         // For each summarized file...
         for mut summarized_file in &mut summarized_files_copy {
-            // ... See if its file path exists in the verification manifest
-            // if it's in the manifest, then get a mutable reference to the original finding so we can modify it
-            // otherwise,
+            // ... See if its file path exists in the verification manifest.
             let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
             let assessed_integrity =  match matching_manifest_entry {
                 Some(matching_manifest_entry) => {
-                    assess_integrity(&matching_manifest_entry, &matching_manifest_entry, &summarization_path)?
+                    // Assess the file's integrity (which is just an MD5) 😨.
+                    assess_integrity(&matching_manifest_entry, &matching_manifest_entry)?
                 }
                 None => {
                     // Assume bad file integrity b/c the file path wasn't found.
@@ -66,6 +65,7 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                     FileIntegrity::VerificationFailed(assumed_integrity)
                 }
             };
+
             // Modify shared memory entry for the summarized file-- add verification status (for column).
             match assessed_integrity {
                 FileIntegrity::Verified(_) => summarized_file.file_verification_status = assessed_integrity,
@@ -123,24 +123,9 @@ fn lookup_manifest_entry(summarized_file_path: &PathBuf, manifest_entries: &Vec<
 /// Decide if a file's integrity is intact (according to a previously-created manifest).
 ///
 /// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
-fn assess_integrity(summarized_file: &FoundFile,
-                    manifest_entry: &FoundFile,
-                    summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileIntegrity, anyhow::Error> {
+fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
     // todo: note that file verification is "in progress" (for GUI column).
-
-    // Get the path to the summarization directory so we can use it to build absolute paths (for MD5 hashing).
-    let locked_summarization_path = summarization_path.lock().unwrap();
-    let summarization_path_copy = locked_summarization_path.clone().expect("Expected a summarization path to be chosen before verification began");
-    // Release the mutex lock on the summarization path so the summarization count table can update.
-    drop(locked_summarization_path);
-
-    let relative_path = &manifest_entry.file_path;
-
-    // Build an absolute path for MD5 hashing.
-    let absolute_path: PathBuf = [&summarization_path_copy, relative_path].iter().collect();
-    let actual_md5_hash = get_md5_hash(&absolute_path)?;
-
-    let md5_hash_matches = &manifest_entry.md5_hash == &actual_md5_hash;
+    let md5_hash_matches = &manifest_entry.md5_hash == &summarized_file.md5_hash;
 
     // Log: Note whether MD5 hashes match.
     match md5_hash_matches {
@@ -150,7 +135,7 @@ fn assess_integrity(summarized_file: &FoundFile,
 
     let integrity_detail = IntegrityDetail {
         file_path_matches: false,
-        md5_hash_matches: md5_hash_matches,
+        md5_hash_matches,
     };
 
     // todo: Add SHA1 hashing.
@@ -161,7 +146,7 @@ fn assess_integrity(summarized_file: &FoundFile,
         false => FileIntegrity::VerificationFailed(integrity_detail),
     };
 
-    debug!("Completed verification assessment for manifest entry {manifest_entry:?}");
+    debug!("Assessed integrity of manifest entry {manifest_entry:?}");
     Ok(file_verification_status)
 }
 
