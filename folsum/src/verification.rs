@@ -134,7 +134,8 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
     };
 
     let integrity_detail = IntegrityDetail {
-        file_path_matches: false,
+        // We can safely assume that the file path has already been found.
+        file_path_matches: true,
         md5_hash_matches,
     };
 
