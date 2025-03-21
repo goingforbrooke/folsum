@@ -34,20 +34,21 @@ pub enum DirectoryVerificationStatus {
     VerificationFailed,
 }
 
-#[derive(Debug, Default)]
-pub struct FileVerificationStatusStruct {
+/// Details about why a [`FoundFile`] succeeded or failed verification.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct IntegrityDetail {
     pub file_path_matches: bool,
     pub md5_hash_matches: bool,
 }
 
 /// Integrity of a file in a directory that's being summarized.
-#[derive(Clone, Debug, Default)]
-pub enum FileVerificationStatusEnum {
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum FileIntegrity {
     #[default]
     Unverified,
     InProgress,
-    Verified,
-    VerificationFailed,
+    Verified(IntegrityDetail),
+    VerificationFailed(IntegrityDetail),
 }
 
 /// Files found by FolSum.
@@ -58,7 +59,7 @@ pub struct FoundFile {
     // MD5 digest as a hexadecimal string.
     pub md5_hash: String,
     // Whether the file passed verification.
-    pub file_verification_status: FileVerificationStatusEnum,
+    pub file_verification_status: FileIntegrity,
 }
 
 impl FoundFile {
@@ -66,7 +67,7 @@ impl FoundFile {
         Self {
             file_path,
             md5_hash,
-            file_verification_status: FileVerificationStatusEnum::default(),
+            file_verification_status: FileIntegrity::default(),
         }
     }
 }

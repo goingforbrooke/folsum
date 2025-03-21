@@ -1,6 +1,6 @@
 //! Verify an (in-memory) summarized directory against a verification file.
 // Std crates for native and WASM builds.
-use std::fs::File;
+use std::fs::{canonicalize, File};
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileVerificationStatusStruct, FoundFile, get_md5_hash};
+use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, IntegrityDetail, FoundFile, get_md5_hash};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -19,16 +19,20 @@ use log::{debug, error, info, trace, warn};
 
 /// Verify summarization against (CSV) verification file.
 ///
+/// # Arguments
+///
+/// `manifest_file_path`: Path to a manifest file from a previous summarization.
+///
 /// # Returns
 ///
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                            verification_file_path: &Arc<Mutex<Option<PathBuf>>>,
+                            manifest_file_path: &Arc<Mutex<Option<PathBuf>>>,
                             summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                             directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
-    let verification_file_path = Arc::clone(&verification_file_path);
+    let manifest_file_path = Arc::clone(&manifest_file_path);
     let summarization_path = Arc::clone(&summarization_path);
     let directory_verification_status = Arc::clone(&directory_verification_status);
 
@@ -36,128 +40,148 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         // Note that directory verification has begun.
         *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
 
-        let locked_verification_file_path = verification_file_path.lock().unwrap();
-        let verification_file_path_copy = locked_verification_file_path.clone();
-        drop(locked_verification_file_path);
-        let verification_entries = match verification_file_path_copy {
-            Some(verification_file_path) => {
-                load_verification_entries(&verification_file_path)?
-            },
-            None => bail!("No verification file"),
-        };
+        let manifest_entries = load_previous_manifest(&manifest_file_path)?;
 
-        // todo: Figure out what to do if something more than what's in the verification file is encountered.
+        // todo: Relativize file path before verification steps.
 
-        let mut verification_failures: Vec<(FoundFile, FileVerificationStatusStruct)> = vec![];
-        // For each (previously-found) verification entry from the verification file...
-        for verification_entry in verification_entries {
-            // ... check if there's a matching summarization file.
-            let verification_status = verify_file(&verification_entry, &summarized_files, &summarization_path)?;
-            // If something doesn't match...
-            if !verification_status.file_path_matches || !verification_status.md5_hash_matches {
-                // ... then note it.
-                verification_failures.push((verification_entry.clone(), verification_status))
+        // Grab a file lock so we can filter for matching summarized files.
+        let locked_summarized_files = summarized_files.lock().unwrap();
+        let mut summarized_files_copy = locked_summarized_files.clone();
+        // Drop the lock so the GUI can update.
+        drop(locked_summarized_files);
+
+        // For each summarized file...
+        for mut summarized_file in &mut summarized_files_copy {
+            // ... See if its file path exists in the verification manifest
+            // if it's in the manifest, then get a mutable reference to the original finding so we can modify it
+            // otherwise,
+            let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
+            let assessed_integrity =  match matching_manifest_entry {
+                Some(matching_manifest_entry) => {
+                    assess_integrity(&matching_manifest_entry, &matching_manifest_entry, &summarization_path)?
+                }
+                None => {
+                    // Assume bad file integrity b/c the file path wasn't found.
+                    let assumed_integrity = IntegrityDetail::default();
+                    FileIntegrity::VerificationFailed(assumed_integrity)
+                }
+            };
+            // Modify shared memory entry for the summarized file-- add verification status (for column).
+            match assessed_integrity {
+                FileIntegrity::Verified(_) => summarized_file.file_verification_status = assessed_integrity,
+                FileIntegrity::VerificationFailed(_) => summarized_file.file_verification_status = assessed_integrity,
+                _ => {
+                    let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
+                    error!("{}", error_message);
+                    bail!(error_message);
+                }
             }
-            debug!("Assessed verification entry {verification_entry:?}");
         }
 
-        if verification_failures.is_empty() {
-            // Note that directory verification was successful.
+        // Check if there were any verification failures.
+        let verification_failures = summarized_files_copy.iter().any(|summarized_file| {
+            matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
+        });
+        // Note whether directory verification was successful in the GUI.
+        if verification_failures {
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
+            info!("One or more summarized files failed verification")
+        } else {
             *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
             info!("Summarized files passed verification");
-        } else {
-            // Note that directory verification was unsuccessful.
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
-            let failure_count = verification_failures.len();
-            info!("Found {failure_count:?} summarized files failed verification")
         }
 
-        info!("Completed verification");
-        Ok(verification_failures)
+        info!("Completed verification of summarized files");
+        Ok(())
     });
     Ok(())
 }
 
-/// Look up a previously-found [`FoundFile`] verification entry in the summarized output.
+/// Look up a (recently-found) [`FoundFile`] summarization entry in a verification manifest from a previous run.
 ///
-/// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
-fn verify_file(verification_entry: &FoundFile,
-               summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-               summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileVerificationStatusStruct, anyhow::Error> {
-    // Grab a file lock so we can filter for matching summarized files.
-    let locked_summarized_files = summarized_files.lock().unwrap();
-    let copied_summarized_files = locked_summarized_files.clone();
-    // Drop the lock so the GUI can update.
-    drop(locked_summarized_files);
+/// Files are found if their paths match.
+fn lookup_manifest_entry(summarized_file_path: &PathBuf, manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
     // Find entries from the verification file with paths that match this summarized file.
-    let with_matching_paths: Vec<FoundFile> = copied_summarized_files
+    let found_file = manifest_entries
         .iter()
         // Find every summarized file with a path that matches this verification entry.
-        .filter(|summarized_file| {
-            summarized_file.file_path == verification_entry.file_path
+        .find(|manifest_entry| {
+            &manifest_entry.file_path == summarized_file_path
         })
-        // Clone matches b/c we need to release the lock and the memory cost is tiny.
-        .cloned()
-        .collect();
+        .cloned();
 
-    let file_path_matches = match with_matching_paths.len() {
-        0 => {
-            let verification_entry_path = &verification_entry.file_path;
-            trace!("No summarized files with a path matching the verification entry {verification_entry_path:?} were found.");
-            false
-        },
-        1 => {
-            trace!("Found a summarized file with a path the verification entry: {with_matching_paths:?}");
-            true
-        },
-        _ => {
-            let verification_entry_path = &verification_entry.file_path;
-            // todo: Figure out what to do if more than one matching paths were found during verification.
-            let error_message = format!("Found more than one summarized file with a path matching the verification entry {verification_entry_path:?} {with_matching_paths:?}");
-            error!("{error_message}");
-            bail!(error_message);
-        }
+    // Log: Note what was found.
+    match &found_file {
+        Some(found_file) => trace!("Found a summarized file with a path in the verification manifest: {found_file:?}"),
+        None => trace!("Found no summarized files with a path matching in the verification manifest were found."),
     };
 
-    let md5_hash_matches = match file_path_matches {
-        true => {
-            // Get the path to the summarization directory so we can use it to build absolute paths (for MD5 hashing).
-            let locked_summarization_path = summarization_path.lock().unwrap();
-            let summarization_path_copy = locked_summarization_path.clone().expect("Expected a summarization path to be chosen before verification began");
-            // Release the mutex lock on the summarization path so the summarization count table can update.
-            drop(locked_summarization_path);
+    trace!("Found file in the verification manifest: {found_file:?}");
+    Ok(found_file)
+}
 
-            let relative_path = &verification_entry.file_path;
+/// Decide if a file's integrity is intact (according to a previously-created manifest).
+///
+/// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
+fn assess_integrity(summarized_file: &FoundFile,
+                    manifest_entry: &FoundFile,
+                    summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileIntegrity, anyhow::Error> {
+    // todo: note that file verification is "in progress" (for GUI column).
 
-            // Build an absolute path for MD5 hashing.
-            let absolute_path: PathBuf = [&summarization_path_copy, relative_path].iter().collect();
-            let actual_md5_hash = get_md5_hash(&absolute_path)?;
+    // Get the path to the summarization directory so we can use it to build absolute paths (for MD5 hashing).
+    let locked_summarization_path = summarization_path.lock().unwrap();
+    let summarization_path_copy = locked_summarization_path.clone().expect("Expected a summarization path to be chosen before verification began");
+    // Release the mutex lock on the summarization path so the summarization count table can update.
+    drop(locked_summarization_path);
 
-            &verification_entry.md5_hash == &actual_md5_hash
-        },
-        // MD5 hashes automatically don't match if the file path doesn't match.
-        false => false,
+    let relative_path = &manifest_entry.file_path;
+
+    // Build an absolute path for MD5 hashing.
+    let absolute_path: PathBuf = [&summarization_path_copy, relative_path].iter().collect();
+    let actual_md5_hash = get_md5_hash(&absolute_path)?;
+
+    let md5_hash_matches = &manifest_entry.md5_hash == &actual_md5_hash;
+
+    // Log: Note whether MD5 hashes match.
+    match md5_hash_matches {
+        true => trace!("MD5 hashes match"),
+        false => trace!("MD5 hashes don't match")
     };
 
-    if md5_hash_matches {
-        trace!("MD5 hashes match");
-    } else {
-        trace!("MD5 hashes don't match");
-    }
-
-    let verification_status = FileVerificationStatusStruct {
-        file_path_matches,
-        md5_hash_matches,
+    let integrity_detail = IntegrityDetail {
+        file_path_matches: false,
+        md5_hash_matches: md5_hash_matches,
     };
 
-    debug!("Completed verification assessment for verification entry {verification_entry:?}");
+    // todo: Add SHA1 hashing.
 
-    Ok(verification_status)
+    // Consider a file verified if the file path and MD5 hash match.
+    let file_verification_status = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
+        true => FileIntegrity::Verified(integrity_detail),
+        false => FileIntegrity::VerificationFailed(integrity_detail),
+    };
+
+    debug!("Completed verification assessment for manifest entry {manifest_entry:?}");
+    Ok(file_verification_status)
 }
 
 /// Load [`FoundFile`]s from a verification (CSV) file.
-fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
-    let csv_file_handle = File::open(verification_file_path)?;
+fn load_previous_manifest(manifest_file_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<Vec<FoundFile>, anyhow::Error> {
+    let locked_manifest_file_path = manifest_file_path.lock().unwrap();
+    let manifest_file_path_copy = locked_manifest_file_path.clone();
+    drop(locked_manifest_file_path);
+
+    // Handle errors where no actual path was provided.
+    let manifest_file_path_copy = match manifest_file_path_copy {
+        Some(manifest_file_path_copy) => manifest_file_path_copy,
+        None => {
+            let error_message = "No manifest file path was provided";
+            error!("{}", error_message);
+            bail!(error_message);
+        },
+    };
+
+    let csv_file_handle = File::open(&manifest_file_path_copy)?;
     let mut line_iterator = io::BufReader::new(csv_file_handle).lines();
 
     // Ensure that the first line has the CSV headings that we expect.
@@ -167,8 +191,8 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
     };
     // Remove the trailing newline in the header check b/c the line iterator does it too.
     match first_line_content == CSV_HEADERS.trim().to_string() {
-        true => info!("Identified {verification_file_path:?} as a valid FolSum CSV export"),
-        false => bail!("The file {verification_file_path:?} \
+        true => info!("Identified {manifest_file_path:?} as a valid FolSum CSV export"),
+        false => bail!("The file {manifest_file_path:?} \
                         is an invalid FolSum CSV export. Found {first_line_content:?} \
                         when {CSV_HEADERS:?} was expected"),
     };
