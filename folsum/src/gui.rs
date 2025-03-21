@@ -409,7 +409,7 @@ impl eframe::App for FolsumGui {
                 .resizable(true)
                 .striped(true)
                 .column(Column::initial(150.0).at_least(150.0))
-                .column(Column::remainder().at_least(60.0))
+                .column(Column::initial(200.0).at_least(60.0))
                 .column(Column::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
