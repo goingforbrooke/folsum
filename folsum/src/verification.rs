@@ -45,13 +45,10 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         // todo: Relativize file path before verification steps.
 
         // Grab a file lock so we can filter for matching summarized files.
-        let locked_summarized_files = summarized_files.lock().unwrap();
-        let mut summarized_files_copy = locked_summarized_files.clone();
-        // Drop the lock so the GUI can update.
-        drop(locked_summarized_files);
+        let mut locked_summarized_files = summarized_files.lock().unwrap();
 
         // For each summarized file...
-        for mut summarized_file in &mut summarized_files_copy {
+        for summarized_file in &mut locked_summarized_files.iter_mut() {
             // ... See if its file path exists in the verification manifest.
             let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
             let assessed_integrity =  match matching_manifest_entry {
@@ -79,7 +76,7 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         }
 
         // Check if there were any verification failures.
-        let verification_failures = summarized_files_copy.iter().any(|summarized_file| {
+        let verification_failures = locked_summarized_files.iter().any(|summarized_file| {
             matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
         });
         // Note whether directory verification was successful in the GUI.

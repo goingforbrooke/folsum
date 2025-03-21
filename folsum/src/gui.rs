@@ -317,7 +317,7 @@ impl eframe::App for FolsumGui {
                     ui.monospace(shown_path);
                 });
 
-                // todo: Grey out/disable the "Verify Folder" button if requesite conditions aren't met.
+                // todo: Grey out/disable the "Verify Folder" button if SummarzationStatus is InProgress aren't met.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 if ui.button("Verify Folder").clicked() {
                     info!("User started verification");
