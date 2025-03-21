@@ -430,7 +430,7 @@ impl eframe::App for FolsumGui {
                                 ui.label(show_path);
                             });
                             row.col(|ui| {
-                                ui.label(found_file.md5_hash.to_string());
+                                ui.label(found_file.md5_hash.clone());
                             });
                             row.col(|ui| {
                                 let display_verification_status = match &found_file.file_verification_status {
