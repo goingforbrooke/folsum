@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FileIntegrity, IntegrityDetail, get_md5_hash, SummarizationStatus};
+use crate::{DirectoryVerificationStatus, get_md5_hash, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]

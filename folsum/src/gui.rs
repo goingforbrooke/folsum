@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileIntegrity, IntegrityDetail};
+use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileIntegrity};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -354,7 +354,7 @@ impl eframe::App for FolsumGui {
                     // If everything's ready to verify...
                     if summarization_table_has_data && summarization_complete {
                         // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &verification_file_path, &summarization_path, &directory_verification_status).unwrap();
+                        verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
                     } else {
                         info!("Skipping user-requested verification because conditions weren't met")
                     }

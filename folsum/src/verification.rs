@@ -1,6 +1,6 @@
 //! Verify an (in-memory) summarized directory against a verification file.
 // Std crates for native and WASM builds.
-use std::fs::{canonicalize, File};
+use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -28,12 +28,10 @@ use log::{debug, error, info, trace, warn};
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                             manifest_file_path: &Arc<Mutex<Option<PathBuf>>>,
-                            summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                             directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
     let manifest_file_path = Arc::clone(&manifest_file_path);
-    let summarization_path = Arc::clone(&summarization_path);
     let directory_verification_status = Arc::clone(&directory_verification_status);
 
     let _thread_handle = thread::spawn(move || {
