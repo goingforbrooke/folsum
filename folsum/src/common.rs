@@ -1,10 +1,11 @@
 // Std crates for macOS, Windows, *and* WASM builds.
 use std::path::PathBuf;
 
-/// Add a debug-only `println!` macro
+/// Add a debug-only `println!` macro.
+///
+/// We use this in `logging.rs` to note if we encounter logging setup errors.
 ///
 /// This ignores `--release`s, so stdout will only show in `cargo build` and `cargo run`.
-/// todo: Remove `debug_println` from `common.rs`.
 #[macro_export]
 macro_rules! debug_println {
     ($($arg:tt)*) => {
