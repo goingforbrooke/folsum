@@ -417,7 +417,7 @@ impl eframe::App for FolsumGui {
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
                     drop(locked_directory_verification_status);
                     let shown_directory_verification_status = match directory_verification_status_copy {
-                        DirectoryVerificationStatus::Unverified => "not started",
+                        DirectoryVerificationStatus::Unverified => "not started.",
                         DirectoryVerificationStatus::InProgress => "in progress...",
                         DirectoryVerificationStatus::Verified => "complete. Data integrity verified.",
                         DirectoryVerificationStatus::VerificationFailed => "complete. Data integrity compromised.",
