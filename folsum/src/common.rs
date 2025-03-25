@@ -77,6 +77,9 @@ impl FoundFile {
 pub mod test_utilities {
     use anyhow::{bail, Result};
 
+    /// Test utility for temporarily changing `$HOME` environment variable.
+    ///
+    /// Used for the setup of [`crate::logging::test_create_appdata_logdir`].
     pub struct TempHomeEnvVar {
         variable_name: String,
     }
