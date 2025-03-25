@@ -167,6 +167,7 @@ impl eframe::App for FolsumGui {
             .show(ctx, |ui| {
                 ui.heading("Make Discovery");
 
+                // Define the "First.." section in the left pane.
                 ui.horizontal(|ui| {
                     ui.label("First,");
 
@@ -181,7 +182,7 @@ impl eframe::App for FolsumGui {
 
                     ui.label("to ");
 
-                    if ui.button("create a discovery manifest").clicked() {
+                    if ui.button("create").clicked() {
                         info!("User started discovery manifest creation");
                         #[cfg(any(target_family = "unix", target_family = "windows"))]
                             let _result = summarize_directory(
@@ -201,7 +202,7 @@ impl eframe::App for FolsumGui {
                         );
                     };
 
-                    ui.label("from.");
+                    ui.label("a discovery manifest from.");
                 });
 
                 ui.horizontal(|ui| {
@@ -245,36 +246,45 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Export Discovery Manifest").clicked() {
-                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-                    let formatted_date = date_today.format("%y_%m_%d").to_string();
-                    // Prepend the date (YY_MM_DD) to the filename.
-                    let export_filename = format!("{formatted_date}_folsum_export");
-                    // Open the "Save export file as" dialog.
-                    let starting_directory = match export_file.lock().unwrap().clone() {
-                        // Open the export dialog in the same dir as the previous export.
-                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
-                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory"),
-                    };
-                    trace!("Found user's home directory: {:?}", &starting_directory);
-                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
-                    if let Some(path) = FileDialog::new()
-                        // Add `.csv` to the end of the user's chosen name for the CSV export.
-                        .add_filter("csv", &["csv"])
-                        .set_title("Export extension counts to CSV file")
-                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                        .set_directory(starting_directory)
-                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
-                        .set_file_name(&export_filename)
-                        .save_file()
-                    {
-                        *export_file = Arc::new(Mutex::new(Some(path)));
-                    }
+                // Define the "Then.." section in the left pane.
+                ui.horizontal(|ui| {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let _result = export_csv(&export_file, &file_paths);
-                };
+                    ui.label("Then, ");
+
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    if ui.button("export").clicked() {
+                        let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+                        let formatted_date = date_today.format("%y_%m_%d").to_string();
+                        // Prepend the date (YY_MM_DD) to the filename.
+                        let export_filename = format!("{formatted_date}_folsum_export");
+                        // Open the "Save export file as" dialog.
+                        let starting_directory = match export_file.lock().unwrap().clone() {
+                            // Open the export dialog in the same dir as the previous export.
+                            Some(export_file) => export_file.parent().unwrap().to_path_buf(),
+                            // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
+                            None => home_dir().expect("Failed to get user's home directory"),
+                        };
+                        trace!("Found user's home directory: {:?}", &starting_directory);
+                        // Ask user where they'd like to save the CSV export and what they'd like it to be called.
+                        if let Some(path) = FileDialog::new()
+                            // Add `.csv` to the end of the user's chosen name for the CSV export.
+                            .add_filter("csv", &["csv"])
+                            .set_title("Export extension counts to CSV file")
+                            // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                            .set_directory(starting_directory)
+                            // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
+                            .set_file_name(&export_filename)
+                            .save_file()
+                        {
+                            *export_file = Arc::new(Mutex::new(Some(path)));
+                        }
+                        #[cfg(any(target_family = "unix", target_family = "windows"))]
+                            let _result = export_csv(&export_file, &file_paths);
+                    };
+
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    ui.label(" the discovery manifest file to the folder that was assessed.");
+                });
 
                 ui.separator();
 
@@ -310,34 +320,84 @@ impl eframe::App for FolsumGui {
                 ui.heading("Verify a Folder");
 
 
-                // Don't add a verification file picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose Discovery Manifest").clicked() {
-                    // Open the "Save export file as" dialog.
-                    let starting_directory = match verification_file_path.lock().unwrap().clone() {
-                        // Open the verification file chooser in the same dir as the previous export.
-                        Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
-                        // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory"),
-                    };
-                    if let Some(path) = FileDialog::new()
-                        // Add `.csv` to the end of the user's chosen name for the CSV export.
-                        .add_filter("csv", &["csv"])
-                        .set_title("Choose FolSum CSV file to verify against")
-                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                        .set_directory(starting_directory)
-                        .pick_file() {
-                        info!("User chose verification file: {:?}", path);
-                        *verification_file_path = Arc::new(Mutex::new(Some(path)));
+                ui.horizontal(|ui| {
+                    ui.label("First, ");
+
+                    // Don't add a verification file picker when compiling for web.
+                    if ui.button("choose").clicked() {
+                        // Open the "Save export file as" dialog.
+                        let starting_directory = match verification_file_path.lock().unwrap().clone() {
+                            // Open the verification file chooser in the same dir as the previous export.
+                            Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
+                            // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
+                            None => home_dir().expect("Failed to get user's home directory"),
+                        };
+                        if let Some(path) = FileDialog::new()
+                            // Add `.csv` to the end of the user's chosen name for the CSV export.
+                            .add_filter("csv", &["csv"])
+                            .set_title("Choose FolSum CSV file to verify against")
+                            // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                            .set_directory(starting_directory)
+                            .pick_file() {
+                            info!("User chose verification file: {:?}", path);
+                            *verification_file_path = Arc::new(Mutex::new(Some(path)));
+                        }
                     }
-                }
+
+                    ui.label("a discovery manifest file to ");
+
+                    // todo: Grey out/disable the "Verify Folder" button if SummarzationStatus is InProgress aren't met.
+                    if ui.button("verify").clicked() {
+                        info!("User started verification");
+
+                        // Check if summarization table has data.
+                        let file_paths_locked = file_paths.lock().unwrap();
+                        let summarization_table_has_data = !file_paths_locked.is_empty();
+                        if summarization_table_has_data {
+                            debug!("✅ Data in summarization table");
+                        } else {
+                            debug!("❌ No data in summarization table");
+                        }
+
+                        // Check if summarization is done.
+                        let locked_summarization_status = summarization_status.lock().unwrap();
+                        let summarization_status_copy = locked_summarization_status.clone();
+                        drop(locked_summarization_status);
+
+                        let summarization_complete = match summarization_status_copy {
+                            SummarizationStatus::NotStarted => {
+                                warn!("❌ Nothing has been summarized, so nothing can be verified");
+                                false
+                            }
+                            SummarizationStatus::InProgress => {
+                                warn!("❌ In progress summarization means that nothing can be verified");
+                                false
+                            }
+                            SummarizationStatus::Done => {
+                                debug!("✅ Data in summarization table, so verification can proceed");
+                                true
+                            }
+                        };
+
+                        // If everything's ready to verify...
+                        if summarization_table_has_data && summarization_complete {
+                            // ... then ensure that its contents match the verification file.
+                            verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
+                        } else {
+                            info!("Skipping user-requested verification because conditions weren't met")
+                        }
+                    }
+
+                    ui.label("against.");
+                });
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a FolSum CSV to verify against.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
+                        let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let shown_path: &str = match &*locked_path {
+                        let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No verification file selected",
                     };
@@ -348,48 +408,6 @@ impl eframe::App for FolsumGui {
                     ui.monospace(shown_path);
                 });
 
-                // todo: Grey out/disable the "Verify Folder" button if SummarzationStatus is InProgress aren't met.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Verify Folder").clicked() {
-                    info!("User started verification");
-
-                    // Check if summarization table has data.
-                    let file_paths_locked = file_paths.lock().unwrap();
-                    let summarization_table_has_data = !file_paths_locked.is_empty();
-                    if summarization_table_has_data {
-                        debug!("✅ Data in summarization table");
-                    } else {
-                        debug!("❌ No data in summarization table");
-                    }
-
-                    // Check if summarization is done.
-                    let locked_summarization_status = summarization_status.lock().unwrap();
-                    let summarization_status_copy = locked_summarization_status.clone();
-                    drop(locked_summarization_status);
-
-                    let summarization_complete = match summarization_status_copy {
-                        SummarizationStatus::NotStarted => {
-                            warn!("❌ Nothing has been summarized, so nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::InProgress => {
-                            warn!("❌ In progress summarization means that nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::Done => {
-                            debug!("✅ Data in summarization table, so verification can proceed");
-                            true
-                        }
-                    };
-
-                    // If everything's ready to verify...
-                    if summarization_table_has_data && summarization_complete {
-                        // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
-                    } else {
-                        info!("Skipping user-requested verification because conditions weren't met")
-                    }
-                }
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.horizontal(|ui| {
