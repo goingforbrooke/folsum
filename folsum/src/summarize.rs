@@ -247,7 +247,8 @@ pub mod tests {
     use std::time::{Duration, Instant};
 
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
-    use crate::FoundFile;
+    use crate::{FoundFile};
+    use crate::common::{DirectoryVerificationStatus, SummarizationStatus};
 
     use test_log;
     use tempfile::{tempdir, TempDir};
@@ -296,9 +297,11 @@ pub mod tests {
         let file_paths = Arc::new(Mutex::new(vec![]));
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
+        let summarization_status = Arc::new(Mutex::new(SummarizationStatus::NotStarted));
+        let directory_verification_status = Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified));
 
         // Summarize the tempfiles.
-        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken).unwrap();
+        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken, &summarization_status, &directory_verification_status).unwrap();
 
         // Destroy the test files b/c we're done summarizing them.
         drop(tempdir_handle);
