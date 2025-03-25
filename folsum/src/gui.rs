@@ -251,8 +251,13 @@ impl eframe::App for FolsumGui {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     ui.label("Then, ");
 
+                    let export_prerequisites_met = true;
+
+                    // Grey out/disable the "Export Manifest" button if prerequisites aren't met.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    if ui.button("export").clicked() {
+                    if ui.add_enabled(export_prerequisites_met, egui::Button::new("export")).clicked() {
+                        info!("🏁 User started export of manifest");
+
                         let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                         let formatted_date = date_today.format("%y_%m_%d").to_string();
                         // Prepend the date (YY_MM_DD) to the filename.
@@ -362,27 +367,9 @@ impl eframe::App for FolsumGui {
                         },
                     };
 
-                    // Check if summarization is done.
-                    let locked_summarization_status = summarization_status.lock().unwrap();
-                    let summarization_status_copy = locked_summarization_status.clone();
-                    drop(locked_summarization_status);
-                    let summarization_complete = match summarization_status_copy {
-                        SummarizationStatus::NotStarted => {
-                            trace!("❌ Nothing has been summarized, so nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::InProgress => {
-                            trace!("❌ In progress summarization means that nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::Done => {
-                            trace!("✅ Data in summarization table, so verification can proceed");
-                            true
-                        }
-                    };
-
                     // If everything's ready to verify...
-                    let verification_prerequisites_met = summarization_table_has_data && summarization_complete;
+                    // todo: Add verification prerequisite: export file must be selected.
+                    let verification_prerequisites_met = summarization_table_has_data && summarization_complete(summarization_status.clone());
 
                     // Grey out/disable the "Verify Folder" button if summarization prerequisites aren't met.
                     if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
@@ -496,4 +483,26 @@ impl eframe::App for FolsumGui {
                 });
         });
     }
+}
+
+/// Check if summarization is done.
+fn summarization_complete(summarization_status: Arc<Mutex<SummarizationStatus>>) -> bool {
+    let locked_summarization_status = summarization_status.lock().expect("Lock poisoned");
+    let summarization_status_copy = locked_summarization_status.clone();
+    drop(locked_summarization_status);
+    let summarization_complete = match summarization_status_copy {
+        SummarizationStatus::NotStarted => {
+            trace!("❌ Nothing has been summarized, so nothing can be verified");
+            false
+        }
+        SummarizationStatus::InProgress => {
+            trace!("❌ In progress summarization means that nothing can be verified");
+            false
+        }
+        SummarizationStatus::Done => {
+            trace!("✅ Data in summarization table, so verification can proceed");
+            true
+        }
+    };
+    summarization_complete
 }
