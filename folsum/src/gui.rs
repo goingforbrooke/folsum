@@ -138,20 +138,26 @@ impl eframe::App for FolsumGui {
                 // Add a dark/light mode toggle button to the top menu bar.
                 egui::widgets::global_theme_preference_switch(ui);
 
-                // Add a menu bar button that decreases text size.
-                if ui.add(egui::Button::new("-")).on_hover_text("Decrease text size").clicked() {
+                // Add a menu bar button that decreases zoom.
+                if ui.add(egui::Button::new("-")).on_hover_text("Decrease zoom").clicked() {
                     let current_zoom_factor = ctx.zoom_factor();
                     let new_zoom_factor = current_zoom_factor - 0.1;
                     ctx.set_zoom_factor(new_zoom_factor);
 
-                    trace!("wow!");
+                    info!("User decreased zoom from {current_zoom_factor:?}\
+                           to {new_zoom_factor:?}");
                 };
 
                 // todo: Add a text reset button.
 
-                // Add a menu bar button that increases text size.
-                if ui.add(egui::Button::new("+")).on_hover_text("Increase text size").clicked() {
-                    trace!("wow!");
+                // Add a menu bar button that increases zoom.
+                if ui.add(egui::Button::new("+")).on_hover_text("Increase zoom").clicked() {
+                    let current_zoom_factor = ctx.zoom_factor();
+                    let new_zoom_factor = current_zoom_factor + 0.1;
+                    ctx.set_zoom_factor(new_zoom_factor);
+
+                    info!("User increased zoom from {current_zoom_factor:?}\
+                           to {new_zoom_factor:?}");
                 };
             });
         });
