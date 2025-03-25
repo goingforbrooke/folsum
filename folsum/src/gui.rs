@@ -165,7 +165,7 @@ impl eframe::App for FolsumGui {
         egui::SidePanel::left("left_panel")
             .resizable(false)
             .show(ctx, |ui| {
-                ui.heading("Summarize a Folder");
+                ui.heading("Make Discovery");
 
                 // Don't add a directory picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
