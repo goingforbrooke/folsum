@@ -246,9 +246,10 @@ pub mod tests {
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
-    use crate::summarize::{summarize_directory, generate_fake_file_paths};
-    use crate::{FoundFile};
     use crate::common::{DirectoryVerificationStatus, SummarizationStatus};
+    use crate::hashers::get_md5_hash;
+    use crate::{FoundFile};
+    use crate::summarize::{summarize_directory, generate_fake_file_paths};
 
     use test_log;
     use tempfile::{tempdir, TempDir};
@@ -274,6 +275,23 @@ pub mod tests {
         Ok(temp_dir)
     }
 
+    /// Test fixture/demo setup: Create "fake MD5 hashes" of fake files to validate integrity checking mechanisms.
+    fn create_fake_md5_hashes(root_dir: &PathBuf, desired_filepaths: &Vec<PathBuf>) -> Result<Vec<String>, anyhow::Error> {
+        let mut expected_hashes: Vec<String> = vec![];
+        for relative_testfile_path in desired_filepaths {
+            // Put "faked files" in the temp dir so they're removed at the end of the test.
+            let absolute_testfile_path: PathBuf = [root_dir, relative_testfile_path].iter().collect();
+
+            // Assume that MD5 hashing works b/c that function has its own unit test.
+            let actual_md5_hash = get_md5_hash(&absolute_testfile_path)?;
+            debug!("Hashed test file: {absolute_testfile_path:?}");
+
+            expected_hashes.push(actual_md5_hash);
+        }
+        // Return the tempdir handle so the calling function can keep it alive.
+        Ok(expected_hashes)
+    }
+
     /// Run directory summarization in a temporary directory of "fake" files.
     ///
     /// This is abstracted away from [`test_directory_summarization`] so it can be called by the benchmarker.
@@ -283,14 +301,18 @@ pub mod tests {
     /// Tuple:
     /// - datastore variable (to check at the end of a test)
     /// - `Vec<PathBuf>` of file paths that we expect to find
-    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>), anyhow::Error> {
+    /// - `Vec<String>` of MD5 hashes that we expect to find.
+    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>, Vec<String>), anyhow::Error> {
         // Set up the test by creating "fake files" to summarize.
         let expected_file_paths = generate_fake_file_paths(20, 3);
-        let tempdir_handle = create_fake_files(&expected_file_paths)?;
 
+        let tempdir_handle = create_fake_files(&expected_file_paths)?;
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.as_ref().to_path_buf();
         debug!("(Test) testdir_path = {:#?}", testdir_path);
+
+        let expected_md5_hashes = create_fake_md5_hashes(&testdir_path, &expected_file_paths)?;
+
 
         // Set up "dummy" datastores so we can run the test.
         let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
@@ -307,14 +329,14 @@ pub mod tests {
         drop(tempdir_handle);
 
         // Return the datastore variable so the unit test can verify what's been summarized.
-        Ok((file_paths, expected_file_paths))
+        Ok((file_paths, expected_file_paths, expected_md5_hashes))
     }
 
 
     /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
     #[test_log::test]
     fn test_directory_summarization() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths)= run_fake_summarization()?;
+        let (file_paths, expected_file_paths, expected_md5_hashes)= run_fake_summarization()?;
 
         // Assume that summarization will complete in less than a second.
         sleep(Duration::from_secs(1));
@@ -326,6 +348,10 @@ pub mod tests {
         for actual_found_file in locked_paths_copy.iter() {
             let actual_file_path = &actual_found_file.file_path;
             assert!(expected_file_paths.contains(actual_file_path),
+                                                 "Expected to find {actual_file_path:?} \
+                                                  in {expected_file_paths:?}");
+            let actual_md5_hash = &actual_found_file.md5_hash;
+            assert!(expected_md5_hashes.contains(actual_md5_hash),
                                                  "Expected to find {actual_file_path:?} \
                                                   in {expected_file_paths:?}");
         }

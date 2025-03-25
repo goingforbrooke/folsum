@@ -12,6 +12,7 @@ use md5::compute as compute_md5;
 ///
 /// - `file_path`: Absolute path to the file that we'd like to hash.
 pub fn get_md5_hash(file_path: &PathBuf) -> Result<String, anyhow::Error> {
+    // todo: Read in one piece of an MD5 hashable file at a time to save on memory.
     let loaded_bytes = fs::read(file_path)?;
     let computed_digest = compute_md5(&loaded_bytes);
     // Format MD5 digest as a lowercase hexadecimal string.
