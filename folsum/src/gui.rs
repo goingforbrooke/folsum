@@ -167,50 +167,59 @@ impl eframe::App for FolsumGui {
             .show(ctx, |ui| {
                 ui.heading("Make Discovery");
 
-                // Don't add a directory picker when compiling for web.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose Folder").clicked() {
-                    if let Some(path) = FileDialog::new().pick_folder() {
-                        info!("User chose summarization directory: {:?}", path);
-                        *summarization_path = Arc::new(Mutex::new(Some(path)));
+                ui.horizontal(|ui| {
+                    ui.label("First,");
+
+                    // Don't add a directory picker when compiling for web.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    if ui.button("choose a folder ").clicked() {
+                        if let Some(path) = FileDialog::new().pick_folder() {
+                            info!("User chose summarization directory: {:?}", path);
+                            *summarization_path = Arc::new(Mutex::new(Some(path)));
+                        }
                     }
-                }
+
+                    ui.label("to ");
+
+                    if ui.button("create a discovery manifest").clicked() {
+                        info!("User started discovery manifest creation");
+                        #[cfg(any(target_family = "unix", target_family = "windows"))]
+                            let _result = summarize_directory(
+                            &summarization_path,
+                            &file_paths,
+                            &summarization_start,
+                            &time_taken,
+                            &summarization_status,
+                            &directory_verification_status,
+                        );
+                        #[cfg(target_family = "wasm")]
+                            let _result = wasm_demo_summarize_directory(
+                            &file_paths,
+                            &summarization_start,
+                            &time_taken,
+                            &summarization_status,
+                        );
+                    };
+
+                    ui.label("from.");
+                });
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                        let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let shown_path: &str = match &*locked_path {
+                        let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No folder selected",
                     };
                     #[cfg(target_family = "wasm")]
-                    let shown_path = "N/A";
+                        let shown_path = "N/A";
                     ui.label("Chosen folder:");
                     // Display the user's chosen directory in monospace font.
                     ui.monospace(shown_path);
                 });
 
-                if ui.button("Create Discovery Manifest").clicked() {
-                    info!("User started summarization");
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let _result = summarize_directory(
-                        &summarization_path,
-                        &file_paths,
-                        &summarization_start,
-                        &time_taken,
-                        &summarization_status,
-                        &directory_verification_status,
-                    );
-                    #[cfg(target_family = "wasm")]
-                    let _result = wasm_demo_summarize_directory(
-                        &file_paths,
-                        &summarization_start,
-                        &time_taken,
-                        &summarization_status,
-                    );
-                };
 
                 // Show the summarization status to the user.
                 ui.horizontal(|ui| {
