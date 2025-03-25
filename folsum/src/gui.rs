@@ -219,12 +219,12 @@ impl eframe::App for FolsumGui {
                     drop(locked_summarization_status);
 
                     let display_summarization_status = match summarization_status_copy {
-                        SummarizationStatus::NotStarted => "Not started",
-                        SummarizationStatus::InProgress => "In progress",
-                        SummarizationStatus::Done => "Done",
+                        SummarizationStatus::NotStarted => "not started.",
+                        SummarizationStatus::InProgress => "in progress.",
+                        SummarizationStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Manifest creation status: {display_summarization_status}"));
+                    ui.label(format!("Manifest creation {display_summarization_status}"));
                 });
 
                 ui.horizontal(|ui| {
@@ -388,15 +388,14 @@ impl eframe::App for FolsumGui {
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
                     drop(locked_directory_verification_status);
                     let shown_directory_verification_status = match directory_verification_status_copy {
-                        DirectoryVerificationStatus::Unverified => "Contents haven't been verified",
-                        DirectoryVerificationStatus::InProgress => "Verification in progress",
-                        DirectoryVerificationStatus::Verified => "Contents passed verification",
-                        DirectoryVerificationStatus::VerificationFailed => "At least one item failed verification",
+                        DirectoryVerificationStatus::Unverified => "has not been started",
+                        DirectoryVerificationStatus::InProgress => "in progress...",
+                        DirectoryVerificationStatus::Verified => "complete. Data integrity verified.",
+                        DirectoryVerificationStatus::VerificationFailed => "complete. Data integrity compromised.",
                     };
 
-                    ui.label("Folder verification status: ");
-                    // Display the user's chosen directory in monospace font.
-                    ui.label(shown_directory_verification_status);
+                    // Display folder verification progress.
+                    ui.label(format!("Folder verification {shown_directory_verification_status}"));
                 });
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
