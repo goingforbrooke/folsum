@@ -169,7 +169,7 @@ impl eframe::App for FolsumGui {
 
                 // Don't add a directory picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose folder").clicked() {
+                if ui.button("Choose Folder").clicked() {
                     if let Some(path) = FileDialog::new().pick_folder() {
                         info!("User chose summarization directory: {:?}", path);
                         *summarization_path = Arc::new(Mutex::new(Some(path)));
@@ -192,7 +192,7 @@ impl eframe::App for FolsumGui {
                     ui.monospace(shown_path);
                 });
 
-                if ui.button("Summarize folder").clicked() {
+                if ui.button("Create Discovery Manifest").clicked() {
                     info!("User started summarization");
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     let _result = summarize_directory(
@@ -224,20 +224,20 @@ impl eframe::App for FolsumGui {
                         SummarizationStatus::Done => "Done",
                     };
 
-                    ui.label(format!("Summarization status: {display_summarization_status}"));
+                    ui.label(format!("Manifest creation status: {display_summarization_status}"));
                 });
 
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
-                        "Summarized {} files in {} milliseconds",
+                        "Examined {} files in {} milliseconds",
                         &total_files,
                         &locked_time_taken.as_millis()
                     ));
                 });
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Export folder summary to CSV").clicked() {
+                if ui.button("Export Discovery Manifest").clicked() {
                     let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                     let formatted_date = date_today.format("%y_%m_%d").to_string();
                     // Prepend the date (YY_MM_DD) to the filename.
@@ -303,7 +303,7 @@ impl eframe::App for FolsumGui {
 
                 // Don't add a verification file picker when compiling for web.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose verification file").clicked() {
+                if ui.button("Choose Discovery Manifest").clicked() {
                     // Open the "Save export file as" dialog.
                     let starting_directory = match verification_file_path.lock().unwrap().clone() {
                         // Open the verification file chooser in the same dir as the previous export.
@@ -388,10 +388,10 @@ impl eframe::App for FolsumGui {
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
                     drop(locked_directory_verification_status);
                     let shown_directory_verification_status = match directory_verification_status_copy {
-                        DirectoryVerificationStatus::Unverified => "contents haven't been verified",
-                        DirectoryVerificationStatus::InProgress => "verification in progress",
-                        DirectoryVerificationStatus::Verified => "contents passed verification",
-                        DirectoryVerificationStatus::VerificationFailed => "at least one item failed verification",
+                        DirectoryVerificationStatus::Unverified => "Contents haven't been verified",
+                        DirectoryVerificationStatus::InProgress => "Verification in progress",
+                        DirectoryVerificationStatus::Verified => "Contents passed verification",
+                        DirectoryVerificationStatus::VerificationFailed => "At least one item failed verification",
                     };
 
                     ui.label("Folder verification status: ");
