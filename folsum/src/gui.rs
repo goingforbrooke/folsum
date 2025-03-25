@@ -347,46 +347,48 @@ impl eframe::App for FolsumGui {
 
                     ui.label("a discovery manifest file to ");
 
-                    // todo: Grey out/disable the "Verify Folder" button if SummarzationStatus is InProgress aren't met.
-                    if ui.button("verify").clicked() {
-                        info!("User started verification");
+                    // Check if summarization table has data.
+                    let file_paths_locked = file_paths.lock().unwrap();
+                    let file_paths_copy = file_paths_locked.clone();
+                    drop(file_paths_locked);
+                    let summarization_table_has_data = match file_paths_copy.is_empty() {
+                        false => {
+                            trace!("✅ GUI table has data");
+                            true
+                        },
+                        true => {
+                            trace!("❌ GUI table has no data");
+                            false
+                        },
+                    };
 
-                        // Check if summarization table has data.
-                        let file_paths_locked = file_paths.lock().unwrap();
-                        let summarization_table_has_data = !file_paths_locked.is_empty();
-                        if summarization_table_has_data {
-                            debug!("✅ Data in summarization table");
-                        } else {
-                            debug!("❌ No data in summarization table");
+                    // Check if summarization is done.
+                    let locked_summarization_status = summarization_status.lock().unwrap();
+                    let summarization_status_copy = locked_summarization_status.clone();
+                    drop(locked_summarization_status);
+                    let summarization_complete = match summarization_status_copy {
+                        SummarizationStatus::NotStarted => {
+                            trace!("❌ Nothing has been summarized, so nothing can be verified");
+                            false
                         }
-
-                        // Check if summarization is done.
-                        let locked_summarization_status = summarization_status.lock().unwrap();
-                        let summarization_status_copy = locked_summarization_status.clone();
-                        drop(locked_summarization_status);
-
-                        let summarization_complete = match summarization_status_copy {
-                            SummarizationStatus::NotStarted => {
-                                warn!("❌ Nothing has been summarized, so nothing can be verified");
-                                false
-                            }
-                            SummarizationStatus::InProgress => {
-                                warn!("❌ In progress summarization means that nothing can be verified");
-                                false
-                            }
-                            SummarizationStatus::Done => {
-                                debug!("✅ Data in summarization table, so verification can proceed");
-                                true
-                            }
-                        };
-
-                        // If everything's ready to verify...
-                        if summarization_table_has_data && summarization_complete {
-                            // ... then ensure that its contents match the verification file.
-                            verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
-                        } else {
-                            info!("Skipping user-requested verification because conditions weren't met")
+                        SummarizationStatus::InProgress => {
+                            trace!("❌ In progress summarization means that nothing can be verified");
+                            false
                         }
+                        SummarizationStatus::Done => {
+                            trace!("✅ Data in summarization table, so verification can proceed");
+                            true
+                        }
+                    };
+
+                    // If everything's ready to verify...
+                    let verification_prerequisites_met = summarization_table_has_data && summarization_complete;
+
+                    // Grey out/disable the "Verify Folder" button if summarization prerequisites aren't met.
+                    if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
+                        info!("🏁 User started verification");
+                        // ... then ensure that its contents match the verification file.
+                        verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
                     }
 
                     ui.label("against.");
