@@ -137,6 +137,18 @@ impl eframe::App for FolsumGui {
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
                 egui::widgets::global_theme_preference_switch(ui);
+
+                // Add a button that decreases text size.
+                if ui.add(egui::Button::new("-")).on_hover_text("Decrease text size").clicked() {
+                    trace!("wow!");
+                };
+
+                // Add a button that increases text size.
+                if ui.add(egui::Button::new("+")).on_hover_text("Increase text size").clicked() {
+                    trace!("wow!");
+                };
+
+                // todo: Add a text reset button.
             });
         });
 
