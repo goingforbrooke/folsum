@@ -246,7 +246,7 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
-                // Define the "Then.." section in the left pane.
+                // Define the "Then..." section in the left pane.
                 ui.horizontal(|ui| {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     ui.label("Then, ");
