@@ -475,7 +475,17 @@ impl eframe::App for FolsumGui {
                                     FileIntegrity::Unverified => "Unverified",
                                     FileIntegrity::InProgress => "Verifying...",
                                     FileIntegrity::Verified(_) => "Verified",
-                                    FileIntegrity::VerificationFailed(_) => "Failed verification",
+                                    FileIntegrity::VerificationFailed(integrity_detail) => {
+                                        // If the file's missing...
+                                        if !integrity_detail.file_path_matches {
+                                            "Failed verification: file missing"
+                                        // Otherwise, if the file's MD5 hash doesn't match...
+                                        } else if !integrity_detail.md5_hash_matches {
+                                            "Failed verification: MD5 hash mismatch"
+                                        } else {
+                                            "Failed verification: unknown reason"
+                                        }
+                                    }
                                 };
                                 ui.label(display_verification_status);
                             });
