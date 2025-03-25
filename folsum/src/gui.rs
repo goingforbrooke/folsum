@@ -251,7 +251,8 @@ impl eframe::App for FolsumGui {
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     ui.label("Then, ");
 
-                    let export_prerequisites_met = true;
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    let export_prerequisites_met = summarization_complete(summarization_status.clone());
 
                     // Grey out/disable the "Export Manifest" button if prerequisites aren't met.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
