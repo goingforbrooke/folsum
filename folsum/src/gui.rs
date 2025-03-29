@@ -328,7 +328,7 @@ impl eframe::App for FolsumGui {
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.horizontal(|ui| {
-                    ui.label("First, ");
+                    ui.label("Second, ");
 
                     // Don't add a verification file picker when compiling for web.
                     if ui.button("choose").clicked() {
