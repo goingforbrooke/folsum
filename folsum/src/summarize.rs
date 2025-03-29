@@ -251,6 +251,7 @@ pub mod tests {
     use crate::{FoundFile};
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
 
+    use anyhow::bail;
     use rand::Rng;
     use test_log;
     use tempfile::{tempdir, TempDir};
@@ -357,36 +358,6 @@ pub mod tests {
         // Lock the dummy file tracker so we can check its contents.
         let locked_paths_copy = file_paths.lock().unwrap();
 
-        // Check if the summarization was successful.
-        for actual_found_file in locked_paths_copy.iter() {
-            let actual_file_path = &actual_found_file.file_path;
-            assert!(expected_file_paths.contains(actual_file_path),
-                                                 "Expected to find {actual_file_path:?} \
-                                                  in {expected_file_paths:?}");
-            let actual_md5_hash = &actual_found_file.md5_hash;
-            assert!(expected_md5_hashes.contains(actual_md5_hash),
-                                                 "Expected to find {actual_file_path:?} \
-                                                  in {expected_file_paths:?}");
-        }
-
-        Ok(())
-    }
-
-    /// Native: Ensure that [`summarize_directory`] successfully finds verification discrepencies.
-    ///
-    /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
-    #[test_log::test]
-    fn test_directory_summarization_integrity_invalid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, mut expected_md5_hashes)= run_fake_summarization()?;
-
-        // Perturbation: Mess up the first MD5 hash, as the verification file showed something different than what will be found.
-        *expected_md5_hashes.first_mut().unwrap() = {
-            "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string()
-        };
-
-        // Assume that summarization will complete in less than a second.
-        sleep(Duration::from_secs(1));
-
         // Lock the dummy file tracker so we can check its contents.
         let locked_paths_copy = file_paths.lock().unwrap();
 
@@ -397,12 +368,73 @@ pub mod tests {
                     "Expected to find {actual_file_path:?} \
                      in {expected_file_paths:?}");
             let actual_md5_hash = &actual_found_file.md5_hash;
-            eprintln!("actual_md5_hash = {:#?}", actual_md5_hash);
             assert!(expected_md5_hashes.contains(actual_md5_hash),
-                    "Expected to find {actual_md5_hash:?} \
-                     in {expected_md5_hashes:?}");
+                    "Expected to find {actual_file_path:?} \
+                     in {expected_file_paths:?}");
+        }
+        Ok(())
+    }
+
+    /// Native: Ensure that [`summarize_directory`] successfully finds verification discrepencies.
+    ///
+    /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
+    #[test_log::test]
+    fn test_directory_summarization_integrity_invalid() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths, mut expected_md5_hashes)= run_fake_summarization()?;
+
+        // Keep around the original hash so we can ensure that it was missed later.
+        let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
+        // Perturbation: Mess up the first MD5 hash, as if the verification file showed something different from what will be summarized, because we want to catch that!
+        *expected_md5_hashes.first_mut().unwrap() = "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string();
+
+        // Assume that summarization will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        // Lock the dummy file tracker so we can check its contents.
+        let locked_paths_copy = file_paths.lock().unwrap();
+
+        // Keep track of our little assertions so we can see if anything failed at the end.
+        let mut existence_check_failures: Vec<&PathBuf> = vec![];
+        let mut hash_match_failures: Vec<&String> = vec![];
+        // Check if the summarization was successful (
+        for actual_found_file in locked_paths_copy.iter() {
+            // Check if the file paths match.
+            let actual_file_path = &actual_found_file.file_path;
+            if !expected_file_paths.contains(actual_file_path) {
+                existence_check_failures.push(&actual_file_path);
+            }
+
+            // Check if the MD5 hashes match.
+            let actual_md5_hash = &actual_found_file.md5_hash;
+            if !expected_md5_hashes.contains(actual_md5_hash) {
+                hash_match_failures.push(actual_md5_hash);
+            }
         }
 
+        assert!(existence_check_failures.is_empty(),
+                "Didn't find file_path {existence_check_failures:?} \
+                 in {expected_file_paths:?}");
+
+        eprintln!("pre_perturbed_hash = {:#?}", pre_perturbed_hash);
+        // Now for the actual test-- is FolSum sad that it missed the perturbed hash?
+        if !hash_match_failures.is_empty() {
+            // Happy path: FolSum notices that one of the MD5 hashes was messed with.
+            if hash_match_failures.len() == 1 {
+                let hash_match_failure = hash_match_failures.first().cloned().unwrap();
+                // Ensure that the messed up hash is the one that we perturbed.
+                assert!(pre_perturbed_hash == *hash_match_failure,
+                        "Expected the perturbed hash to be {pre_perturbed_hash:?} \
+                         but found {hash_match_failure:?} \
+                         instead.");
+            } else {
+                let failure_count = hash_match_failures.len();
+                bail!("Expected to find only one hash match failure, but {failure_count:?}\
+                       hash match failures were found")
+            }
+        } else {
+            bail!("Didn't find hash {hash_match_failures:?} \
+                   in {expected_md5_hashes:?}")
+        }
         Ok(())
     }
 }
