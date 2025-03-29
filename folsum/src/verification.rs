@@ -52,7 +52,7 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
             let assessed_integrity =  match matching_manifest_entry {
                 Some(matching_manifest_entry) => {
                     // Assess the file's integrity (which is just an MD5) 😨.
-                    assess_integrity(&matching_manifest_entry, &matching_manifest_entry)?
+                    assess_integrity(summarized_file, &matching_manifest_entry)?
                 }
                 None => {
                     // Assume bad file integrity b/c the file path wasn't found.
