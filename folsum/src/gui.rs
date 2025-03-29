@@ -246,23 +246,39 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
+                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 // Define the "Then..." section in the left pane.
                 ui.horizontal(|ui| {
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     ui.label("Then, ");
 
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let export_prerequisites_met = summarization_complete(summarization_status.clone());
+                    // Decide whether we're ready to create an export file.
+                    let summarization_complete = summarization_is_complete(summarization_status.clone());
+
+                    // Check whether the user has selected a directory to summarize.
+                    let summarization_path = summarization_path.lock().unwrap();
+                    let summarization_path_copy = summarization_path.clone();
+                    drop(summarization_path);
+                    let summarization_path_selected = summarization_path_copy.is_some();
+
+                    let export_prerequisites_met = summarization_complete && summarization_path_selected;
 
                     // Grey out/disable the "Export Manifest" button if prerequisites aren't met.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     if ui.add_enabled(export_prerequisites_met, egui::Button::new("export")).clicked() {
                         info!("🏁 User started export of manifest");
 
                         let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-                        let formatted_date = date_today.format("%y_%m_%d").to_string();
-                        // Prepend the date (YY_MM_DD) to the filename.
-                        let export_filename = format!("{formatted_date}_folsum_export");
+                        // Prefix the export filename with the non-zero padded date and time.
+                        let formatted_date = date_today.format("%-y_%-m_%-d_%-H_%-M").to_string();
+
+                        // Extract the name of the summarized directory so we can use it to name the export file.
+                        // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
+                        let summarization_path_copy = summarization_path_copy.unwrap();
+                        let raw_directory_name = summarization_path_copy.file_name().unwrap();
+                        let display_directory_name = raw_directory_name.to_string_lossy().to_string();
+
+                        // Name the export file `YY-MM-DD-HH_MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
+                        let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
+
                         // Open the "Save export file as" dialog.
                         let starting_directory = match export_file.lock().unwrap().clone() {
                             // Open the export dialog in the same dir as the previous export.
@@ -284,11 +300,9 @@ impl eframe::App for FolsumGui {
                         {
                             *export_file = Arc::new(Mutex::new(Some(path)));
                         }
-                        #[cfg(any(target_family = "unix", target_family = "windows"))]
-                            let _result = export_csv(&export_file, &file_paths);
+                        let _result = export_csv(&export_file, &file_paths);
                     };
 
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     ui.label(" the discovery manifest file to the folder that was assessed.");
                 });
 
@@ -370,7 +384,7 @@ impl eframe::App for FolsumGui {
 
                     // If everything's ready to verify...
                     // todo: Add verification prerequisite: export file must be selected.
-                    let verification_prerequisites_met = summarization_table_has_data && summarization_complete(summarization_status.clone());
+                    let verification_prerequisites_met = summarization_table_has_data && summarization_is_complete(summarization_status.clone());
 
                     // Grey out/disable the "Verify Folder" button if summarization prerequisites aren't met.
                     if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
@@ -497,7 +511,7 @@ impl eframe::App for FolsumGui {
 }
 
 /// Check if summarization is done.
-fn summarization_complete(summarization_status: Arc<Mutex<SummarizationStatus>>) -> bool {
+fn summarization_is_complete(summarization_status: Arc<Mutex<SummarizationStatus>>) -> bool {
     let locked_summarization_status = summarization_status.lock().expect("Lock poisoned");
     let summarization_status_copy = locked_summarization_status.clone();
     drop(locked_summarization_status);

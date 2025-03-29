@@ -19,6 +19,11 @@ use log::{debug, error, info, trace, warn};
 use crate::{CSV_HEADERS, FoundFile};
 
 
+/// Export the current summarization (show in the GUI table) to a FolSum CSV file.
+///
+/// # Parameters
+/// - `export_file`: Path to the file that will be created.
+/// - `file_paths`: Summarized files (from the GUI table).
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn export_csv(
     export_file: &Arc<Mutex<Option<PathBuf>>>,
@@ -27,7 +32,8 @@ pub fn export_csv(
     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
     let file_paths_copy: Arc<Mutex<Vec<FoundFile>>> = file_paths.clone();
     // Copy the export file path's `Arc` so we can access it in a separate thread for CSV dumping.
-    let export_file: Arc<Mutex<Option<PathBuf>>> = export_file.clone();
+    let export_filepath: Arc<Mutex<Option<PathBuf>>> = export_file.clone();
+
     thread::spawn(move || {
         // Make a place to put file paths that'll be written to the CSV file and include column headers.
         let mut csv_rows = CSV_HEADERS.to_string();
@@ -42,7 +48,8 @@ pub fn export_csv(
             csv_rows.push_str(&csv_row)
         }
         // Lock the export file path so we can use it to create the CSV dump.
-        let locked_export_file = export_file.lock().unwrap();
+        let locked_export_file = export_filepath.lock().unwrap();
+
         let export_filename = locked_export_file
             .as_ref()
             .expect("No path for export file was specified");
