@@ -205,8 +205,7 @@ fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
                 .sample_iter(&Alphanumeric)
                 .take(8)
                 .map(char::from)
-                .
-                    collect();
+                .collect();
             // Add the new directory to the stack.
             dir_paths.push(dir_name);
         }
@@ -240,6 +239,7 @@ fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
 #[cfg(any(test, feature = "bench"))]
 pub mod tests {
     use std::fs::{create_dir_all, File};
+    use std::io::Write;
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
     #[cfg(test)]
@@ -251,6 +251,7 @@ pub mod tests {
     use crate::{FoundFile};
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
 
+    use rand::Rng;
     use test_log;
     use tempfile::{tempdir, TempDir};
     #[allow(unused)]
@@ -267,7 +268,17 @@ pub mod tests {
             if let Some(file_parent) = absolute_testfile_path.parent() {
                 create_dir_all(file_parent)?;
             }
-            File::create(&absolute_testfile_path)?;
+
+            // Get an RNG:
+            let rng = rand::rng();
+            // Generate 100 random characters to put in the fake file so each MD5 hash is different.
+            let random_character_bytes: Vec<u8> = rng
+                .sample_iter(&rand::distr::Alphanumeric)
+                .take(100)
+                .collect();
+
+            let mut buffer = File::create(&absolute_testfile_path)?;
+            buffer.write_all(&random_character_bytes)?;
 
             debug!("Created test file: {absolute_testfile_path:?}");
         }
@@ -334,8 +345,10 @@ pub mod tests {
 
 
     /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
+    ///
+    /// Assumes a scenario in which all files exist and have valid integrity.
     #[test_log::test]
-    fn test_directory_summarization() -> Result<(), anyhow::Error> {
+    fn test_directory_summarization_integrity_valid() -> Result<(), anyhow::Error> {
         let (file_paths, expected_file_paths, expected_md5_hashes)= run_fake_summarization()?;
 
         // Assume that summarization will complete in less than a second.
@@ -354,6 +367,40 @@ pub mod tests {
             assert!(expected_md5_hashes.contains(actual_md5_hash),
                                                  "Expected to find {actual_file_path:?} \
                                                   in {expected_file_paths:?}");
+        }
+
+        Ok(())
+    }
+
+    /// Native: Ensure that [`summarize_directory`] successfully finds verification discrepencies.
+    ///
+    /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
+    #[test_log::test]
+    fn test_directory_summarization_integrity_invalid() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths, mut expected_md5_hashes)= run_fake_summarization()?;
+
+        // Perturbation: Mess up the first MD5 hash, as the verification file showed something different than what will be found.
+        *expected_md5_hashes.first_mut().unwrap() = {
+            "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string()
+        };
+
+        // Assume that summarization will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        // Lock the dummy file tracker so we can check its contents.
+        let locked_paths_copy = file_paths.lock().unwrap();
+
+        // Check if the summarization was successful.
+        for actual_found_file in locked_paths_copy.iter() {
+            let actual_file_path = &actual_found_file.file_path;
+            assert!(expected_file_paths.contains(actual_file_path),
+                    "Expected to find {actual_file_path:?} \
+                     in {expected_file_paths:?}");
+            let actual_md5_hash = &actual_found_file.md5_hash;
+            eprintln!("actual_md5_hash = {:#?}", actual_md5_hash);
+            assert!(expected_md5_hashes.contains(actual_md5_hash),
+                    "Expected to find {actual_md5_hash:?} \
+                     in {expected_md5_hashes:?}");
         }
 
         Ok(())
