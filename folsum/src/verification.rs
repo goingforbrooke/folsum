@@ -142,7 +142,8 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
         false => FileIntegrity::VerificationFailed(integrity_detail),
     };
 
-    debug!("Assessed integrity of manifest entry {manifest_entry:?}");
+    debug!("Assessed integrity of manifest entry {manifest_entry:?} \
+            and found it to be {file_verification_status:?}");
     Ok(file_verification_status)
 }
 
