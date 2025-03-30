@@ -340,11 +340,11 @@ impl eframe::App for FolsumGui {
                 ui.heading("Verify a Folder");
 
 
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.horizontal(|ui| {
                     ui.label("Second, ");
 
                     // Don't add a verification file picker when compiling for web.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     if ui.button("choose").clicked() {
                         // Open the "Save export file as" dialog.
                         let starting_directory = match verification_file_path.lock().unwrap().clone() {
