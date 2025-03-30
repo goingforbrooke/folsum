@@ -16,6 +16,13 @@ Launch the program, select the directory that you'd like to summarize, and click
 
 Next, click the "export" button to create a "verification manifest" in the same folder that was summarized.
 
+The export file will be named Name the export file `YY-MM-DD-HH_MM_<summarized folder name>.folsum.csv`. The date and time prefix contains no zero padding.
+
+For example, if today is March 29th, 2025 and we export a summarization of a folder called "cool_stuff/", then the export file will be called `25_3_29_16_17_cool_stuff.folsum.csv`.
+
+> [!NOTE]
+> Trying to make another export within the same minute will result in an overwrite confirmation prompt.
+
 ## 🛠️ Contributing
 
 ### 🌳 Branch Naming Conventions
