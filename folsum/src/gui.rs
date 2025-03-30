@@ -268,7 +268,7 @@ impl eframe::App for FolsumGui {
 
                         let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                         // Prefix the export filename with the non-zero padded date and time.
-                        let formatted_date = date_today.format("%-y_%-m_%-d_%-H_%-M").to_string();
+                        let formatted_date = date_today.format("%-y-%-m-%-d-%-H-%-M").to_string();
 
                         // Extract the name of the summarized directory so we can use it to name the export file.
                         // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
@@ -276,7 +276,7 @@ impl eframe::App for FolsumGui {
                         let raw_directory_name = summarization_path_copy.file_name().unwrap();
                         let display_directory_name = raw_directory_name.to_string_lossy().to_string();
 
-                        // Name the export file `YY-MM-DD-HH_MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
+                        // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
                         let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
 
                         // Open the "Save export file as" dialog.
