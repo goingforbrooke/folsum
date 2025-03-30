@@ -356,7 +356,7 @@ impl eframe::App for FolsumGui {
                         if let Some(path) = FileDialog::new()
                             // Add `.csv` to the end of the user's chosen name for the CSV export.
                             .add_filter("csv", &["csv"])
-                            .set_title("Choose FolSum CSV file to verify against")
+                            .set_title("Choose a FolSum verification manifest (CSV) file")
                             // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
                             .set_directory(starting_directory)
                             .pick_file() {
