@@ -358,9 +358,6 @@ pub mod tests {
         // Lock the dummy file tracker so we can check its contents.
         let locked_paths_copy = file_paths.lock().unwrap();
 
-        // Lock the dummy file tracker so we can check its contents.
-        let locked_paths_copy = file_paths.lock().unwrap();
-
         // Check if the summarization was successful.
         for actual_found_file in locked_paths_copy.iter() {
             let actual_file_path = &actual_found_file.file_path;

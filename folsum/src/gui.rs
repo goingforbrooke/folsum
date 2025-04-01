@@ -28,7 +28,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus, FileIntegrity};
+use crate::{DirectoryVerificationStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FoundFile, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -268,7 +268,7 @@ impl eframe::App for FolsumGui {
 
                         let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                         // Prefix the export filename with the non-zero padded date and time.
-                        let formatted_date = date_today.format("%-y-%-m-%-d-%-H-%-M").to_string();
+                        let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
 
                         // Extract the name of the summarized directory so we can use it to name the export file.
                         // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
@@ -360,7 +360,8 @@ impl eframe::App for FolsumGui {
                             // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
                             .set_directory(starting_directory)
                             .pick_file() {
-                            info!("User chose verification file: {:?}", path);
+
+                            info!("Found verification file: {:?}", path);
                             *verification_file_path = Arc::new(Mutex::new(Some(path)));
                         }
                     }
@@ -390,7 +391,7 @@ impl eframe::App for FolsumGui {
                     if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
                         info!("🏁 User started verification");
                         // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &verification_file_path, &directory_verification_status).unwrap();
+                        verify_summarization(&file_paths, &summarization_path, &directory_verification_status).unwrap();
                     }
 
                     ui.label("against.");

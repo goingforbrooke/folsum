@@ -15,6 +15,7 @@ macro_rules! debug_println {
 }
 
 pub const CSV_HEADERS: &str = "File Path, MD5 Hash\n";
+pub const FILEDATE_PREFIX_FORMAT: &str = "%-y-%-m-%-d-%-H-%-M";
 
 
 // Point in the summarization process of a directory's contents.
