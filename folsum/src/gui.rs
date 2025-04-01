@@ -340,34 +340,8 @@ impl eframe::App for FolsumGui {
                 ui.heading("Verify a Folder");
 
 
-                ui.horizontal(|ui| {
-                    ui.label("Second, ");
-
-                    // Don't add a verification file picker when compiling for web.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    if ui.button("choose").clicked() {
-                        // Open the "Save export file as" dialog.
-                        let starting_directory = match verification_file_path.lock().unwrap().clone() {
-                            // Open the verification file chooser in the same dir as the previous export.
-                            Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
-                            // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
-                            None => home_dir().expect("Failed to get user's home directory"),
-                        };
-                        if let Some(path) = FileDialog::new()
-                            // Add `.csv` to the end of the user's chosen name for the CSV export.
-                            .add_filter("csv", &["csv"])
-                            .set_title("Choose a FolSum verification manifest (CSV) file")
-                            // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                            .set_directory(starting_directory)
-                            .pick_file() {
-
-                            info!("Found verification file: {:?}", path);
-                            *verification_file_path = Arc::new(Mutex::new(Some(path)));
-                        }
-                    }
-
-                    ui.label("a discovery manifest file to ");
-
+                // Folder verification section.
+                ui.vertical(|ui| {
                     // Check if summarization table has data.
                     let file_paths_locked = file_paths.lock().unwrap();
                     let file_paths_copy = file_paths_locked.clone();
@@ -382,19 +356,22 @@ impl eframe::App for FolsumGui {
                             false
                         },
                     };
-
                     // If everything's ready to verify...
                     // todo: Add verification prerequisite: export file must be selected.
                     let verification_prerequisites_met = summarization_table_has_data && summarization_is_complete(summarization_status.clone());
 
-                    // Grey out/disable the "Verify Folder" button if summarization prerequisites aren't met.
-                    if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
-                        info!("🏁 User started verification");
-                        // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &summarization_path, &directory_verification_status).unwrap();
-                    }
-
-                    ui.label("against.");
+                    // Verification text block.
+                    ui.horizontal(|ui| {
+                        ui.label("Second,");
+                        // Grey out/disable the "verify" button if summarization prerequisites aren't met.
+                        if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
+                            info!("🏁 User started verification");
+                            // ... then ensure that its contents match the verification file.
+                            verify_summarization(&file_paths, &summarization_path, &directory_verification_status).unwrap();
+                        }
+                        ui.label("the folder's contents against the most recent FolSum manifest.");
+                    });
+                    ui.label("FolSum looks for manifests inside of the folder that was summarized.");
                 });
 
                 ui.horizontal(|ui| {
