@@ -32,7 +32,7 @@ use crate::{DirectoryVerificationStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, 
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, summarize_directory, SummarizationStatus};
+use crate::{export_csv, summarize_directory, ManifestCreationStatus, SummarizationStatus};
 
 // Internal crates for WASM builds.
 #[cfg(target_family = "wasm")]
@@ -63,6 +63,8 @@ pub struct FolsumGui {
     summarization_status: Arc<Mutex<SummarizationStatus>>,
     #[serde(skip)]
     directory_verification_status: Arc<Mutex<DirectoryVerificationStatus>>,
+    #[serde(skip)]
+    manifest_creation_status: Arc<Mutex<ManifestCreationStatus>>,
 }
 
 impl Default for FolsumGui {
@@ -77,6 +79,7 @@ impl Default for FolsumGui {
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
             directory_verification_status: Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified)),
+            manifest_creation_status: Arc::new(Mutex::new(ManifestCreationStatus::NotStarted)),
         }
     }
 }
@@ -117,6 +120,7 @@ impl eframe::App for FolsumGui {
             time_taken,
             summarization_status,
             directory_verification_status,
+            manifest_creation_status,
             ..
         } = self;
 
@@ -205,6 +209,8 @@ impl eframe::App for FolsumGui {
                     ui.label("a discovery manifest from.");
                 });
 
+                ui.label("A discovery manifest file will be exported to the folder that was assessed.");
+
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -234,7 +240,22 @@ impl eframe::App for FolsumGui {
                         SummarizationStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Manifest creation {display_summarization_status}"));
+                    ui.label(format!("Discovery {display_summarization_status}"));
+                });
+
+                // Show the manifest file creation/export status to the user.
+                ui.horizontal(|ui| {
+                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                    drop(locked_manifest_creation_status);
+
+                    let display_manifest_creation_status = match manifest_creation_status_copy {
+                        ManifestCreationStatus::NotStarted => "not started.",
+                        ManifestCreationStatus::InProgress => "in progress.",
+                        ManifestCreationStatus::Done => "completed.",
+                    };
+
+                    ui.label(format!("Manifest file creation {display_manifest_creation_status}"));
                 });
 
                 ui.horizontal(|ui| {
@@ -247,20 +268,13 @@ impl eframe::App for FolsumGui {
                 });
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                // Define the "Then..." section in the left pane.
                 ui.horizontal(|ui| {
-                    ui.label("Then, ");
-
-                    // Decide whether we're ready to create an export file.
-                    let summarization_complete = summarization_is_complete(summarization_status.clone());
-
                     // Check whether the user has selected a directory to summarize.
                     let summarization_path = summarization_path.lock().unwrap();
                     let summarization_path_copy = summarization_path.clone();
                     drop(summarization_path);
-                    let summarization_path_selected = summarization_path_copy.is_some();
 
-                    let export_prerequisites_met = summarization_complete && summarization_path_selected;
+                    let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status);
 
                     // Grey out/disable the "Export Manifest" button if prerequisites aren't met.
                     if ui.add_enabled(export_prerequisites_met, egui::Button::new("export")).clicked() {
@@ -302,8 +316,6 @@ impl eframe::App for FolsumGui {
                         }
                         let _result = export_csv(&export_file, &file_paths);
                     };
-
-                    ui.label(" the discovery manifest file to the folder that was assessed.");
                 });
 
                 ui.separator();
@@ -508,4 +520,19 @@ fn summarization_is_complete(summarization_status: Arc<Mutex<SummarizationStatus
         }
     };
     summarization_complete
+}
+
+/// Decide whether we're ready to export.
+fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>, summarization_status: &Arc<Mutex<SummarizationStatus>>) -> bool {
+    // Decide whether we're ready to create an export file.
+    let summarization_complete = summarization_is_complete(summarization_status.clone());
+    let summarization_path_selected = summarization_path_copy.is_some();
+    let export_prerequisites_met = summarization_complete && summarization_path_selected;
+
+    if export_prerequisites_met {
+        trace!("Decided that the prerequisites for an export were met.");
+    } else {
+        trace!("Decided that the prerequisites for an export were not met.");
+    };
+    export_prerequisites_met
 }

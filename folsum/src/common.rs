@@ -27,6 +27,15 @@ pub enum SummarizationStatus {
 }
 
 
+// Point in the process of creating a manifest export file.
+#[derive(Clone)]
+pub enum ManifestCreationStatus {
+    NotStarted,
+    InProgress,
+    Done,
+}
+
+
 /// Integrity of the whole directory being summarized.
 #[derive(Clone, Debug)]
 pub enum DirectoryVerificationStatus {
