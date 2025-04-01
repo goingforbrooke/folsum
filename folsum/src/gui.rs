@@ -12,8 +12,6 @@ use std::time::{Duration, Instant};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use chrono::{DateTime, Local};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use dirs::home_dir;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use egui::ViewportCommand;
 use egui_extras::{Column, TableBuilder};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -276,10 +274,8 @@ impl eframe::App for FolsumGui {
 
                     let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status);
 
-                    // Grey out/disable the "Export Manifest" button if prerequisites aren't met.
-                    if ui.add_enabled(export_prerequisites_met, egui::Button::new("export")).clicked() {
-                        info!("🏁 User started export of manifest");
-
+                    // If we're ready to export a verification manifest, then do so.
+                    if export_prerequisites_met {
                         let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
                         // Prefix the export filename with the non-zero padded date and time.
                         let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
@@ -292,28 +288,11 @@ impl eframe::App for FolsumGui {
 
                         // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
                         let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
+                        // Put the export file into the directory that was assessed.
+                        let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
+                        debug!("Created path for new export file: {export_path:?}");
 
-                        // Open the "Save export file as" dialog.
-                        let starting_directory = match export_file.lock().unwrap().clone() {
-                            // Open the export dialog in the same dir as the previous export.
-                            Some(export_file) => export_file.parent().unwrap().to_path_buf(),
-                            // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                            None => home_dir().expect("Failed to get user's home directory"),
-                        };
-                        trace!("Found user's home directory: {:?}", &starting_directory);
-                        // Ask user where they'd like to save the CSV export and what they'd like it to be called.
-                        if let Some(path) = FileDialog::new()
-                            // Add `.csv` to the end of the user's chosen name for the CSV export.
-                            .add_filter("csv", &["csv"])
-                            .set_title("Export extension counts to CSV file")
-                            // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                            .set_directory(starting_directory)
-                            // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
-                            .set_file_name(&export_filename)
-                            .save_file()
-                        {
-                            *export_file = Arc::new(Mutex::new(Some(path)));
-                        }
+                        *export_file = Arc::new(Mutex::new(Some(export_path)));
                         let _result = export_csv(&export_file, &file_paths);
                     };
                 });
