@@ -240,7 +240,7 @@ impl eframe::App for FolsumGui {
                         SummarizationStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Discovery {display_summarization_status}"));
+                    ui.label(format!("Discovery assessment {display_summarization_status}"));
                 });
 
                 // Show the manifest file creation/export status to the user.
