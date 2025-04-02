@@ -5,7 +5,7 @@ pub use common::{CSV_HEADERS, DirectoryVerificationStatus, FILEDATE_PREFIX_FORMA
 
 mod export_csv;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-pub use export_csv::export_csv;
+pub use export_csv::{create_export_path, export_csv};
 
 mod gui;
 pub use gui::FolsumGui;

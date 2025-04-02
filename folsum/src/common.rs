@@ -32,7 +32,7 @@ pub enum SummarizationStatus {
 pub enum ManifestCreationStatus {
     NotStarted,
     InProgress,
-    Done,
+    Done(PathBuf),
 }
 
 

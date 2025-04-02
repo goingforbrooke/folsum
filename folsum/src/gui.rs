@@ -4,15 +4,13 @@ use std::sync::{Arc, Mutex};
 
 // Std crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use std::time::SystemTime;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
+
+// External crates for macOS, Windows, *and* WASM builds.
+use egui::ViewportCommand;
 
 // External crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use chrono::{DateTime, Local};
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-use egui::ViewportCommand;
 use egui_extras::{Column, TableBuilder};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use rfd::FileDialog;
@@ -26,7 +24,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FoundFile, verify_summarization};
+use crate::{create_export_path, DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -254,9 +252,13 @@ impl eframe::App for FolsumGui {
                     drop(locked_manifest_creation_status);
 
                     let display_manifest_creation_status = match manifest_creation_status_copy {
-                        ManifestCreationStatus::NotStarted => "not started.",
-                        ManifestCreationStatus::InProgress => "in progress.",
-                        ManifestCreationStatus::Done => "completed.",
+                        ManifestCreationStatus::NotStarted => "not started.".to_string(),
+                        ManifestCreationStatus::InProgress => "in progress.".to_string(),
+                        ManifestCreationStatus::Done(manifest_file_path) => {
+                            let manifest_filename = manifest_file_path.file_name().unwrap();
+                            let display_manifest_filename = manifest_filename.to_string_lossy().to_string();
+                            format!("completed: {display_manifest_filename}")
+                        },
                     };
 
                     ui.label(format!("Manifest file creation {display_manifest_creation_status}"));
@@ -271,23 +273,24 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
+                // Don't do exports on WASM builds.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                ui.horizontal(|ui| {
+                {
                     // Check whether the user has selected a directory to summarize.
                     let summarization_path = summarization_path.lock().unwrap();
                     let summarization_path_copy = summarization_path.clone();
                     drop(summarization_path);
 
-                    let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status);
+                    let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status, &manifest_creation_status);
 
                     // If we're ready to export a verification manifest file, then do so.
                     if export_prerequisites_met {
                         let export_path = create_export_path(summarization_path_copy);
 
                         *export_file = Arc::new(Mutex::new(Some(export_path)));
-                        let _result = export_csv(&export_file, &file_paths);
+                        let _result = export_csv(&export_file, &file_paths, &manifest_creation_status);
                     };
-                });
+                }
 
                 ui.separator();
 
@@ -493,12 +496,28 @@ fn summarization_is_complete(summarization_status: Arc<Mutex<SummarizationStatus
     summarization_complete
 }
 
-/// Decide whether we're ready to export.
-fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>, summarization_status: &Arc<Mutex<SummarizationStatus>>) -> bool {
-    // Decide whether we're ready to create an export file.
+// Decide whether we're ready to create an export file.
+fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>,
+                            summarization_status: &Arc<Mutex<SummarizationStatus>>,
+                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> bool {
     let summarization_complete = summarization_is_complete(summarization_status.clone());
+
     let summarization_path_selected = summarization_path_copy.is_some();
-    let export_prerequisites_met = summarization_complete && summarization_path_selected;
+
+    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+    drop(locked_manifest_creation_status);
+    let manifest_creator_ready = match manifest_creation_status_copy {
+        ManifestCreationStatus::NotStarted => true,
+        // Don't interrupt or overwrite an export that's in-progress.
+        ManifestCreationStatus::InProgress => false,
+        // Don't repeatedly create a new manifest export.
+        ManifestCreationStatus::Done(_) => false,
+    };
+
+    let export_prerequisites_met = summarization_complete
+        && summarization_path_selected
+        && manifest_creator_ready;
 
     if export_prerequisites_met {
         trace!("Decided that the prerequisites for an export were met.");
@@ -506,24 +525,4 @@ fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>, summariza
         trace!("Decided that the prerequisites for an export were not met.");
     };
     export_prerequisites_met
-}
-
-fn create_export_path(summarization_path_copy: Option<PathBuf>) -> PathBuf {
-    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-    // Prefix the export filename with the non-zero padded date and time.
-    let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
-
-    // Extract the name of the summarized directory so we can use it to name the export file.
-    // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
-    let summarization_path_copy = summarization_path_copy.unwrap();
-    let raw_directory_name = summarization_path_copy.file_name().unwrap();
-    let display_directory_name = raw_directory_name.to_string_lossy().to_string();
-
-    // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
-    let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
-    // Put the export file into the directory that was assessed.
-    let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
-
-    debug!("Created path for new export file: {export_path:?}");
-    export_path
 }

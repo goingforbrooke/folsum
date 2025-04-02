@@ -7,16 +7,27 @@ use std::io::Write;
 use std::path::PathBuf;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::sync::{Arc, Mutex, MutexGuard};
+// Std crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use std::time::SystemTime;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::thread;
+
+// Internal crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use crate::ManifestCreationStatus;
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
+// External crates for macOS and Windows builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use chrono::{DateTime, Local};
+
 // Internal crates macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{CSV_HEADERS, FoundFile};
+use crate::{CSV_HEADERS, FILEDATE_PREFIX_FORMAT, FoundFile};
 
 
 /// Export the current summarization (show in the GUI table) to a FolSum CSV file.
@@ -28,13 +39,18 @@ use crate::{CSV_HEADERS, FoundFile};
 pub fn export_csv(
     export_file: &Arc<Mutex<Option<PathBuf>>>,
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
+    manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>,
 ) -> Result<(), &'static str> {
     // Copy extension counts so we can access them in a separate thread that's dedicated to this CSV dump.
     let file_paths_copy: Arc<Mutex<Vec<FoundFile>>> = file_paths.clone();
     // Copy the export file path's `Arc` so we can access it in a separate thread for CSV dumping.
     let export_filepath: Arc<Mutex<Option<PathBuf>>> = export_file.clone();
+    let manifest_creation_status: Arc<Mutex<ManifestCreationStatus>> = manifest_creation_status.clone();
 
     thread::spawn(move || {
+        // Note that the creation of a verification manifest export file has begun.
+        *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::InProgress;
+
         // Make a place to put file paths that'll be written to the CSV file and include column headers.
         let mut csv_rows = CSV_HEADERS.to_string();
         let locked_file_paths: MutexGuard<'_, Vec<FoundFile>> = file_paths_copy.lock().unwrap();
@@ -57,7 +73,31 @@ pub fn export_csv(
         let mut csv_export = File::create(export_filename).expect("Failed to create CSV export file");
         // Write the CSV's content to the export file.
         csv_export.write_all(csv_rows.as_bytes()).expect("Failed to write contents to CSV export file");
+
         info!("Exported file extension summary to: {:?}", export_filename);
+        // Note that the creation of a verification manifest export file has completed.
+        *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::Done(export_filename.clone());
     });
     Ok(())
+}
+
+/// Create a path for a new export file, which should be created inside the directory that it summarized.
+pub fn create_export_path(summarization_path_copy: Option<PathBuf>) -> PathBuf {
+    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+    // Prefix the export filename with the non-zero padded date and time.
+    let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
+
+    // Extract the name of the summarized directory so we can use it to name the export file.
+    // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
+    let summarization_path_copy = summarization_path_copy.unwrap();
+    let raw_directory_name = summarization_path_copy.file_name().unwrap();
+    let display_directory_name = raw_directory_name.to_string_lossy().to_string();
+
+    // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
+    let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
+    // Put the export file into the directory that was assessed.
+    let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
+
+    debug!("Created path for new export file: {export_path:?}");
+    export_path
 }
