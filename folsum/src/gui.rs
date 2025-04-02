@@ -348,25 +348,27 @@ impl eframe::App for FolsumGui {
                             // ... then ensure that its contents match the verification file.
                             verify_summarization(&file_paths, &summarization_path, &directory_verification_status).unwrap();
                         }
-                        ui.label("the folder's contents against the most recent FolSum manifest.");
+                        ui.label("the folder's contents against the previous FolSum manifest file.");
                     });
                     ui.label("FolSum looks for manifests inside of the folder that was summarized.");
                 });
 
                 ui.horizontal(|ui| {
+                    ui.label("Previous manifest file:");
+
                     // Check if the user has picked a FolSum CSV to verify against.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    {
                         let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                         let shown_path: &str = match &*locked_path {
-                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                        None => "No verification file selected",
-                    };
+                            Some(the_path) => the_path.as_os_str().to_str().unwrap(),
+                            None => "No manifest file selected",
+                        };
+                        // Display the user's chosen directory in monospace font.
+                        ui.monospace(shown_path);
+                    }
                     #[cfg(target_family = "wasm")]
-                        let shown_path = "N/A";
-                    ui.label("Verification file:");
-                    // Display the user's chosen directory in monospace font.
-                    ui.monospace(shown_path);
+                    ui.monospace("N/A");
                 });
 
 
