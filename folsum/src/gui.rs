@@ -184,7 +184,7 @@ impl eframe::App for FolsumGui {
 
                     ui.label("a folder to ");
 
-                    if ui.button("create").clicked() {
+                    if ui.button("audit").clicked() {
                         info!("User started discovery manifest creation");
                         #[cfg(any(target_family = "unix", target_family = "windows"))]
                             let _result = summarize_directory(
@@ -204,10 +204,10 @@ impl eframe::App for FolsumGui {
                         );
                     };
 
-                    ui.label("a discovery manifest from.");
+                    ui.label("and create a manifest from.");
                 });
 
-                ui.label("A discovery manifest file will be exported to the folder that was assessed.");
+                ui.label("A manifest file containing audit results will be exported to the folder that was audited.");
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
