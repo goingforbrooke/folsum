@@ -15,7 +15,7 @@ use std::thread;
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::ManifestCreationStatus;
+use crate::{FOLSUM_CSV_EXTENSION, ManifestCreationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -92,7 +92,7 @@ pub fn create_export_path(summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> P
     let display_directory_name = raw_directory_name.to_string_lossy().to_string();
 
     // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
-    let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
+    let export_filename = format!("{formatted_date}_{display_directory_name}{FOLSUM_CSV_EXTENSION}");
     // Put the export file into the directory that was assessed.
     let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
 
