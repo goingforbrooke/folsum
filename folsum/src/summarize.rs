@@ -9,7 +9,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, get_md5_hash, SummarizationStatus};
+use crate::{DirectoryVerificationStatus, get_md5_hash, ManifestCreationStatus, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -35,6 +35,7 @@ pub fn summarize_directory(
     time_taken: &Arc<Mutex<Duration>>,
     summarization_status: &Arc<Mutex<SummarizationStatus>>,
     directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+    manifest_verification_status: &Arc<Mutex<ManifestCreationStatus>>,
 ) -> Result<(), &'static str> {
 
     let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
@@ -47,6 +48,7 @@ pub fn summarize_directory(
 
         *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
         *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
+        *manifest_verification_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
 
         // Note that summarization is in progress.
 

@@ -198,6 +198,7 @@ impl eframe::App for FolsumGui {
                             &time_taken,
                             &summarization_status,
                             &directory_verification_status,
+                            &manifest_creation_status,
                         );
                         #[cfg(target_family = "wasm")]
                             let _result = wasm_demo_summarize_directory(
