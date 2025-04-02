@@ -24,7 +24,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{create_export_path, DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -47,8 +47,6 @@ pub struct FolsumGui {
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
     verification_file_path: Arc<Mutex<Option<PathBuf>>>,
-    // User's chosen directory and filename for CSV exports.
-    export_file: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -70,7 +68,6 @@ impl Default for FolsumGui {
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
             verification_file_path: Arc::new(Mutex::new(None)),
-            export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
@@ -110,8 +107,6 @@ impl eframe::App for FolsumGui {
             summarization_path,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             verification_file_path,
-            #[cfg(any(target_family = "unix", target_family = "windows"))]
-            export_file,
             summarization_start,
             time_taken,
             summarization_status,
@@ -278,18 +273,15 @@ impl eframe::App for FolsumGui {
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 {
                     // Check whether the user has selected a directory to summarize.
-                    let summarization_path = summarization_path.lock().unwrap();
-                    let summarization_path_copy = summarization_path.clone();
-                    drop(summarization_path);
+                    let locked_summarization_path = summarization_path.lock().unwrap();
+                    let summarization_path_copy = locked_summarization_path.clone();
+                    drop(locked_summarization_path);
 
                     let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status, &manifest_creation_status);
 
                     // If we're ready to export a verification manifest file, then do so.
                     if export_prerequisites_met {
-                        let export_path = create_export_path(summarization_path_copy);
-
-                        *export_file = Arc::new(Mutex::new(Some(export_path)));
-                        let _result = export_csv(&export_file, &file_paths, &manifest_creation_status);
+                        let _result = export_csv(&file_paths, &manifest_creation_status, &summarization_path);
                     };
                 }
 
