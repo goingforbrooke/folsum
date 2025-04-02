@@ -184,10 +184,16 @@ impl eframe::App for FolsumGui {
 
                     ui.label("a folder to ");
 
-                    if ui.button("audit").clicked() {
+                    // Check whether the user has selected a directory to summarize.
+                    let locked_summarization_path = summarization_path.lock().unwrap();
+                    let summarization_path_actual = locked_summarization_path.clone();
+                    drop(locked_summarization_path);
+
+                    // Grey out the "audit" button until the user has selected a directory to summarize.
+                    if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
                         info!("User started discovery manifest creation");
                         #[cfg(any(target_family = "unix", target_family = "windows"))]
-                            let _result = summarize_directory(
+                        let _result = summarize_directory(
                             &summarization_path,
                             &file_paths,
                             &summarization_start,
