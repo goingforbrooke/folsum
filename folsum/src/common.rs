@@ -19,7 +19,7 @@ pub const FILEDATE_PREFIX_FORMAT: &str = "%-y-%-m-%-d-%-H-%-M";
 pub const FOLSUM_CSV_EXTENSION: &str = ".folsum.csv";
 
 
-// Point in the summarization process of a directory's contents.
+/// Point in the summarization process of a directory's contents.
 #[derive(Clone)]
 pub enum SummarizationStatus {
     NotStarted,
@@ -28,7 +28,7 @@ pub enum SummarizationStatus {
 }
 
 
-// Point in the process of creating a manifest export file.
+/// Point in the process of creating a manifest export file.
 #[derive(Clone)]
 pub enum ManifestCreationStatus {
     NotStarted,
