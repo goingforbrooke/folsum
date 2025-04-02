@@ -238,7 +238,7 @@ impl eframe::App for FolsumGui {
                         SummarizationStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Discovery assessment {display_summarization_status}"));
+                    ui.label(format!("Audit {display_summarization_status}"));
                 });
 
                 // Show the manifest file creation/export status to the user.
@@ -259,7 +259,7 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
-                        "Examined {} files in {} milliseconds",
+                        "Audited {} files in {} milliseconds",
                         &total_files,
                         &locked_time_taken.as_millis()
                     ));
