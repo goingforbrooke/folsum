@@ -280,23 +280,9 @@ impl eframe::App for FolsumGui {
 
                     let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status);
 
-                    // If we're ready to export a verification manifest, then do so.
+                    // If we're ready to export a verification manifest file, then do so.
                     if export_prerequisites_met {
-                        let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-                        // Prefix the export filename with the non-zero padded date and time.
-                        let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
-
-                        // Extract the name of the summarized directory so we can use it to name the export file.
-                        // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
-                        let summarization_path_copy = summarization_path_copy.unwrap();
-                        let raw_directory_name = summarization_path_copy.file_name().unwrap();
-                        let display_directory_name = raw_directory_name.to_string_lossy().to_string();
-
-                        // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
-                        let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
-                        // Put the export file into the directory that was assessed.
-                        let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
-                        debug!("Created path for new export file: {export_path:?}");
+                        let export_path = create_export_path(summarization_path_copy);
 
                         *export_file = Arc::new(Mutex::new(Some(export_path)));
                         let _result = export_csv(&export_file, &file_paths);
@@ -520,4 +506,24 @@ fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>, summariza
         trace!("Decided that the prerequisites for an export were not met.");
     };
     export_prerequisites_met
+}
+
+fn create_export_path(summarization_path_copy: Option<PathBuf>) -> PathBuf {
+    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
+    // Prefix the export filename with the non-zero padded date and time.
+    let formatted_date = date_today.format(FILEDATE_PREFIX_FORMAT).to_string();
+
+    // Extract the name of the summarized directory so we can use it to name the export file.
+    // Assume that a directory's been selected b/c we checked in the export prerequisites before this.
+    let summarization_path_copy = summarization_path_copy.unwrap();
+    let raw_directory_name = summarization_path_copy.file_name().unwrap();
+    let display_directory_name = raw_directory_name.to_string_lossy().to_string();
+
+    // Name the export file `YY-MM-DD-HH-MM_<summarized folder name>.folsum.csv`. (we'll add the .csv later).
+    let export_filename = format!("{formatted_date}_{display_directory_name}.folsum");
+    // Put the export file into the directory that was assessed.
+    let export_path: PathBuf = [summarization_path_copy, PathBuf::from(export_filename)].iter().collect();
+
+    debug!("Created path for new export file: {export_path:?}");
+    export_path
 }
