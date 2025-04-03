@@ -2,7 +2,7 @@
 name = "folsum"
 description = "Summarize the contents of a directory with a GUI"
 default-run = "folsum"
-version = "2.1.0"
+version = "2.2.0"
 authors = ["goingforbrooke <12855764+goingforbrooke@users.noreply.github.com>"]
 edition = "2021"
 rust-version = "1.77.2"
@@ -38,7 +38,7 @@ rfd = "0.15.2"
 serde = { version = "1.0.218", features = ["derive"] }
 # Tempfiles for unit tests and benchmarks. Not in `dev-dependencies` b/c needed for benchmarks.
 tempfile = { version = "3.18.0", optional = true }
-# Show `tracing` log output in tests.
+# Show `tracing` log output in tests. Not in `dev-dependencies` b/c needed for benchmarks.
 test-log = { version = "0.2.17", optional = true}
 tracing = "0.1.41"
 walkdir = "2.5.0"
@@ -58,7 +58,7 @@ web-sys = {version="0.3.70", features = ["HtmlCanvasElement"] }
 
 # Cargo Bundle items for macOS distributions.
 [package.metadata.bundle]
-identifier = "com.bytesluice.folsum"
+identifier = "com.traffickingfreetomorrow.folsum"
 copyright = "Copyright (c) Brooke Deuson 2025. All rights reserved."
 category = "public.app-category.productivity"
 icon = ["folsum/images/icons/resized_icons/folsum_icon_128px.png",
