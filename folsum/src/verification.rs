@@ -277,7 +277,7 @@ pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<Pa
         .collect();
 
     let csv_file_count = found_csv_files.len();
-    debug!("Found {csv_file_count:?}\
+    debug!("Found {csv_file_count:?} \
             CSV files in the summarization directory {summarization_path:?}");
 
     // Find FolSum verification manifest files within the CSV files that we already found in the summarization directory.
