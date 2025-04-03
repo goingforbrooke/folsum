@@ -301,7 +301,7 @@ pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<Pa
     let found_manifest_files = found_manifest_files?;
 
     let found_file_count = found_manifest_files.len();
-    info!("Found {found_file_count:?}: \
+    debug!("Found {found_file_count:?} manifest files: \
            {found_manifest_files:?}");
     Ok(found_manifest_files)
 }
@@ -352,8 +352,7 @@ pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<Verifica
         }
     };
 
-    info!("Decided that the previous manifest in {found_verification_manifests:?} \
-           is {previous_manifest:?}");
+    info!("Decided that the previous manifest is {previous_manifest:?}");
     Ok(previous_manifest)
 }
 
