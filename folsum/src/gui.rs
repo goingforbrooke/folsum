@@ -46,6 +46,7 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
+    #[serde(skip)]
     verification_file_path: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
@@ -335,18 +336,34 @@ impl eframe::App for FolsumGui {
                             false
                         },
                     };
+
+                    // Check if a manifest file was created.
+                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                    drop(locked_manifest_creation_status);
+                    let manifest_file_was_created = match manifest_creation_status_copy {
+                        ManifestCreationStatus::Done(_) => true,
+                        _ => false,
+                    };
+
                     // If everything's ready to verify...
                     // todo: Add verification prerequisite: export file must be selected.
-                    let verification_prerequisites_met = summarization_table_has_data && summarization_is_complete(summarization_status.clone());
+                    let verification_prerequisites_met = summarization_table_has_data
+                        && summarization_is_complete(summarization_status.clone())
+                        && manifest_file_was_created;
 
                     // Verification text block.
                     ui.horizontal(|ui| {
                         ui.label("Second,");
                         // Grey out/disable the "verify" button if summarization prerequisites aren't met.
-                        if ui.add_enabled(verification_prerequisites_met, egui::Button::new("verify")).clicked() {
+                        if ui.add_enabled(verification_prerequisites_met,
+                                          egui::Button::new("verify")).clicked() {
                             info!("🏁 User started verification");
                             // ... then ensure that its contents match the verification file.
-                            verify_summarization(&file_paths, &summarization_path, &directory_verification_status).unwrap();
+                            verify_summarization(&file_paths,
+                                                 &summarization_path,
+                                                 &directory_verification_status,
+                                                 &manifest_creation_status).unwrap();
                         }
                         ui.label("the folder's contents against the previous FolSum manifest file.");
                     });
@@ -359,10 +376,14 @@ impl eframe::App for FolsumGui {
                     // Check if the user has picked a FolSum CSV to verify against.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     {
-                        let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
-                        let shown_path: &str = match &*locked_path {
-                            Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                            None => "No manifest file selected",
+                        let locked_verification_file_path = verification_file_path.lock().unwrap();
+                        let verification_file_copy = locked_verification_file_path.clone();
+                        drop(locked_verification_file_path);
+                        let shown_path = match verification_file_copy {
+                            Some(manifest_path) => manifest_path
+                                .to_string_lossy()
+                                .to_string(),
+                            None => "No manifest file found".to_string(),
                         };
                         // Display the user's chosen directory in monospace font.
                         ui.monospace(shown_path);

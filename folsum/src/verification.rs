@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, FILEDATE_PREFIX_FORMAT, DirectoryVerificationStatus, FileIntegrity, IntegrityDetail, FoundFile};
+use crate::{CSV_HEADERS, FILEDATE_PREFIX_FORMAT, DirectoryVerificationStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -29,11 +29,13 @@ use log::{debug, error, info, trace, warn};
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                             summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>) -> Result<(), anyhow::Error> {
+                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
     let summarization_path = Arc::clone(&summarization_path);
     let directory_verification_status = Arc::clone(&directory_verification_status);
+    let manifest_creation_status = Arc::clone(&manifest_creation_status);
 
     let _thread_handle = thread::spawn(move || {
         // Note that directory verification has begun.
@@ -41,9 +43,9 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         // Figure out which manifest file to verify against.
         let found_verification_manifests = find_verification_manifest_files(&summarization_path)?;
-        let most_recent_manifest = decide_most_recent_manifest(&found_verification_manifests)?;
+        let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status)?;
 
-        let manifest_entries = load_previous_manifest(&most_recent_manifest.file_path)?;
+        let manifest_entries = load_previous_manifest(&previous_manifest.file_path)?;
 
         // todo: Relativize file path before verification steps b/c we're probably doing it twice.
 
@@ -296,21 +298,43 @@ fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<PathBu
     Ok(found_manifest_files)
 }
 
-/// Decide which manifest file was most recently created.
+/// Decide which manifest file is the previous one.
 ///
-/// # How We Decide Recency
+/// # How We Decide Which One is Previous
 ///
-/// 1. Extract the date from each verification file's name
-/// 2. Keep the most recent date
-fn decide_most_recent_manifest(found_verification_manifests: &Vec<VerificationManifest>) -> Result<&VerificationManifest, anyhow::Error> {
-    let most_recent_manifest = found_verification_manifests
+/// 1. Remove the verification manifest that was just created.
+///     - If we didn't do this, then we'd verify against the newest assessment run and no check would actually take place
+/// 2. Extract the date from each verification file's name
+/// 3. Keep the most recent date
+fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
+                              manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<&'m VerificationManifest, anyhow::Error> {
+    // Note the path of the manifest that was just created so we can ignore it.
+    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+    drop(locked_manifest_creation_status);
+    let most_recent_manifest = match manifest_creation_status_copy {
+        ManifestCreationStatus::Done(file_path) => file_path,
+        // Assume that the manifest file's been created b/c we checked in the prereqs earlier.
+        _ => {
+            let error_message = "Encountered unexpected manifest creation status {manifest_creation_status:?} \
+                                      when only Done was expected";
+            error!("{}", error_message);
+            bail!(error_message);
+        }
+    };
+
+    let previous_manifest = found_verification_manifests
         .iter()
+        // Ignore the verification manifest that was just created.
+        .filter(|manifest_file| {
+            manifest_file.file_path != most_recent_manifest
+        })
         .max_by_key(|verification_manifest| {
             verification_manifest.date_created
         });
 
-    // Unpack the most recent
-    let most_recent_manifest = match most_recent_manifest {
+    // Unpack the previous_manifest.
+    let previous_manifest = match previous_manifest {
         Some(most_recent_manifest) => most_recent_manifest,
         // Bail if no manifest was found b/c that shouldn't be possible  at this point.
         None => {
@@ -320,9 +344,9 @@ fn decide_most_recent_manifest(found_verification_manifests: &Vec<VerificationMa
         }
     };
 
-    info!("Decided that the most recent manifest in {found_verification_manifests:?} \
-           is {most_recent_manifest:?}");
-    Ok(most_recent_manifest)
+    info!("Decided that the previous manifest in {found_verification_manifests:?} \
+           is {previous_manifest:?}");
+    Ok(previous_manifest)
 }
 
 
