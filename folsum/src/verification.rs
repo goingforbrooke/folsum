@@ -28,12 +28,10 @@ use log::{debug, error, info, trace, warn};
 ///
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                            summarization_path: &Arc<Mutex<Option<PathBuf>>>,
                             directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
                             manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
-    let summarization_path = Arc::clone(&summarization_path);
     let directory_verification_status = Arc::clone(&directory_verification_status);
     let manifest_creation_status = Arc::clone(&manifest_creation_status);
 
@@ -41,11 +39,21 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         // Note that directory verification has begun.
         *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
 
-        // Figure out which manifest file to verify against.
-        let found_verification_manifests = find_verification_manifest_files(&summarization_path)?;
-        let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status)?;
+        // Extract the path to the previous manifest from the Arc.
+        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+        drop(locked_manifest_creation_status);
+        let previous_manifest = match manifest_creation_status_copy {
+            // Assume that a manifest file was already found b/c we checked prerequisites before this.
+            ManifestCreationStatus::Done(manifest_path) => manifest_path,
+            _ => {
+                let error_message = "Expected a manifest file to be found";
+                error!("{}", error_message);
+                bail!(error_message);
+            },
+        };
 
-        let manifest_entries = load_previous_manifest(&previous_manifest.file_path)?;
+        let manifest_entries = load_previous_manifest(&previous_manifest)?;
 
         // todo: Relativize file path before verification steps b/c we're probably doing it twice.
 
@@ -156,8 +164,8 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
 
 /// Verification manifest from a previous run.
 #[derive(Debug, Eq, PartialEq)]
-struct VerificationManifest {
-    file_path: PathBuf,
+pub struct VerificationManifest {
+    pub file_path: PathBuf,
     date_created: NaiveDateTime,
 }
 
@@ -221,7 +229,7 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
 /// Find FolSum verification manifest files (in a summarized directory).
 ///
 /// Assumes that manifest files are in the top-level directory.
-fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<Vec<VerificationManifest>, anyhow::Error> {
+pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<Vec<VerificationManifest>, anyhow::Error> {
     let locked_summarization_path = summarization_path.lock().unwrap();
     let summarization_path_copy = locked_summarization_path.clone();
     drop(locked_summarization_path);
@@ -306,7 +314,7 @@ fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<PathBu
 ///     - If we didn't do this, then we'd verify against the newest assessment run and no check would actually take place
 /// 2. Extract the date from each verification file's name
 /// 3. Keep the most recent date
-fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
+pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
                               manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<&'m VerificationManifest, anyhow::Error> {
     // Note the path of the manifest that was just created so we can ignore it.
     let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();

@@ -28,7 +28,7 @@ use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summar
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, summarize_directory, ManifestCreationStatus, SummarizationStatus};
+use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory, ManifestCreationStatus, SummarizationStatus};
 
 // Internal crates for WASM builds.
 #[cfg(target_family = "wasm")]
@@ -46,8 +46,6 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
-    #[serde(skip)]
-    verification_file_path: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -68,7 +66,6 @@ impl Default for FolsumGui {
             file_paths: Arc::new(Mutex::new(vec![])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
-            verification_file_path: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
@@ -106,8 +103,6 @@ impl eframe::App for FolsumGui {
             total_files,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
-            #[cfg(any(target_family = "unix", target_family = "windows"))]
-            verification_file_path,
             summarization_start,
             time_taken,
             summarization_status,
@@ -361,7 +356,6 @@ impl eframe::App for FolsumGui {
                             info!("🏁 User started verification");
                             // ... then ensure that its contents match the verification file.
                             verify_summarization(&file_paths,
-                                                 &summarization_path,
                                                  &directory_verification_status,
                                                  &manifest_creation_status).unwrap();
                         }
@@ -376,16 +370,22 @@ impl eframe::App for FolsumGui {
                     // Check if the user has picked a FolSum CSV to verify against.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     {
-                        let locked_verification_file_path = verification_file_path.lock().unwrap();
-                        let verification_file_copy = locked_verification_file_path.clone();
-                        drop(locked_verification_file_path);
-                        let shown_path = match verification_file_copy {
-                            Some(manifest_path) => manifest_path
-                                .to_string_lossy()
-                                .to_string(),
-                            None => "No manifest file found".to_string(),
+                        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                        drop(locked_manifest_creation_status);
+                        let shown_path = match manifest_creation_status_copy {
+                            // If a new manifest file was just created, then assume that assessment/summarization is done and we're ready to verify against a manifest file.
+                            ManifestCreationStatus::Done(_) => {
+                                // Figure out which manifest file to verify against.
+                                let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
+                                let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status).unwrap();
+                                let manifest_filename = previous_manifest.file_path.file_name().unwrap();
+                                manifest_filename.to_string_lossy().to_string()
+                            },
+                            _ => "No manifest file found".to_string(),
                         };
-                        // Display the user's chosen directory in monospace font.
+
+                        // Display the previous manifest file's path in monospace font.
                         ui.monospace(shown_path);
                     }
                     #[cfg(target_family = "wasm")]
