@@ -1,6 +1,6 @@
 //! Verify an (in-memory) summarized directory against a verification file.
 // Std crates for native and WASM builds.
-use std::fs::File;
+use std::fs::{File, read_dir};
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -9,161 +9,178 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 // Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, FoundFile, get_md5_hash, DirectoryVerificationStatus};
+use crate::{CSV_HEADERS, FILEDATE_PREFIX_FORMAT, DirectoryVerificationStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
 use anyhow::bail;
+use chrono::NaiveDateTime;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
 /// Verify summarization against (CSV) verification file.
 ///
+/// # Arguments
+///
+/// `manifest_file_path`: Path to a manifest file from a previous summarization.
+///
 /// # Returns
 ///
 /// Which verification entries failed weren't found in the summary and why.
 pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                            verification_file_path: &Arc<Mutex<Option<PathBuf>>>,
-                            summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>) -> Result<(), anyhow::Error> {
+                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
-    let verification_file_path = Arc::clone(&verification_file_path);
-    let summarization_path = Arc::clone(&summarization_path);
     let directory_verification_status = Arc::clone(&directory_verification_status);
+    let manifest_creation_status = Arc::clone(&manifest_creation_status);
 
     let _thread_handle = thread::spawn(move || {
         // Note that directory verification has begun.
         *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
 
-        let locked_verification_file_path = verification_file_path.lock().unwrap();
-        let verification_file_path_copy = locked_verification_file_path.clone();
-        drop(locked_verification_file_path);
-        let verification_entries = match verification_file_path_copy {
-            Some(verification_file_path) => {
-                load_verification_entries(&verification_file_path)?
+        // Extract the path to the previous manifest from the Arc.
+        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+        drop(locked_manifest_creation_status);
+        let previous_manifest = match manifest_creation_status_copy {
+            // Assume that a manifest file was already found b/c we checked prerequisites before this.
+            ManifestCreationStatus::Done(manifest_path) => manifest_path,
+            _ => {
+                let error_message = "Expected a manifest file to be found";
+                error!("{}", error_message);
+                bail!(error_message);
             },
-            None => bail!("No verification file"),
         };
 
-        // todo: Figure out what to do if something more than what's in the verification file is encountered.
+        let manifest_entries = load_previous_manifest(&previous_manifest)?;
 
-        let mut verification_failures: Vec<(FoundFile, FileVerificationStatus)> = vec![];
-        // For each (previously-found) verification entry from the verification file...
-        for verification_entry in verification_entries {
-            // ... check if there's a matching summarization file.
-            let verification_status = verify_file(&verification_entry, &summarized_files, &summarization_path)?;
-            // If something doesn't match...
-            if !verification_status.file_path_matches || !verification_status.md5_hash_matches {
-                // ... then note it.
-                verification_failures.push((verification_entry.clone(), verification_status))
+        // todo: Relativize file path before verification steps b/c we're probably doing it twice.
+
+        // Grab a file lock so we can filter for matching summarized files.
+        let mut locked_summarized_files = summarized_files.lock().unwrap();
+
+        // For each summarized file...
+        for summarized_file in &mut locked_summarized_files.iter_mut() {
+            // ... See if its file path exists in the verification manifest.
+            let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
+            let assessed_integrity =  match matching_manifest_entry {
+                Some(matching_manifest_entry) => {
+                    // Assess the file's integrity (which is just an MD5) 😨.
+                    assess_integrity(summarized_file, &matching_manifest_entry)?
+                }
+                None => {
+                    // Assume bad file integrity b/c the file path wasn't found.
+                    let assumed_integrity = IntegrityDetail::default();
+                    FileIntegrity::VerificationFailed(assumed_integrity)
+                }
+            };
+
+            // Modify shared memory entry for the summarized file-- add verification status (for column).
+            match assessed_integrity {
+                FileIntegrity::Verified(_) => summarized_file.file_verification_status = assessed_integrity,
+                FileIntegrity::VerificationFailed(_) => summarized_file.file_verification_status = assessed_integrity,
+                _ => {
+                    let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
+                    error!("{}", error_message);
+                    bail!(error_message);
+                }
             }
-            debug!("Assessed verification entry {verification_entry:?}");
         }
 
-        if verification_failures.is_empty() {
-            // Note that directory verification was successful.
+        // Check if there were any verification failures.
+        let verification_failures = locked_summarized_files.iter().any(|summarized_file| {
+            matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
+        });
+        // Note whether directory verification was successful in the GUI.
+        if verification_failures {
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
+            info!("One or more summarized files failed verification")
+        } else {
             *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
             info!("Summarized files passed verification");
-        } else {
-            // Note that directory verification was unsuccessful.
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
-            let failure_count = verification_failures.len();
-            info!("Found {failure_count:?} summarized files failed verification")
         }
 
-        info!("Completed verification");
-        Ok(verification_failures)
+        info!("Completed verification of summarized files");
+        Ok(())
     });
     Ok(())
 }
 
-#[derive(Debug, Default)]
-pub struct FileVerificationStatus {
-    file_path_matches: bool,
-    md5_hash_matches: bool,
-}
-
-/// Look up a previously-found [`FoundFile`] verification entry in the summarized output.
+/// Look up a (recently-found) [`FoundFile`] summarization entry in a verification manifest from a previous run.
 ///
-/// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
-fn verify_file(verification_entry: &FoundFile,
-               summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-               summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<FileVerificationStatus, anyhow::Error> {
-    // Grab a file lock so we can filter for matching summarized files.
-    let locked_summarized_files = summarized_files.lock().unwrap();
-    let copied_summarized_files = locked_summarized_files.clone();
-    // Drop the lock so the GUI can update.
-    drop(locked_summarized_files);
+/// Files are found if their paths match.
+fn lookup_manifest_entry(summarized_file_path: &PathBuf, manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
     // Find entries from the verification file with paths that match this summarized file.
-    let with_matching_paths: Vec<FoundFile> = copied_summarized_files
+    let found_file = manifest_entries
         .iter()
         // Find every summarized file with a path that matches this verification entry.
-        .filter(|summarized_file| {
-            summarized_file.file_path == verification_entry.file_path
+        .find(|manifest_entry| {
+            &manifest_entry.file_path == summarized_file_path
         })
-        // Clone matches b/c we need to release the lock and the memory cost is tiny.
-        .cloned()
-        .collect();
+        .cloned();
 
-    let file_path_matches = match with_matching_paths.len() {
-        0 => {
-            let verification_entry_path = &verification_entry.file_path;
-            trace!("No summarized files with a path matching the verification entry {verification_entry_path:?} were found.");
-            false
-        },
-        1 => {
-            trace!("Found a summarized file with a path the verification entry: {with_matching_paths:?}");
-            true
-        },
-        _ => {
-            let verification_entry_path = &verification_entry.file_path;
-            // todo: Figure out what to do if more than one matching paths were found during verification.
-            let error_message = format!("Found more than one summarized file with a path matching the verification entry {verification_entry_path:?} {with_matching_paths:?}");
-            error!("{error_message}");
-            bail!(error_message);
-        }
+    // Log: Note what was found.
+    match &found_file {
+        Some(found_file) => trace!("Found a summarized file with a path in the verification manifest: {found_file:?}"),
+        None => trace!("Found no summarized files with a path matching in the verification manifest were found."),
     };
 
-    let md5_hash_matches = match file_path_matches {
-        true => {
-            // Get the path to the summarization directory so we can use it to build absolute paths (for MD5 hashing).
-            let locked_summarization_path = summarization_path.lock().unwrap();
-            let summarization_path_copy = locked_summarization_path.clone().expect("Expected a summarization path to be chosen before verification began");
-            // Release the mutex lock on the summarization path so the summarization count table can update.
-            drop(locked_summarization_path);
+    trace!("Found file in the verification manifest: {found_file:?}");
+    Ok(found_file)
+}
 
-            let relative_path = &verification_entry.file_path;
+/// Decide if a file's integrity is intact (according to a previously-created manifest).
+///
+/// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
+fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
+    // todo: note that file verification is "in progress" (for GUI column).
+    let md5_hash_matches = &manifest_entry.md5_hash == &summarized_file.md5_hash;
 
-            // Build an absolute path for MD5 hashing.
-            let absolute_path: PathBuf = [&summarization_path_copy, relative_path].iter().collect();
-            let actual_md5_hash = get_md5_hash(&absolute_path)?;
-
-            &verification_entry.md5_hash == &actual_md5_hash
-        },
-        // MD5 hashes automatically don't match if the file path doesn't match.
-        false => false,
+    // Log: Note whether MD5 hashes match.
+    match md5_hash_matches {
+        true => trace!("MD5 hashes match"),
+        false => trace!("MD5 hashes don't match")
     };
 
-    if md5_hash_matches {
-        trace!("MD5 hashes match");
-    } else {
-        trace!("MD5 hashes don't match");
-    }
-
-    let verification_status = FileVerificationStatus {
-        file_path_matches,
+    let integrity_detail = IntegrityDetail {
+        // We can safely assume that the file path has already been found.
+        file_path_matches: true,
         md5_hash_matches,
     };
 
-    debug!("Completed verification assessment for verification entry {verification_entry:?}");
+    // todo: Add SHA1 hashing.
 
-    Ok(verification_status)
+    // Consider a file verified if the file path and MD5 hash match.
+    let file_verification_status = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
+        true => FileIntegrity::Verified(integrity_detail),
+        false => FileIntegrity::VerificationFailed(integrity_detail),
+    };
+
+    debug!("Assessed integrity of manifest entry {manifest_entry:?} \
+            and found it to be {file_verification_status:?}");
+    Ok(file_verification_status)
+}
+
+/// Verification manifest from a previous run.
+#[derive(Debug, Eq, PartialEq)]
+pub struct VerificationManifest {
+    pub file_path: PathBuf,
+    date_created: NaiveDateTime,
+}
+
+impl VerificationManifest {
+    fn new(file_path: &PathBuf, date_created: NaiveDateTime) -> Self {
+        VerificationManifest {
+            file_path: file_path.to_path_buf(),
+            date_created,
+        }
+    }
 }
 
 /// Load [`FoundFile`]s from a verification (CSV) file.
-fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
-    let csv_file_handle = File::open(verification_file_path)?;
+fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
+    let csv_file_handle = File::open(&manifest_file_path)?;
     let mut line_iterator = io::BufReader::new(csv_file_handle).lines();
 
     // Ensure that the first line has the CSV headings that we expect.
@@ -173,8 +190,8 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
     };
     // Remove the trailing newline in the header check b/c the line iterator does it too.
     match first_line_content == CSV_HEADERS.trim().to_string() {
-        true => info!("Identified {verification_file_path:?} as a valid FolSum CSV export"),
-        false => bail!("The file {verification_file_path:?} \
+        true => info!("Identified {manifest_file_path:?} as a valid FolSum CSV export"),
+        false => bail!("The file {manifest_file_path:?} \
                         is an invalid FolSum CSV export. Found {first_line_content:?} \
                         when {CSV_HEADERS:?} was expected"),
     };
@@ -197,10 +214,9 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
         let extracted_file_path = row_columns[0].trim();
         let extracted_md5_hash = row_columns[1].trim();
 
-        let found_file = FoundFile {
-            file_path: PathBuf::from(extracted_file_path),
-            md5_hash: extracted_md5_hash.to_string(),
-        };
+        let file_path = PathBuf::from(extracted_file_path);
+        let md5_hash = extracted_md5_hash.to_string();
+        let found_file = FoundFile::new(file_path, md5_hash);
 
         verification_entries.push(found_file);
     }
@@ -208,4 +224,269 @@ fn load_verification_entries(verification_file_path: &PathBuf) -> Result<Vec<Fou
     let verification_entry_count = verification_entries.len();
     info!("Loaded {verification_entry_count:?} verification entries");
     Ok(verification_entries)
+}
+
+/// Find FolSum verification manifest files (in a summarized directory).
+///
+/// Assumes that manifest files are in the top-level directory.
+pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> Result<Vec<VerificationManifest>, anyhow::Error> {
+    let locked_summarization_path = summarization_path.lock().unwrap();
+    let summarization_path_copy = locked_summarization_path.clone();
+    drop(locked_summarization_path);
+
+    // Assume that the user selected a summarization path b/c `verification_prerequisites_met` gates this function.
+    let summarization_path = match summarization_path_copy {
+        Some(summarization_path) => summarization_path,
+        None => {
+            let error_message = "Expected the user to have selected a summarization directory for us to find verification manifest files inside";
+            error!("{error_message}");
+            bail!(error_message);
+        },
+    };
+
+    // Ensure that the summarization path is a directory before we try to look inside of it.
+    if !summarization_path.is_dir() {
+        let error_message = "Expected summarization path {summarization_path:?}\
+                                  to be a directory";
+        error!("{error_message}");
+        bail!(error_message);
+    }
+
+    // Find CSV files in the summarization directory so we can log them before deeply checking the filename.
+    let found_csv_files: Vec<PathBuf> = read_dir(&summarization_path)?
+        // Ensure that directory entries are accessible..
+        .filter_map(|found_entry| match found_entry {
+            Ok(found_entry) => Some(found_entry.path()),
+            Err(ref error_detail) => {
+                // ... but don't error out if we can't access one.
+                warn!("Failed to read directory entry {found_entry:?} \
+                       while looking for verification manifest files in {summarization_path:?} \
+                       due to error: {error_detail:?}");
+                None
+            }
+        })
+        // Filter for files.
+        .filter(|found_entry| found_entry.is_file())
+        // Filter for `.csv` extensions.
+        .filter(|found_entry| {
+            match found_entry.extension() {
+                Some(actual_extension) => actual_extension == "csv",
+                None => false,
+            }
+        })
+        .collect();
+
+    let csv_file_count = found_csv_files.len();
+    debug!("Found {csv_file_count:?} \
+            CSV files in the summarization directory {summarization_path:?}");
+
+    // Find FolSum verification manifest files within the CSV files that we already found in the summarization directory.
+    let found_manifest_paths: Vec<&PathBuf> = found_csv_files
+        .iter()
+        .filter(|found_csv_file| {
+            let raw_csv_filename = found_csv_file.file_name().unwrap();
+            let csv_filename = raw_csv_filename.to_string_lossy().to_string();
+            csv_filename.ends_with(".folsum.csv")
+        })
+        .collect();
+
+    // Convert manifest paths to an internal representation so they're easier to deal with.
+    let found_manifest_files: Result<Vec<VerificationManifest>, anyhow::Error> = found_manifest_paths
+        .iter()
+        .map(|found_path| {
+            let date_created = interpret_manifest_timestamp(found_path)?;
+            Ok(VerificationManifest::new(found_path, date_created))
+        })
+        .collect();
+    let found_manifest_files = found_manifest_files?;
+
+    let found_file_count = found_manifest_files.len();
+    debug!("Found {found_file_count:?} manifest files: \
+           {found_manifest_files:?}");
+    Ok(found_manifest_files)
+}
+
+/// Decide which manifest file is the previous one.
+///
+/// # How We Decide Which One is Previous
+///
+/// 1. Remove the verification manifest that was just created.
+///     - If we didn't do this, then we'd verify against the newest assessment run and no check would actually take place
+/// 2. Extract the date from each verification file's name
+/// 3. Keep the most recent date
+pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
+                              manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<&'m VerificationManifest, anyhow::Error> {
+    // Note the path of the manifest that was just created so we can ignore it.
+    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+    drop(locked_manifest_creation_status);
+    let most_recent_manifest = match manifest_creation_status_copy {
+        ManifestCreationStatus::Done(file_path) => file_path,
+        // Assume that the manifest file's been created b/c we checked in the prereqs earlier.
+        _ => {
+            let error_message = "Encountered unexpected manifest creation status {manifest_creation_status:?} \
+                                      when only Done was expected";
+            error!("{}", error_message);
+            bail!(error_message);
+        }
+    };
+
+    let previous_manifest = found_verification_manifests
+        .iter()
+        // Ignore the verification manifest that was just created.
+        .filter(|manifest_file| {
+            manifest_file.file_path != most_recent_manifest
+        })
+        .max_by_key(|verification_manifest| {
+            verification_manifest.date_created
+        });
+
+    // Unpack the previous_manifest.
+    let previous_manifest = match previous_manifest {
+        Some(most_recent_manifest) => most_recent_manifest,
+        // Bail if no manifest was found b/c that shouldn't be possible  at this point.
+        None => {
+            let error_message = "Expected to find at least one manifest while finding the most recent manifest";
+            error!("{error_message}");
+            bail!(error_message)
+        }
+    };
+
+    info!("Decided that the previous manifest is {previous_manifest:?}");
+    Ok(previous_manifest)
+}
+
+
+/// Interpret an internal timestamp from a verification manifest file's name.
+fn interpret_manifest_timestamp(manifest_path: &PathBuf) -> Result<NaiveDateTime, anyhow::Error> {
+    let manifest_filename = match manifest_path.file_name() {
+        Some(filename) => filename.to_string_lossy().to_string(),
+        None => {
+            let error_message = "Expected manifest file to have a name but found {manifest_path:?}";
+            error!("{error_message}");
+            bail!(error_message);
+        },
+    };
+
+    // Extract the manifest's date from the file's prefix.
+    let raw_date = match manifest_filename.split_once('_') {
+        Some((date_prefix, _rest_of_filename)) => {
+            date_prefix
+        },
+        None => {
+            let error_message = format!("Expected a date prefix on FolSum manifest file {manifest_filename:?}");
+            error!("{error_message}");
+            bail!(error_message);
+        }
+    };
+
+    trace!("Extracted raw date {raw_date:?} \
+            from manifest filename {manifest_filename:?}");
+
+    // Convert the raw date to something that we can work with.
+    let interpreted_date = match NaiveDateTime::parse_from_str(raw_date, FILEDATE_PREFIX_FORMAT) {
+        Ok(date_time) => date_time,
+        Err(error_detail) => {
+            let error_message = format!("Failed to interpret raw manifest file date {raw_date:?} \
+                                               due to error {error_detail:?}");
+            error!("{error_message}");
+            bail!(error_message);
+        },
+    };
+
+    trace!("Interpreted date for {manifest_path:?} \
+            as {interpreted_date:?}");
+    Ok(interpreted_date)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{find_verification_manifest_files, interpret_manifest_timestamp, VerificationManifest};
+
+    use std::sync::{Arc, Mutex};
+
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+    use tempfile::Builder as TempfileBuilder;
+    use tempfile::{NamedTempFile, tempdir};
+    use pretty_assertions::assert_eq;
+    use test_log::test;
+
+    /// Ensure that [`find_verification_manifest_files`] finds manifest files without getting confused.
+    #[test]
+    fn test_find_manifest_files() -> Result<(), anyhow::Error> {
+        // Test setup: create a temporary directory to put a mixture of verification files and misc files into.
+        let temp_dir = tempdir()?;
+
+        // What we want to find.
+        let manifest_file = TempfileBuilder::new()
+            .prefix("25-3-29-16-17_some_directory")
+            .suffix(".folsum.csv")
+            .tempfile_in(&temp_dir)?;
+
+        // What we expect our finding to look like.
+        let expected_path = manifest_file.path().to_path_buf();
+        let expected_date = NaiveDate::from_ymd_opt(2025, 3, 29).unwrap();
+        let expected_time = NaiveTime::from_hms_opt(16, 17, 0).unwrap();
+        let expected_date_time = NaiveDateTime::new(expected_date, expected_time);
+        let expected_manifest_finding = VerificationManifest::new(&expected_path, expected_date_time);
+
+        // PDF that doesn't look like a manifest file at all.
+        let non_manifest_file_pdf = TempfileBuilder::new()
+            .prefix("portable_document_format")
+            .suffix(".pdf")
+            .tempfile_in(&temp_dir)?;
+
+        // HTML that doesn't look like a manifest file at all.
+        let non_manifest_file_html = TempfileBuilder::new()
+            .prefix("hypertext_markup_language")
+            .suffix(".html")
+            .tempfile_in(&temp_dir)?;
+
+        // Looks like a manifest file, but with no CSV extension.
+        let false_manifest_file_no_csv = TempfileBuilder::new()
+            .prefix("25-3-29-16-17_some_directory")
+            .suffix(".folsum")
+            .tempfile_in(&temp_dir)?;
+
+        // Looks like a manifest file, but with no FolSum extension.
+        let false_manifest_file_no_folsum = TempfileBuilder::new()
+            .prefix("25-3-29-16-17_some_directory")
+            .suffix(".csv")
+            .tempfile_in(&temp_dir)?;
+
+        // Looks like a manifest file, but is a directory, not a file.
+        let false_manifest_file_is_dir = TempfileBuilder::new()
+            .prefix("25-3-29-16-17_some_directory")
+            .suffix(".folsum.csv")
+            .tempdir_in(&temp_dir)?;
+
+        // Set up shared memory for the test.
+        let summarization_path = Arc::new(Mutex::new(Some(temp_dir.path().to_path_buf())));
+
+        // Try finding the manifest file.
+        let found_manifest_files = find_verification_manifest_files(&summarization_path)?;
+        assert_eq!(found_manifest_files.len(), 1);
+        assert!(found_manifest_files.contains(&expected_manifest_finding));
+
+        Ok(())
+    }
+
+    /// Ensure that [`interpret_manifest_timestamp`] sees timestamps in verification filenames correctly.
+    #[test]
+    fn test_verification_manifest_timestamp_interpretation() -> Result<(), anyhow::Error> {
+        // Set up the test.
+        let manifest_file = TempfileBuilder::new()
+            .prefix("25-3-29-16-17_some_directory")
+            .suffix(".folsum.csv")
+            .tempfile()?;
+        let expected_date = NaiveDate::from_ymd_opt(2025, 3, 29).unwrap();
+        let expected_time = NaiveTime::from_hms_opt(16, 17, 0).unwrap();
+        let expected_interpretation = NaiveDateTime::new(expected_date, expected_time);
+
+        let actual_interpretation = interpret_manifest_timestamp(&manifest_file.path().to_path_buf())?;
+
+        assert_eq!(expected_interpretation, actual_interpretation);
+
+        Ok(())
+    }
 }

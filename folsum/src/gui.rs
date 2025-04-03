@@ -4,17 +4,13 @@ use std::sync::{Arc, Mutex};
 
 // Std crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use std::time::SystemTime;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
+
+// External crates for macOS, Windows, *and* WASM builds.
+use egui::ViewportCommand;
 
 // External crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use chrono::{DateTime, Local};
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-use dirs::home_dir;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-use egui::ViewportCommand;
 use egui_extras::{Column, TableBuilder};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use rfd::FileDialog;
@@ -28,11 +24,11 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{FoundFile, verify_summarization, DirectoryVerificationStatus};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, summarize_directory, SummarizationStatus};
+use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory, ManifestCreationStatus, SummarizationStatus};
 
 // Internal crates for WASM builds.
 #[cfg(target_family = "wasm")]
@@ -50,9 +46,6 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
-    verification_file_path: Arc<Mutex<Option<PathBuf>>>,
-    // User's chosen directory and filename for CSV exports.
-    export_file: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -63,6 +56,8 @@ pub struct FolsumGui {
     summarization_status: Arc<Mutex<SummarizationStatus>>,
     #[serde(skip)]
     directory_verification_status: Arc<Mutex<DirectoryVerificationStatus>>,
+    #[serde(skip)]
+    manifest_creation_status: Arc<Mutex<ManifestCreationStatus>>,
 }
 
 impl Default for FolsumGui {
@@ -71,12 +66,11 @@ impl Default for FolsumGui {
             file_paths: Arc::new(Mutex::new(vec![])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
-            verification_file_path: Arc::new(Mutex::new(None)),
-            export_file: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
             directory_verification_status: Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified)),
+            manifest_creation_status: Arc::new(Mutex::new(ManifestCreationStatus::NotStarted)),
         }
     }
 }
@@ -109,14 +103,11 @@ impl eframe::App for FolsumGui {
             total_files,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
-            #[cfg(any(target_family = "unix", target_family = "windows"))]
-            verification_file_path,
-            #[cfg(any(target_family = "unix", target_family = "windows"))]
-            export_file,
             summarization_start,
             time_taken,
             summarization_status,
             directory_verification_status,
+            manifest_creation_status,
             ..
         } = self;
 
@@ -137,98 +128,158 @@ impl eframe::App for FolsumGui {
                 });
                 // Add a dark/light mode toggle button to the top menu bar.
                 egui::widgets::global_theme_preference_switch(ui);
+
+                // Add a menu bar button that decreases zoom.
+                if ui.add(egui::Button::new("-")).on_hover_text("Decrease zoom").clicked() {
+                    let current_zoom_factor = ctx.zoom_factor();
+                    let new_zoom_factor = current_zoom_factor - 0.1;
+                    ctx.set_zoom_factor(new_zoom_factor);
+
+                    info!("User decreased zoom from {current_zoom_factor:?}\
+                           to {new_zoom_factor:?}");
+                };
+
+                // todo: Add a text reset button.
+
+                // Add a menu bar button that increases zoom.
+                if ui.add(egui::Button::new("+")).on_hover_text("Increase zoom").clicked() {
+                    let current_zoom_factor = ctx.zoom_factor();
+                    let new_zoom_factor = current_zoom_factor + 0.1;
+                    ctx.set_zoom_factor(new_zoom_factor);
+
+                    info!("User increased zoom from {current_zoom_factor:?}\
+                           to {new_zoom_factor:?}");
+                };
             });
         });
 
         egui::SidePanel::left("left_panel")
             .resizable(false)
             .show(ctx, |ui| {
-                ui.heading("Summarize a Folder");
+                ui.heading("Make Discovery");
 
-                // Don't add a directory picker when compiling for web.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose folder").clicked() {
-                    if let Some(path) = FileDialog::new().pick_folder() {
-                        info!("User chose summarization directory: {:?}", path);
-                        *summarization_path = Arc::new(Mutex::new(Some(path)));
+                // Define the "First.." section in the left pane.
+                ui.horizontal(|ui| {
+                    ui.label("First,");
+
+                    // Don't add a directory picker when compiling for web.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    if ui.button("choose").clicked() {
+                        if let Some(path) = FileDialog::new().pick_folder() {
+                            info!("User chose summarization directory: {:?}", path);
+                            *summarization_path = Arc::new(Mutex::new(Some(path)));
+                        }
                     }
-                }
+
+                    ui.label("a folder to ");
+
+                    // Check whether the user has selected a directory to summarize.
+                    let locked_summarization_path = summarization_path.lock().unwrap();
+                    let summarization_path_actual = locked_summarization_path.clone();
+                    drop(locked_summarization_path);
+
+                    // Grey out the "audit" button until the user has selected a directory to summarize.
+                    if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
+                        info!("User started discovery manifest creation");
+                        #[cfg(any(target_family = "unix", target_family = "windows"))]
+                        let _result = summarize_directory(
+                            &summarization_path,
+                            &file_paths,
+                            &summarization_start,
+                            &time_taken,
+                            &summarization_status,
+                            &directory_verification_status,
+                            &manifest_creation_status,
+                        );
+                        #[cfg(target_family = "wasm")]
+                            let _result = wasm_demo_summarize_directory(
+                            &file_paths,
+                            &summarization_start,
+                            &time_taken,
+                            &summarization_status,
+                        );
+                    };
+
+                    ui.label("and create a manifest from.");
+                });
+
+                ui.label("A manifest file containing audit results will be exported to the folder that was audited.");
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                        let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let shown_path: &str = match &*locked_path {
+                        let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No folder selected",
                     };
                     #[cfg(target_family = "wasm")]
-                    let shown_path = "N/A";
+                        let shown_path = "N/A";
                     ui.label("Chosen folder:");
                     // Display the user's chosen directory in monospace font.
                     ui.monospace(shown_path);
                 });
 
-                if ui.button("Summarize folder").clicked() {
-                    info!("User started summarization");
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let _result = summarize_directory(
-                        &summarization_path,
-                        &file_paths,
-                        &summarization_start,
-                        &time_taken,
-                        &summarization_status,
-                        &directory_verification_status,
-                    );
-                    #[cfg(target_family = "wasm")]
-                    let _result = wasm_demo_summarize_directory(
-                        &file_paths,
-                        &summarization_start,
-                        &time_taken,
-                        &summarization_status,
-                    );
-                };
+
+                // Show the summarization status to the user.
+                ui.horizontal(|ui| {
+                    let locked_summarization_status = summarization_status.lock().unwrap();
+                    let summarization_status_copy = locked_summarization_status.clone();
+                    drop(locked_summarization_status);
+
+                    let display_summarization_status = match summarization_status_copy {
+                        SummarizationStatus::NotStarted => "not started.",
+                        SummarizationStatus::InProgress => "in progress.",
+                        SummarizationStatus::Done => "completed.",
+                    };
+
+                    ui.label(format!("Audit {display_summarization_status}"));
+                });
+
+                // Show the manifest file creation/export status to the user.
+                ui.horizontal(|ui| {
+                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                    drop(locked_manifest_creation_status);
+
+                    let display_manifest_creation_status = match manifest_creation_status_copy {
+                        ManifestCreationStatus::NotStarted => "not started.".to_string(),
+                        ManifestCreationStatus::InProgress => "in progress.".to_string(),
+                        ManifestCreationStatus::Done(manifest_file_path) => {
+                            let manifest_filename = manifest_file_path.file_name().unwrap();
+                            let display_manifest_filename = manifest_filename.to_string_lossy().to_string();
+                            format!("completed: {display_manifest_filename}")
+                        },
+                    };
+
+                    ui.label(format!("Manifest file creation {display_manifest_creation_status}"));
+                });
 
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
-                        "Summarized {} files in {} milliseconds",
+                        "Audited {} files in {} milliseconds",
                         &total_files,
                         &locked_time_taken.as_millis()
                     ));
                 });
 
+                // Don't do exports on WASM builds.
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Export folder summary to CSV").clicked() {
-                    let date_today: DateTime<Local> = DateTime::from(SystemTime::now());
-                    let formatted_date = date_today.format("%y_%m_%d").to_string();
-                    // Prepend the date (YY_MM_DD) to the filename.
-                    let export_filename = format!("{formatted_date}_folsum_export");
-                    // Open the "Save export file as" dialog.
-                    let starting_directory = match export_file.lock().unwrap().clone() {
-                        // Open the export dialog in the same dir as the previous export.
-                        Some(export_file) => export_file.parent().unwrap().to_path_buf(),
-                        // Otherwise, if there was no previous export, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory"),
+                {
+                    // Check whether the user has selected a directory to summarize.
+                    let locked_summarization_path = summarization_path.lock().unwrap();
+                    let summarization_path_copy = locked_summarization_path.clone();
+                    drop(locked_summarization_path);
+
+                    let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status, &manifest_creation_status);
+
+                    // If we're ready to export a verification manifest file, then do so.
+                    if export_prerequisites_met {
+                        let _result = export_csv(&file_paths, &manifest_creation_status, &summarization_path);
                     };
-                    trace!("Found user's home directory: {:?}", &starting_directory);
-                    // Ask user where they'd like to save the CSV export and what they'd like it to be called.
-                    if let Some(path) = FileDialog::new()
-                        // Add `.csv` to the end of the user's chosen name for the CSV export.
-                        .add_filter("csv", &["csv"])
-                        .set_title("Export extension counts to CSV file")
-                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                        .set_directory(starting_directory)
-                        // Set the default filename for CSV exports to YY_MM_DD_folsum_export.
-                        .set_file_name(&export_filename)
-                        .save_file()
-                    {
-                        *export_file = Arc::new(Mutex::new(Some(path)));
-                    }
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let _result = export_csv(&export_file, &file_paths);
-                };
+                }
 
                 ui.separator();
 
@@ -264,86 +315,83 @@ impl eframe::App for FolsumGui {
                 ui.heading("Verify a Folder");
 
 
-                // Don't add a verification file picker when compiling for web.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Choose verification file").clicked() {
-                    // Open the "Save export file as" dialog.
-                    let starting_directory = match verification_file_path.lock().unwrap().clone() {
-                        // Open the verification file chooser in the same dir as the previous export.
-                        Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
-                        // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
-                        None => home_dir().expect("Failed to get user's home directory"),
-                    };
-                    if let Some(path) = FileDialog::new()
-                        // Add `.csv` to the end of the user's chosen name for the CSV export.
-                        .add_filter("csv", &["csv"])
-                        .set_title("Choose FolSum CSV file to verify against")
-                        // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
-                        .set_directory(starting_directory)
-                        .pick_file() {
-                        info!("User chose verification file: {:?}", path);
-                        *verification_file_path = Arc::new(Mutex::new(Some(path)));
-                    }
-                }
-
-                ui.horizontal(|ui| {
-                    // Check if the user has picked a FolSum CSV to verify against.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let locked_path: &Option<PathBuf> = &*verification_file_path.lock().unwrap();
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    let shown_path: &str = match &*locked_path {
-                        Some(the_path) => the_path.as_os_str().to_str().unwrap(),
-                        None => "No verification file selected",
-                    };
-                    #[cfg(target_family = "wasm")]
-                        let shown_path = "N/A";
-                    ui.label("Verification file:");
-                    // Display the user's chosen directory in monospace font.
-                    ui.monospace(shown_path);
-                });
-
-                // todo: Grey out/disable the "Verify Folder" button if requesite conditions aren't met.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                if ui.button("Verify Folder").clicked() {
-                    info!("User started verification");
-
+                // Folder verification section.
+                ui.vertical(|ui| {
                     // Check if summarization table has data.
                     let file_paths_locked = file_paths.lock().unwrap();
-                    let summarization_table_has_data = !file_paths_locked.is_empty();
-                    if summarization_table_has_data {
-                        debug!("✅ Data in summarization table");
-                    } else {
-                        debug!("❌ No data in summarization table");
-                    }
-
-                    // Check if summarization is done.
-                    let locked_summarization_status = summarization_status.lock().unwrap();
-                    let summarization_status_copy = locked_summarization_status.clone();
-                    drop(locked_summarization_status);
-
-                    let summarization_complete = match summarization_status_copy {
-                        SummarizationStatus::NotStarted => {
-                            warn!("❌ Nothing has been summarized, so nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::InProgress => {
-                            warn!("❌ In progress summarization means that nothing can be verified");
-                            false
-                        }
-                        SummarizationStatus::Done => {
-                            debug!("✅ Data in summarization table, so verification can proceed");
+                    let file_paths_copy = file_paths_locked.clone();
+                    drop(file_paths_locked);
+                    let summarization_table_has_data = match file_paths_copy.is_empty() {
+                        false => {
+                            trace!("✅ GUI table has data");
                             true
-                        }
+                        },
+                        true => {
+                            trace!("❌ GUI table has no data");
+                            false
+                        },
+                    };
+
+                    // Check if a manifest file was created.
+                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                    drop(locked_manifest_creation_status);
+                    let manifest_file_was_created = match manifest_creation_status_copy {
+                        ManifestCreationStatus::Done(_) => true,
+                        _ => false,
                     };
 
                     // If everything's ready to verify...
-                    if summarization_table_has_data && summarization_complete {
-                        // ... then ensure that its contents match the verification file.
-                        verify_summarization(&file_paths, &verification_file_path, &summarization_path, &directory_verification_status).unwrap();
-                    } else {
-                        info!("Skipping user-requested verification because conditions weren't met")
+                    // todo: Add verification prerequisite: export file must be selected.
+                    let verification_prerequisites_met = summarization_table_has_data
+                        && summarization_is_complete(summarization_status.clone())
+                        && manifest_file_was_created;
+
+                    // Verification text block.
+                    ui.horizontal(|ui| {
+                        ui.label("Second,");
+                        // Grey out/disable the "verify" button if summarization prerequisites aren't met.
+                        if ui.add_enabled(verification_prerequisites_met,
+                                          egui::Button::new("verify")).clicked() {
+                            info!("🏁 User started verification");
+                            // ... then ensure that its contents match the verification file.
+                            verify_summarization(&file_paths,
+                                                 &directory_verification_status,
+                                                 &manifest_creation_status).unwrap();
+                        }
+                        ui.label("the folder's contents against the previous FolSum manifest file.");
+                    });
+                    ui.label("FolSum looks for manifests inside of the folder that was summarized.");
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Previous manifest file:");
+
+                    // Check if the user has picked a FolSum CSV to verify against.
+                    #[cfg(any(target_family = "unix", target_family = "windows"))]
+                    {
+                        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                        drop(locked_manifest_creation_status);
+                        let shown_path = match manifest_creation_status_copy {
+                            // If a new manifest file was just created, then assume that assessment/summarization is done and we're ready to verify against a manifest file.
+                            ManifestCreationStatus::Done(_) => {
+                                // Figure out which manifest file to verify against.
+                                let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
+                                let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status).unwrap();
+                                let manifest_filename = previous_manifest.file_path.file_name().unwrap();
+                                manifest_filename.to_string_lossy().to_string()
+                            },
+                            _ => "No manifest file found".to_string(),
+                        };
+
+                        // Display the previous manifest file's path in monospace font.
+                        ui.monospace(shown_path);
                     }
-                }
+                    #[cfg(target_family = "wasm")]
+                    ui.monospace("N/A");
+                });
+
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.horizontal(|ui| {
@@ -351,15 +399,14 @@ impl eframe::App for FolsumGui {
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
                     drop(locked_directory_verification_status);
                     let shown_directory_verification_status = match directory_verification_status_copy {
-                        DirectoryVerificationStatus::Unverified => "contents haven't been verified",
-                        DirectoryVerificationStatus::InProgress => "verification in progress",
-                        DirectoryVerificationStatus::Verified => "contents passed verification",
-                        DirectoryVerificationStatus::VerificationFailed => "at least one item failed verification",
+                        DirectoryVerificationStatus::Unverified => "not started.",
+                        DirectoryVerificationStatus::InProgress => "in progress...",
+                        DirectoryVerificationStatus::Verified => "complete. Data integrity verified.",
+                        DirectoryVerificationStatus::VerificationFailed => "complete. Data integrity compromised.",
                     };
 
-                    ui.label("Folder verification status: ");
-                    // Display the user's chosen directory in monospace font.
-                    ui.label(shown_directory_verification_status);
+                    // Display folder verification progress.
+                    ui.label(format!("Folder verification {shown_directory_verification_status}"));
                 });
 
                 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -369,8 +416,12 @@ impl eframe::App for FolsumGui {
                     egui::warn_if_debug_build(ui);
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing.x = 0.0;
-                        ui.label("written with love by ");
+                        ui.label("written with love by Brooke Deuson ");
+                        ui.label("(");
                         ui.hyperlink_to("goingforbrooke", "https://goingforbrooke.com");
+                        ui.label(") ");
+                        ui.label("for ");
+                        ui.hyperlink_to("Trafficking Free Tomorrow", "https://traffickingfreetomorrow.com");
                     });
                 });
             });
@@ -390,6 +441,7 @@ impl eframe::App for FolsumGui {
                 .resizable(true)
                 .striped(true)
                 .column(Column::initial(150.0).at_least(150.0))
+                .column(Column::initial(200.0).at_least(60.0))
                 .column(Column::remainder().at_least(60.0))
                 .header(20.0, |mut header| {
                     header.col(|ui| {
@@ -397,6 +449,9 @@ impl eframe::App for FolsumGui {
                     });
                     header.col(|ui| {
                         ui.heading("MD5 Hash");
+                    });
+                    header.col(|ui| {
+                        ui.heading("Verification Status");
                     });
                 })
                 .body(|mut body| {
@@ -407,11 +462,83 @@ impl eframe::App for FolsumGui {
                                 ui.label(show_path);
                             });
                             row.col(|ui| {
-                                ui.label(found_file.md5_hash.to_string());
+                                ui.label(found_file.md5_hash.clone());
+                            });
+                            row.col(|ui| {
+                                let display_verification_status = match &found_file.file_verification_status {
+                                    FileIntegrity::Unverified => "Unverified",
+                                    FileIntegrity::InProgress => "Verifying...",
+                                    FileIntegrity::Verified(_) => "Verified",
+                                    FileIntegrity::VerificationFailed(integrity_detail) => {
+                                        // If the file's missing...
+                                        if !integrity_detail.file_path_matches {
+                                            "Failed verification: file missing"
+                                        // Otherwise, if the file's MD5 hash doesn't match...
+                                        } else if !integrity_detail.md5_hash_matches {
+                                            "Failed verification: MD5 hash mismatch"
+                                        } else {
+                                            "Failed verification: unknown reason"
+                                        }
+                                    }
+                                };
+                                ui.label(display_verification_status);
                             });
                         });
                     }
                 });
         });
     }
+}
+
+/// Check if summarization is done.
+fn summarization_is_complete(summarization_status: Arc<Mutex<SummarizationStatus>>) -> bool {
+    let locked_summarization_status = summarization_status.lock().expect("Lock poisoned");
+    let summarization_status_copy = locked_summarization_status.clone();
+    drop(locked_summarization_status);
+    let summarization_complete = match summarization_status_copy {
+        SummarizationStatus::NotStarted => {
+            trace!("❌ Nothing has been summarized, so nothing can be verified");
+            false
+        }
+        SummarizationStatus::InProgress => {
+            trace!("❌ In progress summarization means that nothing can be verified");
+            false
+        }
+        SummarizationStatus::Done => {
+            trace!("✅ Data in summarization table, so verification can proceed");
+            true
+        }
+    };
+    summarization_complete
+}
+
+// Decide whether we're ready to create an export file.
+fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>,
+                            summarization_status: &Arc<Mutex<SummarizationStatus>>,
+                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> bool {
+    let summarization_complete = summarization_is_complete(summarization_status.clone());
+
+    let summarization_path_selected = summarization_path_copy.is_some();
+
+    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+    drop(locked_manifest_creation_status);
+    let manifest_creator_ready = match manifest_creation_status_copy {
+        ManifestCreationStatus::NotStarted => true,
+        // Don't interrupt or overwrite an export that's in-progress.
+        ManifestCreationStatus::InProgress => false,
+        // Don't repeatedly create a new manifest export.
+        ManifestCreationStatus::Done(_) => false,
+    };
+
+    let export_prerequisites_met = summarization_complete
+        && summarization_path_selected
+        && manifest_creator_ready;
+
+    if export_prerequisites_met {
+        trace!("Decided that the prerequisites for an export were met.");
+    } else {
+        trace!("Decided that the prerequisites for an export were not met.");
+    };
+    export_prerequisites_met
 }

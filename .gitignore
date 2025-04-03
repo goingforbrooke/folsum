@@ -3,6 +3,9 @@ dist/
 export_test.csv
 folsum.code-workspace
 folsum/test_dir/*
+# Export files.
+*.folsum.csv
+# Legacy csv export files.
 *folsum_export.csv
 output.log
 .rust-analyzer.toml
