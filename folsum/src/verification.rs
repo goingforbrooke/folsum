@@ -315,7 +315,7 @@ pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<Pa
 /// 2. Extract the date from each verification file's name
 /// 3. Keep the most recent date
 pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
-                              manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<&'m VerificationManifest, anyhow::Error> {
+                              manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<Option<&'m VerificationManifest>, anyhow::Error> {
     // Note the path of the manifest that was just created so we can ignore it.
     let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
     let manifest_creation_status_copy = locked_manifest_creation_status.clone();
@@ -339,18 +339,7 @@ pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<Verifica
         })
         .max_by_key(|verification_manifest| {
             verification_manifest.date_created
-        });
-
-    // Unpack the previous_manifest.
-    let previous_manifest = match previous_manifest {
-        Some(most_recent_manifest) => most_recent_manifest,
-        // Bail if no manifest was found b/c that shouldn't be possible  at this point.
-        None => {
-            let error_message = "Expected to find at least one manifest while finding the most recent manifest";
-            error!("{error_message}");
-            bail!(error_message)
-        }
-    };
+    });
 
     info!("Decided that the previous manifest is {previous_manifest:?}");
     Ok(previous_manifest)

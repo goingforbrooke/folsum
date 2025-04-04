@@ -317,35 +317,8 @@ impl eframe::App for FolsumGui {
 
                 // Folder verification section.
                 ui.vertical(|ui| {
-                    // Check if summarization table has data.
-                    let file_paths_locked = file_paths.lock().unwrap();
-                    let file_paths_copy = file_paths_locked.clone();
-                    drop(file_paths_locked);
-                    let summarization_table_has_data = match file_paths_copy.is_empty() {
-                        false => {
-                            trace!("✅ GUI table has data");
-                            true
-                        },
-                        true => {
-                            trace!("❌ GUI table has no data");
-                            false
-                        },
-                    };
-
-                    // Check if a manifest file was created.
-                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-                    drop(locked_manifest_creation_status);
-                    let manifest_file_was_created = match manifest_creation_status_copy {
-                        ManifestCreationStatus::Done(_) => true,
-                        _ => false,
-                    };
-
                     // If everything's ready to verify...
-                    // todo: Add verification prerequisite: export file must be selected.
-                    let verification_prerequisites_met = summarization_table_has_data
-                        && summarization_is_complete(summarization_status.clone())
-                        && manifest_file_was_created;
+                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone());
 
                     // Verification text block.
                     ui.horizontal(|ui| {
@@ -379,8 +352,17 @@ impl eframe::App for FolsumGui {
                                 // Figure out which manifest file to verify against.
                                 let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
                                 let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status).unwrap();
-                                let manifest_filename = previous_manifest.file_path.file_name().unwrap();
-                                manifest_filename.to_string_lossy().to_string()
+
+                                // Handle cases where there's no previous manifest (e.g. this directory's never been assessed).
+                                match previous_manifest {
+                                    Some(previous_manifest) => {
+                                        let manifest_filename = previous_manifest.file_path.file_name().unwrap();
+                                        manifest_filename.to_string_lossy().to_string()
+                                    },
+                                    None => {
+                                        "No manifest file found".to_string()
+                                    },
+                                }
                             },
                             _ => "No manifest file found".to_string(),
                         };
