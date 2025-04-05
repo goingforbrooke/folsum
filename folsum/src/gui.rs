@@ -346,16 +346,33 @@ impl eframe::App for FolsumGui {
 
                     // Check if a file manifest was created b/c that means we can check for previous manifests.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    if matches!(*manifest_creation_status.lock().unwrap(), ManifestCreationStatus::Done(_)) {
-                        // Figure out which manifest file to verify against.
-                        let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
-                        let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
+                    {
+                        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                        drop(locked_manifest_creation_status);
 
-                        let shown_path = match found_previous_manifest {
+                        let locked_previous_manifest = previous_manifest.lock().unwrap();
+                        let previous_manifest_copy = locked_previous_manifest.clone();
+                        drop(locked_previous_manifest);
+
+                        // If a new manifest file was made and the previous one hasn't been found yet, then find the previous one.
+                        if matches!(manifest_creation_status_copy, ManifestCreationStatus::Done(_)) && previous_manifest_copy.is_none() {
+                            // Figure out which manifest file to verify against.
+                            let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
+                            let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
+
+                            // Update shared state for the previous manifest file, which will be reset  when a new manifest file is made.
+                            *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
+                        }
+
+                        let locked_previous_manifest = previous_manifest.lock().unwrap();
+                        let previous_manifest_copy = locked_previous_manifest.clone();
+                        drop(locked_previous_manifest);
+
+                        let shown_path = match previous_manifest_copy {
                             Some(ref found_previous_manifest) => {
                                 let manifest_filename = found_previous_manifest.file_path.file_name().unwrap();
                                 manifest_filename.to_string_lossy().to_string()
-
                             },
                             None => "No previous manifest file was found".to_string(),
                         };
@@ -363,7 +380,6 @@ impl eframe::App for FolsumGui {
                         // Display the previous manifest file's path in monospace font.
                         ui.monospace(shown_path);
 
-                        *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
                     }
                     // In WASM builds, show "N/A".
                     #[cfg(target_family = "wasm")]
