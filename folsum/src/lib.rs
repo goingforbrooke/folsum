@@ -27,4 +27,4 @@ pub use summarize::wasm_demo_summarize_directory;
 pub use summarize::tests::run_fake_summarization;
 
 mod verification;
-pub use verification::{find_verification_manifest_files, find_previous_manifest, verify_summarization};
+pub use verification::{find_verification_manifest_files, find_previous_manifest, verify_summarization, VerificationManifest};

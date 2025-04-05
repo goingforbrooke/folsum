@@ -24,7 +24,7 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization, VerificationManifest};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
@@ -46,6 +46,9 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
+    // The manifest file that we generated the last time that we assessed this directory.
+    #[serde(skip)]
+    previous_manifest: Arc<Mutex<Option<VerificationManifest>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -66,6 +69,7 @@ impl Default for FolsumGui {
             file_paths: Arc::new(Mutex::new(vec![])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
+            previous_manifest: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
@@ -103,6 +107,7 @@ impl eframe::App for FolsumGui {
             total_files,
             #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
+            previous_manifest,
             summarization_start,
             time_taken,
             summarization_status,
@@ -317,35 +322,12 @@ impl eframe::App for FolsumGui {
 
                 // Folder verification section.
                 ui.vertical(|ui| {
-                    // Check if summarization table has data.
-                    let file_paths_locked = file_paths.lock().unwrap();
-                    let file_paths_copy = file_paths_locked.clone();
-                    drop(file_paths_locked);
-                    let summarization_table_has_data = match file_paths_copy.is_empty() {
-                        false => {
-                            trace!("✅ GUI table has data");
-                            true
-                        },
-                        true => {
-                            trace!("❌ GUI table has no data");
-                            false
-                        },
-                    };
-
-                    // Check if a manifest file was created.
-                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-                    drop(locked_manifest_creation_status);
-                    let manifest_file_was_created = match manifest_creation_status_copy {
-                        ManifestCreationStatus::Done(_) => true,
-                        _ => false,
-                    };
+                    let locked_previous_manifest = previous_manifest.lock().unwrap();
+                    let previous_manifest_copy = locked_previous_manifest.clone();
+                    drop(locked_previous_manifest);
 
                     // If everything's ready to verify...
-                    // todo: Add verification prerequisite: export file must be selected.
-                    let verification_prerequisites_met = summarization_table_has_data
-                        && summarization_is_complete(summarization_status.clone())
-                        && manifest_file_was_created;
+                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone()) && previous_manifest_copy.is_some();
 
                     // Verification text block.
                     ui.horizontal(|ui| {
@@ -354,40 +336,56 @@ impl eframe::App for FolsumGui {
                         if ui.add_enabled(verification_prerequisites_met,
                                           egui::Button::new("verify")).clicked() {
                             info!("🏁 User started verification");
-                            // ... then ensure that its contents match the verification file.
                             verify_summarization(&file_paths,
                                                  &directory_verification_status,
                                                  &manifest_creation_status).unwrap();
                         }
                         ui.label("the folder's contents against the previous FolSum manifest file.");
                     });
-                    ui.label("FolSum looks for manifests inside of the folder that was summarized.");
+                    ui.label("FolSum looks for manifests inside of the folder that was audited.");
                 });
 
                 ui.horizontal(|ui| {
                     ui.label("Previous manifest file:");
 
-                    // Check if the user has picked a FolSum CSV to verify against.
+                    // Check if a file manifest was created b/c that means we can check for previous manifests.
                     #[cfg(any(target_family = "unix", target_family = "windows"))]
                     {
                         let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
                         let manifest_creation_status_copy = locked_manifest_creation_status.clone();
                         drop(locked_manifest_creation_status);
-                        let shown_path = match manifest_creation_status_copy {
-                            // If a new manifest file was just created, then assume that assessment/summarization is done and we're ready to verify against a manifest file.
-                            ManifestCreationStatus::Done(_) => {
-                                // Figure out which manifest file to verify against.
-                                let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
-                                let previous_manifest = find_previous_manifest(&found_verification_manifests, &manifest_creation_status).unwrap();
-                                let manifest_filename = previous_manifest.file_path.file_name().unwrap();
+
+                        let locked_previous_manifest = previous_manifest.lock().unwrap();
+                        let previous_manifest_copy = locked_previous_manifest.clone();
+                        drop(locked_previous_manifest);
+
+                        // If a new manifest file was made and the previous one hasn't been found yet, then find the previous one.
+                        if matches!(manifest_creation_status_copy, ManifestCreationStatus::Done(_)) && previous_manifest_copy.is_none() {
+                            // Figure out which manifest file to verify against.
+                            let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
+                            let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
+
+                            // Update shared state for the previous manifest file, which will be reset  when a new manifest file is made.
+                            *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
+                        }
+
+                        let locked_previous_manifest = previous_manifest.lock().unwrap();
+                        let previous_manifest_copy = locked_previous_manifest.clone();
+                        drop(locked_previous_manifest);
+
+                        let shown_path = match previous_manifest_copy {
+                            Some(ref found_previous_manifest) => {
+                                let manifest_filename = found_previous_manifest.file_path.file_name().unwrap();
                                 manifest_filename.to_string_lossy().to_string()
                             },
-                            _ => "No manifest file found".to_string(),
+                            None => "No previous manifest file was found".to_string(),
                         };
 
                         // Display the previous manifest file's path in monospace font.
                         ui.monospace(shown_path);
+
                     }
+                    // In WASM builds, show "N/A".
                     #[cfg(target_family = "wasm")]
                     ui.monospace("N/A");
                 });
