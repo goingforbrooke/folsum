@@ -322,8 +322,12 @@ impl eframe::App for FolsumGui {
 
                 // Folder verification section.
                 ui.vertical(|ui| {
+                    let locked_previous_manifest = previous_manifest.lock().unwrap();
+                    let previous_manifest_copy = locked_previous_manifest.clone();
+                    drop(locked_previous_manifest);
+
                     // If everything's ready to verify...
-                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone());
+                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone()) && previous_manifest_copy.is_some();
 
                     // Verification text block.
                     ui.horizontal(|ui| {
@@ -338,7 +342,7 @@ impl eframe::App for FolsumGui {
                         }
                         ui.label("the folder's contents against the previous FolSum manifest file.");
                     });
-                    ui.label("FolSum looks for manifests inside of the folder that was summarized.");
+                    ui.label("FolSum looks for manifests inside of the folder that was audited.");
                 });
 
                 ui.horizontal(|ui| {
