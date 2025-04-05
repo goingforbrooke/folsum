@@ -163,7 +163,7 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
 }
 
 /// Verification manifest from a previous run.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VerificationManifest {
     pub file_path: PathBuf,
     date_created: NaiveDateTime,
@@ -314,8 +314,8 @@ pub fn find_verification_manifest_files(summarization_path: &Arc<Mutex<Option<Pa
 ///     - If we didn't do this, then we'd verify against the newest assessment run and no check would actually take place
 /// 2. Extract the date from each verification file's name
 /// 3. Keep the most recent date
-pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<VerificationManifest>,
-                              manifest_creation_status: &'m Arc<Mutex<ManifestCreationStatus>>) -> Result<Option<&'m VerificationManifest>, anyhow::Error> {
+pub fn find_previous_manifest(found_verification_manifests: Vec<VerificationManifest>,
+                              manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<Option<VerificationManifest>, anyhow::Error> {
     // Note the path of the manifest that was just created so we can ignore it.
     let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
     let manifest_creation_status_copy = locked_manifest_creation_status.clone();
@@ -324,8 +324,8 @@ pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<Verifica
         ManifestCreationStatus::Done(file_path) => file_path,
         // Assume that the manifest file's been created b/c we checked in the prereqs earlier.
         _ => {
-            let error_message = "Encountered unexpected manifest creation status {manifest_creation_status:?} \
-                                      when only Done was expected";
+            let error_message = format!("Encountered unexpected manifest creation status {manifest_creation_status:?} \
+                                                when \"Done\" was expected");
             error!("{}", error_message);
             bail!(error_message);
         }
@@ -339,7 +339,7 @@ pub fn find_previous_manifest<'m>(found_verification_manifests: &'m Vec<Verifica
         })
         .max_by_key(|verification_manifest| {
             verification_manifest.date_created
-    });
+    }).cloned();
 
     info!("Decided that the previous manifest is {previous_manifest:?}");
     Ok(previous_manifest)
