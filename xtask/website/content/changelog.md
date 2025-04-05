@@ -46,4 +46,4 @@ weight = 2
 ### Changed
 
 - Pivot: Move from counting file extensions to verifying files
-- Upgraded dependencies.
+- Upgrade dependencies
