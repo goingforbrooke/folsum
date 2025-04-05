@@ -30,6 +30,7 @@ weight = 2
 ## Changed
 
 - Change instances of "directory" to "folder" in GUI
+- Upgrade dependencies
 
 ## v2.0.3 - 2024-12-05
 
