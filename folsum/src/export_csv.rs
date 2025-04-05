@@ -70,6 +70,7 @@ pub fn export_csv(
 
         info!("Exported file extension summary to: {export_path:?}");
         // Note that the creation of a verification manifest export file has completed.
+        // This will be reset to "not started" when "Audit" is clicked.
         *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::Done(export_path.clone());
     });
     Ok(())

@@ -29,7 +29,7 @@ pub enum SummarizationStatus {
 
 
 /// Point in the process of creating a manifest export file.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ManifestCreationStatus {
     NotStarted,
     InProgress,
