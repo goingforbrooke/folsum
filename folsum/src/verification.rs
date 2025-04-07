@@ -388,6 +388,97 @@ fn interpret_manifest_timestamp(manifest_path: &PathBuf) -> Result<NaiveDateTime
     Ok(interpreted_date)
 }
 
+
+/// Verify summarization against (CSV) verification file.
+///
+/// # Arguments
+///
+/// `manifest_file_path`: Path to a manifest file from a previous summarization.
+///
+/// # Returns
+///
+/// Which verification entries failed weren't found in the summary and why.
+#[cfg(target_family = "wasm")]
+pub fn wasm_verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
+                                 directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+                                 manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
+    let summarized_files = Arc::clone(&summarized_files);
+    let directory_verification_status = Arc::clone(&directory_verification_status);
+    let manifest_creation_status = Arc::clone(&manifest_creation_status);
+
+    let _thread_handle = thread::spawn(move || {
+        // Note that directory verification has begun.
+        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
+
+        // Extract the path to the previous manifest from the Arc.
+        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+        drop(locked_manifest_creation_status);
+        let previous_manifest = match manifest_creation_status_copy {
+            // Assume that a manifest file was already found b/c we checked prerequisites before this.
+            ManifestCreationStatus::Done(manifest_path) => manifest_path,
+            _ => {
+                let error_message = "Expected a manifest file to be found";
+                error!("{}", error_message);
+                bail!(error_message);
+            },
+        };
+
+        let manifest_entries = load_previous_manifest(&previous_manifest)?;
+
+        // todo: Relativize file path before verification steps b/c we're probably doing it twice.
+
+        // Grab a file lock so we can filter for matching summarized files.
+        let mut locked_summarized_files = summarized_files.lock().unwrap();
+
+        // For each summarized file...
+        for summarized_file in &mut locked_summarized_files.iter_mut() {
+            // ... See if its file path exists in the verification manifest.
+            let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
+            let assessed_integrity =  match matching_manifest_entry {
+                Some(matching_manifest_entry) => {
+                    // Assess the file's integrity (which is just an MD5) 😨.
+                    assess_integrity(summarized_file, &matching_manifest_entry)?
+                }
+                None => {
+                    // Assume bad file integrity b/c the file path wasn't found.
+                    let assumed_integrity = IntegrityDetail::default();
+                    FileIntegrity::VerificationFailed(assumed_integrity)
+                }
+            };
+
+            // Modify shared memory entry for the summarized file-- add verification status (for column).
+            match assessed_integrity {
+                FileIntegrity::Verified(_) => summarized_file.file_verification_status = assessed_integrity,
+                FileIntegrity::VerificationFailed(_) => summarized_file.file_verification_status = assessed_integrity,
+                _ => {
+                    let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
+                    error!("{}", error_message);
+                    bail!(error_message);
+                }
+            }
+        }
+
+        // Check if there were any verification failures.
+        let verification_failures = locked_summarized_files.iter().any(|summarized_file| {
+            matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
+        });
+        // Note whether directory verification was successful in the GUI.
+        if verification_failures {
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
+            info!("One or more summarized files failed verification")
+        } else {
+            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
+            info!("Summarized files passed verification");
+        }
+
+        info!("Completed verification of summarized files");
+        Ok(())
+    });
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::{find_verification_manifest_files, interpret_manifest_timestamp, VerificationManifest};

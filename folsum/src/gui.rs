@@ -6,12 +6,12 @@ use std::sync::{Arc, Mutex};
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
 
-// External crates for macOS, Windows, *and* WASM builds.
-use egui::ViewportCommand;
+// External crates for all builds.
+use egui_extras::{Column, TableBuilder};
 
 // External crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use egui_extras::{Column, TableBuilder};
+use egui::ViewportCommand;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use rfd::FileDialog;
 
@@ -24,11 +24,11 @@ use log::{debug, error, info, trace, warn};
 use web_time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization, VerificationManifest};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, VerificationManifest, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
 #[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory, ManifestCreationStatus, SummarizationStatus};
+use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory};
 
 // Internal crates for WASM builds.
 #[cfg(target_family = "wasm")]
@@ -197,11 +197,13 @@ impl eframe::App for FolsumGui {
                             &manifest_creation_status,
                         );
                         #[cfg(target_family = "wasm")]
-                            let _result = wasm_demo_summarize_directory(
+                        let _result = wasm_demo_summarize_directory(
                             &file_paths,
                             &summarization_start,
                             &time_taken,
                             &summarization_status,
+                            &directory_verification_status,
+                            &manifest_creation_status,
                         );
                     };
 

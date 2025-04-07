@@ -77,6 +77,7 @@ pub fn export_csv(
 }
 
 /// Create a path for a new export file, which should be created inside the directory that it summarized.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn create_export_path(summarization_path: &Arc<Mutex<Option<PathBuf>>>) -> PathBuf {
     let locked_summarization_path = summarization_path.lock().unwrap();
     let summarization_path_copy = locked_summarization_path.clone();

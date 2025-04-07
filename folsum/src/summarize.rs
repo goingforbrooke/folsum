@@ -8,8 +8,12 @@ use std::thread;
 #[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
 
+// Internal crates for native builds.
+#[cfg(any(target_family = "unix", target_family = "windows"))]
+use crate::get_md5_hash;
+
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, get_md5_hash, ManifestCreationStatus, SummarizationStatus};
+use crate::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -123,12 +127,13 @@ pub fn wasm_demo_summarize_directory(
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
     summarization_status: &Arc<Mutex<SummarizationStatus>>,
+    directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+    manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>,
     ) {
-    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
-    // ...then recursively count file extensions in the chosen directory.
-
-    // Reset file findings.
     *file_paths.lock().unwrap() = vec![FoundFile::default()];
+    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
+    *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
+    *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
 
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let start_copy = Arc::clone(&summarization_start);
@@ -140,7 +145,7 @@ pub fn wasm_demo_summarize_directory(
     // todo: add `web_sys` (Web)workers to WASM demo so the GUI doesn't hang for larger file counts.
 
     // Set up the browser demo by creating "fake files" to summarize.
-    let actual_file_paths = generate_fake_file_paths(20, 3);
+    let _actual_file_paths = generate_fake_file_paths(20, 3);
 
     // Start the stopwatch for summarization time.
     let mut locked_start_copy = start_copy.lock().unwrap();
@@ -153,7 +158,7 @@ pub fn wasm_demo_summarize_directory(
     // (Fake) WASM summarization.
     for file_path in actual_file_paths {
         // Pretend like a FoundFile for this item already existed.
-        let found_file = FoundFile {file_path, md5_hash: 0};
+        let found_file = FoundFile::new(file_path, 0.to_string());
 
         trace!("Found file: {:?}", &found_file);
         let mut locked_paths_copy= file_paths_copy.lock().unwrap();
