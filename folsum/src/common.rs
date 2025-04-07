@@ -107,7 +107,7 @@ pub mod test_utilities {
             Ok(Self { variable_name })
         }
 
-        /// Get platform-specifc environment variable that corresponds to `$HOME`.
+        /// Get platform-specific environment variable that corresponds to `$HOME`.
         pub fn get_platform_env_var() -> Result<String> {
             let platform = if cfg!(unix) {
                 "unix"
