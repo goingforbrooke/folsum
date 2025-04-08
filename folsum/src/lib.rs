@@ -15,10 +15,10 @@ mod logging;
 pub use logging::setup_native_logging;
 
 mod summarize;
-pub use summarize::summarize_directory;
+pub use summarize::inventory_directory;
 // Summarization benchmarks.
 #[cfg(feature = "bench")]
-pub use summarize::tests::run_fake_summarization;
+pub use summarize::tests::perform_fake_inventory;
 
 mod verification;
 pub use verification::{audit_summarization, VerificationManifest};

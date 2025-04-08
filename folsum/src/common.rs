@@ -64,7 +64,7 @@ pub enum FileIntegrity {
 /// Files found by FolSum.
 #[derive(Clone, Debug, Default)]
 pub struct FoundFile {
-    // Relative path from the summarization directory to the file.
+    // Relative path from the inventory directory to the file.
     pub file_path: PathBuf,
     // MD5 digest as a hexadecimal string.
     pub md5_hash: String,

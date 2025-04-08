@@ -11,7 +11,7 @@ use log::{debug, error, info, trace, warn};
 use rfd::FileDialog;
 
 use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, InventoryStatus, audit_summarization};
-use crate::{export_csv, summarize_directory};
+use crate::{export_csv, inventory_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -160,7 +160,7 @@ impl eframe::App for FolsumGui {
                     // Grey out the "audit" button until the user has selected a directory to inventory.
                     if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
                         info!("User started discovery manifest creation");
-                        let _result = summarize_directory(
+                        let _result = inventory_directory(
                             &chosen_inventory_path,
                             &inventoried_files,
                             &summarization_start,
@@ -259,28 +259,25 @@ impl eframe::App for FolsumGui {
                                           // Prompt the user to choose a FolSum manifest to verify against.
                                           egui::Button::new("select")).clicked() {
                             // Open the manifest file chooser in the same directory that was summarized.
-                            let starting_directory = match chosen_inventory_path.lock().unwrap().clone() {
-                                Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
-                                None => {
-                                    // Assume that an inventory directory has been selected b/c prereqs were met.
-                                    let error_message = "Expected an inventory directory to be selected";
-                                    error!("{}", error_message);
-                                    // Default to the user's home dir for now b/c we don't have good error propagation yet.
-                                    home_dir().unwrap()
-                                },
-                            };
+                            let starting_directory = chosen_inventory_path.lock().unwrap().clone().unwrap_or_else(|| {
+                                // Assume that an inventory directory has been selected b/c prereqs were met.
+                                let error_message = "Expected an inventory directory to be selected";
+                                error!("{}", error_message);
+                                // Default to the user's home dir for now b/c we don't have good error propagation yet.
+                                home_dir().unwrap()
+                            });
                             // Open the file picker for the manifest file.
                             if let Some(path) = FileDialog::new()
                                 // Show only `.csv` files b/c a shortcoming of rfd is that we can't filter for `.folsum.csv`.
                                 .add_filter("CSV", &["csv"])
-                                .set_title("Choose FolSum CSV file to verify against")
+                                .set_title("Choose FolSum CSV manifest file to audit against")
                                 .set_directory(starting_directory)
                                 .pick_file() {
-                                info!("User chose verification file: {:?}", path);
+                                info!("User chose manifest file: {:?}", path);
                                 *chosen_manifest = Arc::new(Mutex::new(Some(path)));
                             }
 
-                            info!("🏁 User started verification");
+                            info!("🏁 User started audit");
                             audit_summarization(&inventoried_files,
                                                 &directory_audit_status,
                                                 &manifest_creation_status).unwrap();
@@ -323,7 +320,7 @@ impl eframe::App for FolsumGui {
                     };
 
                     // Display folder verification progress.
-                    ui.label(format!("Folder verification {shown_directory_audit_status}"));
+                    ui.label(format!("Folder audit {shown_directory_audit_status}"));
                 });
 
                 ui.separator();
@@ -381,7 +378,7 @@ impl eframe::App for FolsumGui {
                                 ui.label(found_file.md5_hash.clone());
                             });
                             row.col(|ui| {
-                                let display_verification_status = match &found_file.file_verification_status {
+                                let display_file_integrity = match &found_file.file_verification_status {
                                     FileIntegrity::Unverified => "Unverified",
                                     FileIntegrity::InProgress => "Verifying...",
                                     FileIntegrity::Verified(_) => "Verified",
@@ -397,7 +394,7 @@ impl eframe::App for FolsumGui {
                                         }
                                     }
                                 };
-                                ui.label(display_verification_status);
+                                ui.label(display_file_integrity);
                             });
                         });
                     }
