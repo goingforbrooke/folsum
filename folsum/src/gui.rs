@@ -10,7 +10,7 @@ use rfd::FileDialog;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, verify_summarization};
 use crate::{export_csv, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -270,7 +270,7 @@ impl eframe::App for FolsumGui {
                                 None => home_dir().expect("Failed to get user's home directory"),
                             };
                             if let Some(path) = FileDialog::new()
-                                // Show only `.csv` files.
+                                // Show only `.csv` files b/c a shortcoming of rfd is that we can't filter for `.folsum.csv`.
                                 .add_filter("CSV", &["csv"])
                                 .set_title("Choose FolSum CSV file to verify against")
                                 // Open manifest file picker in the same directory that was selected for summarization.
@@ -280,10 +280,10 @@ impl eframe::App for FolsumGui {
                                 *chosen_manifest = Arc::new(Mutex::new(Some(path)));
                             }
 
-                            //info!("🏁 User started verification");
-                            //verify_summarization(&file_paths,
-                            //                     &directory_verification_status,
-                            //                     &manifest_creation_status).unwrap();
+                            info!("🏁 User started verification");
+                            verify_summarization(&file_paths,
+                                                 &directory_verification_status,
+                                                 &manifest_creation_status).unwrap();
 
                         }
                         ui.label("a previously-generated manifest to verify against.");

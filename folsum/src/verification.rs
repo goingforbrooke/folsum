@@ -166,15 +166,6 @@ pub struct VerificationManifest {
     date_created: NaiveDateTime,
 }
 
-impl VerificationManifest {
-    fn new(file_path: &PathBuf, date_created: NaiveDateTime) -> Self {
-        VerificationManifest {
-            file_path: file_path.to_path_buf(),
-            date_created,
-        }
-    }
-}
-
 /// Load [`FoundFile`]s from a verification (CSV) file.
 fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
     let csv_file_handle = File::open(&manifest_file_path)?;
