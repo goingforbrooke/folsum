@@ -10,7 +10,7 @@ use rfd::FileDialog;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, audit_summarization};
+use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, audit_summarization};
 use crate::{export_csv, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -37,7 +37,7 @@ pub struct FolsumGui {
     #[serde(skip)]
     summarization_status: Arc<Mutex<SummarizationStatus>>,
     #[serde(skip)]
-    directory_verification_status: Arc<Mutex<DirectoryVerificationStatus>>,
+    directory_verification_status: Arc<Mutex<DirectoryAuditStatus>>,
     #[serde(skip)]
     manifest_creation_status: Arc<Mutex<ManifestCreationStatus>>,
 }
@@ -52,7 +52,7 @@ impl Default for FolsumGui {
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
-            directory_verification_status: Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified)),
+            directory_verification_status: Arc::new(Mutex::new(DirectoryAuditStatus::Unverified)),
             manifest_creation_status: Arc::new(Mutex::new(ManifestCreationStatus::NotStarted)),
         }
     }
@@ -315,10 +315,10 @@ impl eframe::App for FolsumGui {
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
                     drop(locked_directory_verification_status);
                     let shown_directory_verification_status = match directory_verification_status_copy {
-                        DirectoryVerificationStatus::Unverified => "not started.",
-                        DirectoryVerificationStatus::InProgress => "in progress...",
-                        DirectoryVerificationStatus::Verified => "complete. Data integrity verified.",
-                        DirectoryVerificationStatus::VerificationFailed => "complete. Data integrity compromised.",
+                        DirectoryAuditStatus::Unverified => "not started.",
+                        DirectoryAuditStatus::InProgress => "in progress...",
+                        DirectoryAuditStatus::Verified => "complete. Data integrity verified.",
+                        DirectoryAuditStatus::VerificationFailed => "complete. Data integrity compromised.",
                     };
 
                     // Display folder verification progress.

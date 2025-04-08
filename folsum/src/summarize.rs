@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 // Internal crates for macOS, Windows, *and* WASM builds.
 use crate::FoundFile;
 use crate::get_md5_hash;
-use crate::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
+use crate::{DirectoryAuditStatus, ManifestCreationStatus, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -29,7 +29,7 @@ pub fn summarize_directory(
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
     summarization_status: &Arc<Mutex<SummarizationStatus>>,
-    directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+    directory_verification_status: &Arc<Mutex<DirectoryAuditStatus>>,
     manifest_verification_status: &Arc<Mutex<ManifestCreationStatus>>,
 ) -> Result<(), &'static str> {
 
@@ -42,7 +42,7 @@ pub fn summarize_directory(
         *file_paths.lock().unwrap() = vec![];
 
         *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
-        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
+        *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::Unverified;
         *manifest_verification_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
 
         // Note that summarization is in progress.
@@ -184,7 +184,7 @@ pub mod tests {
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
-    use crate::common::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
+    use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, SummarizationStatus};
     use crate::hashers::get_md5_hash;
     use crate::{FoundFile};
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
@@ -271,7 +271,7 @@ pub mod tests {
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
         let summarization_status = Arc::new(Mutex::new(SummarizationStatus::NotStarted));
-        let directory_verification_status = Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified));
+        let directory_verification_status = Arc::new(Mutex::new(DirectoryAuditStatus::Unverified));
         let manifest_creation_status = Arc::new(Mutex::new(ManifestCreationStatus::NotStarted));
 
         // Summarize the tempfiles.

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
+use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -26,7 +26,7 @@ use log::{debug, error, info, trace, warn};
 ///
 /// Manifest entries that weren't found in the directory inventory and why.
 pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                           directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+                           directory_verification_status: &Arc<Mutex<DirectoryAuditStatus>>,
                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
@@ -36,7 +36,7 @@ pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
 
     let _thread_handle = thread::spawn(move || {
         // Note that directory verification has begun.
-        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
+        *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
         // Extract the path to the previous manifest from the Arc.
         let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
@@ -93,10 +93,10 @@ pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         });
         // Note whether directory verification was successful in the GUI.
         if verification_failures {
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
+            *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::VerificationFailed;
             info!("One or more summarized files failed verification")
         } else {
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
+            *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::Verified;
             info!("Summarized files passed verification");
         }
 

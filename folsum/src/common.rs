@@ -39,7 +39,7 @@ pub enum ManifestCreationStatus {
 
 /// Integrity of the whole directory being summarized.
 #[derive(Clone, Debug)]
-pub enum DirectoryVerificationStatus {
+pub enum DirectoryAuditStatus {
     Unverified,
     InProgress,
     Verified,
