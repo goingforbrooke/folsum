@@ -85,6 +85,7 @@ pub fn summarize_directory(
                         // Convert from absolute path to a relative (to given directory) path.
                         // todo: Handle relative path prefix strip errors.
                         let file_path = foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf();
+                        // todo: Propagate errors for "No such file or directory" when running `get_md5_hash` in `summarize_directory`.
                         let md5_hash = get_md5_hash(&foundfile_path).unwrap();
                         let found_file = FoundFile::new(file_path, md5_hash);
 
@@ -180,7 +181,6 @@ pub mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
-    #[cfg(test)]
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
@@ -283,8 +283,16 @@ pub mod tests {
                             &directory_verification_status,
                             &manifest_creation_status).unwrap();
 
-        // Destroy the test files b/c we're done summarizing them.
-        drop(tempdir_handle);
+        // Keep the test files around long enough for summarization to finish.
+        loop {
+            if matches!(*summarization_status.lock().unwrap(), SummarizationStatus::Done) {
+                // Destroy the test files b/c we're done summarizing them.
+                drop(tempdir_handle);
+                break;
+            }
+            sleep(Duration::from_millis(50))
+        }
+
 
         // Return the datastore variable so the unit test can verify what's been summarized.
         Ok((file_paths, expected_file_paths, expected_md5_hashes))
