@@ -1,11 +1,12 @@
-//! Verify an (in-memory) summarized directory against a verification file.
+//! Audit an (in-memory) directory in inventory against a manifest file.
+//!
+//! We accomplish this by comparing the manifest file against the directory's contents.
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-// Internal crates for native and WASM builds.
 use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
@@ -15,18 +16,19 @@ use chrono::NaiveDateTime;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-/// Verify summarization against (CSV) verification file.
+/// Audit directory inventory against a previously-generated (CSV) manifest file.
 ///
 /// # Arguments
 ///
-/// `manifest_file_path`: Path to a manifest file from a previous summarization.
+/// `manifest_file_path`: Path to a manifest file from a previous inventory.
 ///
 /// # Returns
 ///
-/// Which verification entries failed weren't found in the summary and why.
-pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
-                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+/// Manifest entries that weren't found in the directory inventory and why.
+pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
+                           directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
+                           manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+    // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
     let directory_verification_status = Arc::clone(&directory_verification_status);

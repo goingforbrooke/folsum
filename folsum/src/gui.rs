@@ -10,7 +10,7 @@ use rfd::FileDialog;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, verify_summarization};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, audit_summarization};
 use crate::{export_csv, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -281,9 +281,9 @@ impl eframe::App for FolsumGui {
                             }
 
                             info!("🏁 User started verification");
-                            verify_summarization(&file_paths,
-                                                 &directory_verification_status,
-                                                 &manifest_creation_status).unwrap();
+                            audit_summarization(&file_paths,
+                                                &directory_verification_status,
+                                                &manifest_creation_status).unwrap();
 
                         }
                         ui.label("a previously-generated manifest to verify against.");
