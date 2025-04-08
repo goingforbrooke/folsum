@@ -1,13 +1,13 @@
-//! Audit an (in-memory) directory in inventory against a manifest file.
+//! Audit an (in-memory) directory inventory against a manifest file.
 //!
-//! We accomplish this by comparing the manifest file against the directory's contents.
+//! We accomplish this by comparing the manifest file's listings against the directory's contents.
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
+use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -26,17 +26,17 @@ use log::{debug, error, info, trace, warn};
 ///
 /// Manifest entries that weren't found in the directory inventory and why.
 pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                           directory_verification_status: &Arc<Mutex<DirectoryAuditStatus>>,
+                           directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let summarized_files = Arc::clone(&summarized_files);
-    let directory_verification_status = Arc::clone(&directory_verification_status);
+    let directory_audit_status = Arc::clone(&directory_audit_status);
     let manifest_creation_status = Arc::clone(&manifest_creation_status);
 
     let _thread_handle = thread::spawn(move || {
         // Note that directory verification has begun.
-        *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
+        *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
         // Extract the path to the previous manifest from the Arc.
         let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
@@ -70,7 +70,7 @@ pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
                 }
                 None => {
                     // Assume bad file integrity b/c the file path wasn't found.
-                    let assumed_integrity = IntegrityDetail::default();
+                    let assumed_integrity = FileIntegrityDetail::default();
                     FileIntegrity::VerificationFailed(assumed_integrity)
                 }
             };
@@ -93,10 +93,10 @@ pub fn audit_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         });
         // Note whether directory verification was successful in the GUI.
         if verification_failures {
-            *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::VerificationFailed;
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
             info!("One or more summarized files failed verification")
         } else {
-            *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::Verified;
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
             info!("Summarized files passed verification");
         }
 
@@ -142,7 +142,7 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
         false => trace!("MD5 hashes don't match")
     };
 
-    let integrity_detail = IntegrityDetail {
+    let integrity_detail = FileIntegrityDetail {
         // We can safely assume that the file path has already been found.
         file_path_matches: true,
         md5_hash_matches,

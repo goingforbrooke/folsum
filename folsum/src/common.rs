@@ -21,12 +21,11 @@ pub const FOLSUM_CSV_EXTENSION: &str = ".folsum.csv";
 
 /// Point in the summarization process of a directory's contents.
 #[derive(Clone)]
-pub enum SummarizationStatus {
+pub enum InventoryStatus {
     NotStarted,
     InProgress,
     Done,
 }
-
 
 /// Point in the process of creating a manifest export file.
 #[derive(Clone, Debug)]
@@ -36,19 +35,18 @@ pub enum ManifestCreationStatus {
     Done(PathBuf),
 }
 
-
 /// Integrity of the whole directory being summarized.
 #[derive(Clone, Debug)]
 pub enum DirectoryAuditStatus {
-    Unverified,
+    Unaudited,
     InProgress,
-    Verified,
-    VerificationFailed,
+    Audited,
+    DiscrepanciesFound,
 }
 
-/// Details about why a [`FoundFile`] succeeded or failed verification.
+/// Details about why a [`FoundFile`] succeeded or failed an audit.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct IntegrityDetail {
+pub struct FileIntegrityDetail {
     pub file_path_matches: bool,
     pub md5_hash_matches: bool,
 }
@@ -59,8 +57,8 @@ pub enum FileIntegrity {
     #[default]
     Unverified,
     InProgress,
-    Verified(IntegrityDetail),
-    VerificationFailed(IntegrityDetail),
+    Verified(FileIntegrityDetail),
+    VerificationFailed(FileIntegrityDetail),
 }
 
 /// Files found by FolSum.

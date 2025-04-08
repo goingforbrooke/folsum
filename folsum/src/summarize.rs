@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 // Internal crates for macOS, Windows, *and* WASM builds.
 use crate::FoundFile;
 use crate::get_md5_hash;
-use crate::{DirectoryAuditStatus, ManifestCreationStatus, SummarizationStatus};
+use crate::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
@@ -28,9 +28,9 @@ pub fn summarize_directory(
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     summarization_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
-    summarization_status: &Arc<Mutex<SummarizationStatus>>,
-    directory_verification_status: &Arc<Mutex<DirectoryAuditStatus>>,
-    manifest_verification_status: &Arc<Mutex<ManifestCreationStatus>>,
+    summarization_status: &Arc<Mutex<InventoryStatus>>,
+    directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
+    manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>,
 ) -> Result<(), &'static str> {
 
     let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
@@ -41,9 +41,9 @@ pub fn summarize_directory(
         // Reset file findings.
         *file_paths.lock().unwrap() = vec![];
 
-        *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
-        *directory_verification_status.lock().unwrap() = DirectoryAuditStatus::Unverified;
-        *manifest_verification_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
+        *summarization_status.lock().unwrap() = InventoryStatus::InProgress;
+        *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Unaudited;
+        *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
 
         // Note that summarization is in progress.
 
@@ -106,7 +106,7 @@ pub fn summarize_directory(
                 },
                 None => error!("No summarization path was provided"),
             }
-            *summarization_status_copy.lock().unwrap() = SummarizationStatus::Done;
+            *summarization_status_copy.lock().unwrap() = InventoryStatus::Done;
         });
     };
     Ok(())
@@ -184,7 +184,7 @@ pub mod tests {
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
-    use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, SummarizationStatus};
+    use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
     use crate::hashers::get_md5_hash;
     use crate::{FoundFile};
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
@@ -270,8 +270,8 @@ pub mod tests {
         let file_paths = Arc::new(Mutex::new(vec![]));
         let summarization_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
-        let summarization_status = Arc::new(Mutex::new(SummarizationStatus::NotStarted));
-        let directory_verification_status = Arc::new(Mutex::new(DirectoryAuditStatus::Unverified));
+        let summarization_status = Arc::new(Mutex::new(InventoryStatus::NotStarted));
+        let directory_audit_status = Arc::new(Mutex::new(DirectoryAuditStatus::Unaudited));
         let manifest_creation_status = Arc::new(Mutex::new(ManifestCreationStatus::NotStarted));
 
         // Summarize the tempfiles.
@@ -280,12 +280,12 @@ pub mod tests {
                             &summarization_start,
                             &time_taken,
                             &summarization_status,
-                            &directory_verification_status,
+                            &directory_audit_status,
                             &manifest_creation_status).unwrap();
 
         // Keep the test files around long enough for summarization to finish.
         loop {
-            if matches!(*summarization_status.lock().unwrap(), SummarizationStatus::Done) {
+            if matches!(*summarization_status.lock().unwrap(), InventoryStatus::Done) {
                 // Destroy the test files b/c we're done summarizing them.
                 drop(tempdir_handle);
                 break;
@@ -326,7 +326,7 @@ pub mod tests {
         Ok(())
     }
 
-    /// Native: Ensure that [`summarize_directory`] successfully finds verification discrepencies.
+    /// Native: Ensure that [`summarize_directory`] successfully finds audit discrepancies.
     ///
     /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
     #[test_log::test]
@@ -335,7 +335,7 @@ pub mod tests {
 
         // Keep around the original hash so we can ensure that it was missed later.
         let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
-        // Perturbation: Mess up the first MD5 hash, as if the verification file showed something different from what will be summarized, because we want to catch that!
+        // Perturbation: Mess up the first MD5 hash, as if the manifest file showed something different from what will be inventoried, b/c we want to catch that!
         *expected_md5_hashes.first_mut().unwrap() = "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string();
 
         // Assume that summarization will complete in less than a second.
