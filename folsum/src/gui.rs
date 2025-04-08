@@ -273,15 +273,14 @@ impl eframe::App for FolsumGui {
                         ui.label("Second,");
                         // Grey out/disable the "verify" button if summarization prerequisites aren't met.
                         if ui.add_enabled(verification_prerequisites_met,
-                                          egui::Button::new("verify")).clicked() {
+                                          egui::Button::new("select")).clicked() {
                             info!("🏁 User started verification");
                             verify_summarization(&file_paths,
                                                  &directory_verification_status,
                                                  &manifest_creation_status).unwrap();
                         }
-                        ui.label("the folder's contents against the previous FolSum manifest file.");
+                        ui.label("a previously-generated manifest to verify against.");
                     });
-                    ui.label("FolSum looks for manifests inside of the folder that was audited.");
                 });
 
                 ui.horizontal(|ui| {
