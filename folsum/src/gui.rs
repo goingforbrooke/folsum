@@ -270,10 +270,10 @@ impl eframe::App for FolsumGui {
                                 None => home_dir().expect("Failed to get user's home directory"),
                             };
                             if let Some(path) = FileDialog::new()
-                                // Add `.csv` to the end of the user's chosen name for the CSV export.
-                                .add_filter("folsum CSV", &["folsum.csv"])
+                                // Show only `.csv` files.
+                                .add_filter("CSV", &["csv"])
                                 .set_title("Choose FolSum CSV file to verify against")
-                                // Open export dialogs in the last saved directory (if it exists), otherwise in the user's home directory.
+                                // Open manifest file picker in the same directory that was selected for summarization.
                                 .set_directory(starting_directory)
                                 .pick_file() {
                                 info!("User chose verification file: {:?}", path);
