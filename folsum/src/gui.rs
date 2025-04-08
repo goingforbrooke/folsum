@@ -10,7 +10,7 @@ use rfd::FileDialog;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, verify_summarization};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus};
 use crate::{export_csv, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -251,18 +251,17 @@ impl eframe::App for FolsumGui {
 
                 // Folder verification section.
                 ui.vertical(|ui| {
-                    let locked_chosen_manifest = chosen_manifest.lock().unwrap();
-                    let chosen_manifest_copy = locked_chosen_manifest.clone();
-                    drop(locked_chosen_manifest);
-
                     // If everything's ready to verify...
-                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone()) && chosen_manifest_copy.is_some();
+                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone());
 
                     // Verification text block.
                     ui.horizontal(|ui| {
                         ui.label("Second,");
 
-                        if ui.button("choose").clicked() {
+                        // Grey out/disable the "select" button if manifest selection prerequisites aren't met.
+                        if ui.add_enabled(verification_prerequisites_met,
+                                          // Prompt the user to choose a FolSum manifest to verify against.
+                                          egui::Button::new("select")).clicked() {
                             // Open the "select manifest file" dialog.
                             let starting_directory = match summarization_path.lock().unwrap().clone() {
                                 // Open the verification file chooser in the same dir as the previous export.
@@ -281,27 +280,18 @@ impl eframe::App for FolsumGui {
                                 *chosen_manifest = Arc::new(Mutex::new(Some(path)));
                             }
 
+                            //info!("🏁 User started verification");
+                            //verify_summarization(&file_paths,
+                            //                     &directory_verification_status,
+                            //                     &manifest_creation_status).unwrap();
 
-                            if let Some(path) = FileDialog::new().pick_folder() {
-                                info!("User chose summarization directory: {:?}", path);
-                                *summarization_path = Arc::new(Mutex::new(Some(path)));
-                            }
-                        }
-
-                        // Grey out/disable the "verify" button if summarization prerequisites aren't met.
-                        if ui.add_enabled(verification_prerequisites_met,
-                                          egui::Button::new("select")).clicked() {
-                            info!("🏁 User started verification");
-                            verify_summarization(&file_paths,
-                                                 &directory_verification_status,
-                                                 &manifest_creation_status).unwrap();
                         }
                         ui.label("a previously-generated manifest to verify against.");
                     });
                 });
 
                 ui.horizontal(|ui| {
-                    ui.label("Previous manifest file:");
+                    ui.label("Chosen manifest:");
 
                     let locked_previous_manifest = chosen_manifest.lock().unwrap();
                     let previous_manifest_copy = locked_previous_manifest.clone();
@@ -312,7 +302,7 @@ impl eframe::App for FolsumGui {
                             let manifest_filename = found_previous_manifest.file_name().unwrap();
                             manifest_filename.to_string_lossy().to_string()
                         },
-                        None => "No previous manifest file was found".to_string(),
+                        None => "No manifest file has been chosen".to_string(),
                     };
 
                     // Display the previous manifest file's path in monospace font.
