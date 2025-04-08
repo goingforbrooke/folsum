@@ -21,4 +21,4 @@ pub use summarize::summarize_directory;
 pub use summarize::tests::run_fake_summarization;
 
 mod verification;
-pub use verification::{find_verification_manifest_files, find_previous_manifest, verify_summarization, VerificationManifest};
+pub use verification::{verify_summarization, VerificationManifest};
