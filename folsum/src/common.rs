@@ -15,7 +15,7 @@ macro_rules! debug_println {
 }
 
 pub const CSV_HEADERS: &str = "File Path, MD5 Hash\n";
-pub const FILEDATE_PREFIX_FORMAT: &str = "%-y-%-m-%-d-%-H-%-M";
+pub const FILEDATE_PREFIX_FORMAT: &str = "%Y-%-m-%-d-%-H-%-M";
 pub const FOLSUM_CSV_EXTENSION: &str = ".folsum.csv";
 
 
