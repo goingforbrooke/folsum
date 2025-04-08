@@ -246,7 +246,7 @@ impl eframe::App for FolsumGui {
 
                 ui.separator();
 
-                ui.heading("Verify a Folder");
+                ui.heading("Perform Audit");
 
                 // Directory audit section.
                 ui.vertical(|ui| {
@@ -270,7 +270,7 @@ impl eframe::App for FolsumGui {
                             if let Some(path) = FileDialog::new()
                                 // Show only `.csv` files b/c a shortcoming of rfd is that we can't filter for `.folsum.csv`.
                                 .add_filter("CSV", &["csv"])
-                                .set_title("Choose FolSum CSV manifest file to audit against")
+                                .set_title("Choose FolSum CSV manifest file as an audit rubric")
                                 .set_directory(starting_directory)
                                 .pick_file() {
                                 info!("User chose manifest file: {:?}", path);
