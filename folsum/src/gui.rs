@@ -226,7 +226,7 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
-                        "Audited {} files in {} milliseconds",
+                        "Inventoried {} files in {} milliseconds",
                         &total_files,
                         &locked_time_taken.as_millis()
                     ));
