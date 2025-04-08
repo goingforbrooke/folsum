@@ -177,7 +177,7 @@ pub mod tests {
     use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
     use crate::hashers::get_md5_hash;
     use crate::{FoundFile};
-    use crate::summarize::{inventory_directory, generate_fake_file_paths};
+    use crate::inventory::{inventory_directory, generate_fake_file_paths};
 
     #[cfg(test)]
     use anyhow::bail;
