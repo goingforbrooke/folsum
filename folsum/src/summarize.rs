@@ -1,33 +1,28 @@
 // Std crates for macOS, Windows, *and* WASM builds.
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-
-// Std crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::thread;
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
 
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, get_md5_hash, ManifestCreationStatus, SummarizationStatus};
+use crate::FoundFile;
+use crate::get_md5_hash;
+use crate::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-
-// External crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use walkdir::WalkDir;
 
-// External crates for WASM builds.
-#[cfg(target_family = "wasm")]
-use web_time::{Duration, Instant};
+// External test/demo crates.
+#[cfg(any(debug_assertions, test, feature = "bench"))]
+use rand::distr::Alphanumeric;
+#[cfg(any(debug_assertions, test, feature = "bench"))]
+use rand::{rng, Rng};
 
-// Internal crates for macOS, Windows, *and* WASM builds.
-use crate::FoundFile;
+
 
 /// Summarize directories in native builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 pub fn summarize_directory(
     summarization_path: &Arc<Mutex<Option<PathBuf>>>,
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
@@ -90,6 +85,7 @@ pub fn summarize_directory(
                         // Convert from absolute path to a relative (to given directory) path.
                         // todo: Handle relative path prefix strip errors.
                         let file_path = foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf();
+                        // todo: Propagate errors for "No such file or directory" when running `get_md5_hash` in `summarize_directory`.
                         let md5_hash = get_md5_hash(&foundfile_path).unwrap();
                         let found_file = FoundFile::new(file_path, md5_hash);
 
@@ -116,65 +112,6 @@ pub fn summarize_directory(
     Ok(())
 }
 
-/// Summarize directories in WASM builds.
-#[cfg(target_family = "wasm")]
-pub fn wasm_demo_summarize_directory(
-    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
-    summarization_start: &Arc<Mutex<Instant>>,
-    time_taken: &Arc<Mutex<Duration>>,
-    summarization_status: &Arc<Mutex<SummarizationStatus>>,
-    ) {
-    *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
-    // ...then recursively count file extensions in the chosen directory.
-
-    // Reset file findings.
-    *file_paths.lock().unwrap() = vec![FoundFile::default()];
-
-    // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-    let start_copy = Arc::clone(&summarization_start);
-    let time_taken_copy = Arc::clone(&time_taken);
-    let file_paths_copy = Arc::clone(&file_paths);
-
-    // We usually do this in a separate thread, which `web_sys`'s (Web)workers would do a good job of simulating.
-    // Temp: We skip this here because this demo's not dealing with actual files (or a large sample) anyway.
-    // todo: add `web_sys` (Web)workers to WASM demo so the GUI doesn't hang for larger file counts.
-
-    // Set up the browser demo by creating "fake files" to summarize.
-    let actual_file_paths = generate_fake_file_paths(20, 3);
-
-    // Start the stopwatch for summarization time.
-    let mut locked_start_copy = start_copy.lock().unwrap();
-    *locked_start_copy = Instant::now();
-    info!("Started summarization");
-
-    // Set up the demo by creating "fake files" to summarize.
-    let actual_file_paths = generate_fake_file_paths(20, 3);
-
-    // (Fake) WASM summarization.
-    for file_path in actual_file_paths {
-        // Pretend like a FoundFile for this item already existed.
-        let found_file = FoundFile {file_path, md5_hash: 0};
-
-        trace!("Found file: {:?}", &found_file);
-        let mut locked_paths_copy= file_paths_copy.lock().unwrap();
-
-        // Add newly encountered file paths to known file paths.
-        locked_paths_copy.push(found_file);
-
-        // Update the summarization time stopwatch.
-        let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
-        *locked_time_taken_copy = locked_start_copy.elapsed();
-    }
-
-    *summarization_status.lock().unwrap() = SummarizationStatus::Done;
-}
-
-// External test/demo crates.
-#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
-use rand::distr::Alphanumeric;
-#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
-use rand::{rng, Rng};
-
 /// Create an "answer key" of fake file paths.
 ///
 /// These will be used to create "fake files" for testing things like `summarize_directory`. This
@@ -186,7 +123,7 @@ use rand::{rng, Rng};
 /// * `max_depth` - The maximum directory depth for the fake files.
 /// * `extensions` - A slice of file extensions to randomly choose from.
 // Make available for `cargo check`, native unit tests, benchmarks, and the browser demo (but not native builds).
-#[cfg(any(debug_assertions, test, feature = "bench", target_family = "wasm"))]
+#[cfg(any(debug_assertions, test, feature = "bench"))]
 #[allow(unused)]
 fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
     // Persist the random number generator to avoid re-initialization.
@@ -244,15 +181,15 @@ pub mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use std::sync::{Arc, Mutex};
-    #[cfg(test)]
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
-    use crate::common::{DirectoryVerificationStatus, SummarizationStatus};
+    use crate::common::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
     use crate::hashers::get_md5_hash;
     use crate::{FoundFile};
     use crate::summarize::{summarize_directory, generate_fake_file_paths};
 
+    #[cfg(test)]
     use anyhow::bail;
     use rand::Rng;
     use test_log;
@@ -335,12 +272,27 @@ pub mod tests {
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
         let summarization_status = Arc::new(Mutex::new(SummarizationStatus::NotStarted));
         let directory_verification_status = Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified));
+        let manifest_creation_status = Arc::new(Mutex::new(ManifestCreationStatus::NotStarted));
 
         // Summarize the tempfiles.
-        summarize_directory(&summarization_path, &file_paths, &summarization_start, &time_taken, &summarization_status, &directory_verification_status).unwrap();
+        summarize_directory(&summarization_path,
+                            &file_paths,
+                            &summarization_start,
+                            &time_taken,
+                            &summarization_status,
+                            &directory_verification_status,
+                            &manifest_creation_status).unwrap();
 
-        // Destroy the test files b/c we're done summarizing them.
-        drop(tempdir_handle);
+        // Keep the test files around long enough for summarization to finish.
+        loop {
+            if matches!(*summarization_status.lock().unwrap(), SummarizationStatus::Done) {
+                // Destroy the test files b/c we're done summarizing them.
+                drop(tempdir_handle);
+                break;
+            }
+            sleep(Duration::from_millis(50))
+        }
+
 
         // Return the datastore variable so the unit test can verify what's been summarized.
         Ok((file_paths, expected_file_paths, expected_md5_hashes))

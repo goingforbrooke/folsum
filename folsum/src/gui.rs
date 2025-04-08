@@ -3,36 +3,24 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 // Std crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::time::{Duration, Instant};
 
-// External crates for macOS, Windows, *and* WASM builds.
-use egui::ViewportCommand;
+// External crates for all builds.
+use egui_extras::{Column, TableBuilder};
 
 // External crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-use egui_extras::{Column, TableBuilder};
-#[cfg(any(target_family = "unix", target_family = "windows"))]
+use egui::ViewportCommand;
 use rfd::FileDialog;
 
 // External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// External crates for WASM builds.
-#[cfg(target_family = "wasm")]
-use web_time::{Duration, Instant};
-
 // Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, verify_summarization, VerificationManifest};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, VerificationManifest, verify_summarization};
 
 // Internal crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
-use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory, ManifestCreationStatus, SummarizationStatus};
-
-// Internal crates for WASM builds.
-#[cfg(target_family = "wasm")]
-use crate::wasm_demo_summarize_directory;
+use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -105,7 +93,6 @@ impl eframe::App for FolsumGui {
         let Self {
             file_paths,
             total_files,
-            #[cfg(any(target_family = "unix", target_family = "windows"))]
             summarization_path,
             previous_manifest,
             summarization_start,
@@ -125,7 +112,6 @@ impl eframe::App for FolsumGui {
             // Add a menu bar to the top of the screen.
             egui::menu::bar(ui, |ui| {
                 // Don't include a File->Quit menu item when compiling for web.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.menu_button("File", |ui| {
                     if ui.button("Quit").clicked() {
                         ctx.send_viewport_cmd(ViewportCommand::Close);
@@ -168,7 +154,6 @@ impl eframe::App for FolsumGui {
                     ui.label("First,");
 
                     // Don't add a directory picker when compiling for web.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
                     if ui.button("choose").clicked() {
                         if let Some(path) = FileDialog::new().pick_folder() {
                             info!("User chose summarization directory: {:?}", path);
@@ -186,7 +171,6 @@ impl eframe::App for FolsumGui {
                     // Grey out the "audit" button until the user has selected a directory to summarize.
                     if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
                         info!("User started discovery manifest creation");
-                        #[cfg(any(target_family = "unix", target_family = "windows"))]
                         let _result = summarize_directory(
                             &summarization_path,
                             &file_paths,
@@ -195,13 +179,6 @@ impl eframe::App for FolsumGui {
                             &summarization_status,
                             &directory_verification_status,
                             &manifest_creation_status,
-                        );
-                        #[cfg(target_family = "wasm")]
-                            let _result = wasm_demo_summarize_directory(
-                            &file_paths,
-                            &summarization_start,
-                            &time_taken,
-                            &summarization_status,
                         );
                     };
 
@@ -212,15 +189,11 @@ impl eframe::App for FolsumGui {
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                        let shown_path: &str = match &*locked_path {
+                    let locked_path: &Option<PathBuf> = &*summarization_path.lock().unwrap();
+                    let shown_path: &str = match &*locked_path {
                         Some(the_path) => the_path.as_os_str().to_str().unwrap(),
                         None => "No folder selected",
                     };
-                    #[cfg(target_family = "wasm")]
-                        let shown_path = "N/A";
                     ui.label("Chosen folder:");
                     // Display the user's chosen directory in monospace font.
                     ui.monospace(shown_path);
@@ -270,55 +243,21 @@ impl eframe::App for FolsumGui {
                     ));
                 });
 
-                // Don't do exports on WASM builds.
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
-                {
-                    // Check whether the user has selected a directory to summarize.
-                    let locked_summarization_path = summarization_path.lock().unwrap();
-                    let summarization_path_copy = locked_summarization_path.clone();
-                    drop(locked_summarization_path);
+                // Check whether the user has selected a directory to summarize.
+                let locked_summarization_path = summarization_path.lock().unwrap();
+                let summarization_path_copy = locked_summarization_path.clone();
+                drop(locked_summarization_path);
 
-                    let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status, &manifest_creation_status);
+                let export_prerequisites_met = export_prerequisites_met(&summarization_path_copy, &summarization_status, &manifest_creation_status);
 
-                    // If we're ready to export a verification manifest file, then do so.
-                    if export_prerequisites_met {
-                        let _result = export_csv(&file_paths, &manifest_creation_status, &summarization_path);
-                    };
-                }
+                // If we're ready to export a verification manifest file, then do so.
+                if export_prerequisites_met {
+                    let _result = export_csv(&file_paths, &manifest_creation_status, &summarization_path);
+                };
 
                 ui.separator();
 
-                #[cfg(target_family = "wasm")]
-                {
-                    ui.vertical(|ui| {
-                        ui.heading("Behold the Power of WASM! 🦀");
-                        ui.label("".to_string());
-                        let wasm_message = "This is a Rust binary running inside of your browser's sandbox! The MacOS or Windows version look the same, but with a button that lets you choose a folder to summarize.";
-                        ui.label(wasm_message.to_string());
-
-                        ui.separator();
-
-                        ui.heading("Differences with Executables ⚖️");
-                        ui.label("".to_string());
-                        let usage_message = "We can't summarize the contents of files on your computer. Why? Because that's how your browser protects you from the internet. 👻";
-                        ui.label(usage_message.to_string());
-
-                        ui.separator();
-
-                        ui.heading("Code Source 👩🏼‍💻");
-                        ui.label("".to_string());
-                        let repo_message = "The Rust code powering this can be found here: ";
-                        ui.label(repo_message.to_string());
-
-                        ui.hyperlink_to("github.com/goingforbrooke/folsum", "https://github.com/goingforbrooke/folsum");
-
-                        ui.separator();
-                    });
-                }
-
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.heading("Verify a Folder");
-
 
                 // Folder verification section.
                 ui.vertical(|ui| {
@@ -349,49 +288,41 @@ impl eframe::App for FolsumGui {
                     ui.label("Previous manifest file:");
 
                     // Check if a file manifest was created b/c that means we can check for previous manifests.
-                    #[cfg(any(target_family = "unix", target_family = "windows"))]
-                    {
-                        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-                        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-                        drop(locked_manifest_creation_status);
+                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
+                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
+                    drop(locked_manifest_creation_status);
 
-                        let locked_previous_manifest = previous_manifest.lock().unwrap();
-                        let previous_manifest_copy = locked_previous_manifest.clone();
-                        drop(locked_previous_manifest);
+                    let locked_previous_manifest = previous_manifest.lock().unwrap();
+                    let previous_manifest_copy = locked_previous_manifest.clone();
+                    drop(locked_previous_manifest);
 
-                        // If a new manifest file was made and the previous one hasn't been found yet, then find the previous one.
-                        if matches!(manifest_creation_status_copy, ManifestCreationStatus::Done(_)) && previous_manifest_copy.is_none() {
-                            // Figure out which manifest file to verify against.
-                            let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
-                            let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
+                    // If a new manifest file was made and the previous one hasn't been found yet, then find the previous one.
+                    if matches!(manifest_creation_status_copy, ManifestCreationStatus::Done(_)) && previous_manifest_copy.is_none() {
+                        // Figure out which manifest file to verify against.
+                        let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
+                        let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
 
-                            // Update shared state for the previous manifest file, which will be reset  when a new manifest file is made.
-                            *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
-                        }
-
-                        let locked_previous_manifest = previous_manifest.lock().unwrap();
-                        let previous_manifest_copy = locked_previous_manifest.clone();
-                        drop(locked_previous_manifest);
-
-                        let shown_path = match previous_manifest_copy {
-                            Some(ref found_previous_manifest) => {
-                                let manifest_filename = found_previous_manifest.file_path.file_name().unwrap();
-                                manifest_filename.to_string_lossy().to_string()
-                            },
-                            None => "No previous manifest file was found".to_string(),
-                        };
-
-                        // Display the previous manifest file's path in monospace font.
-                        ui.monospace(shown_path);
-
+                        // Update shared state for the previous manifest file, which will be reset  when a new manifest file is made.
+                        *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
                     }
-                    // In WASM builds, show "N/A".
-                    #[cfg(target_family = "wasm")]
-                    ui.monospace("N/A");
+
+                    let locked_previous_manifest = previous_manifest.lock().unwrap();
+                    let previous_manifest_copy = locked_previous_manifest.clone();
+                    drop(locked_previous_manifest);
+
+                    let shown_path = match previous_manifest_copy {
+                        Some(ref found_previous_manifest) => {
+                            let manifest_filename = found_previous_manifest.file_path.file_name().unwrap();
+                            manifest_filename.to_string_lossy().to_string()
+                        },
+                        None => "No previous manifest file was found".to_string(),
+                    };
+
+                    // Display the previous manifest file's path in monospace font.
+                    ui.monospace(shown_path);
                 });
 
 
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.horizontal(|ui| {
                     let locked_directory_verification_status = directory_verification_status.lock().unwrap();
                     let directory_verification_status_copy = locked_directory_verification_status.clone();
@@ -407,7 +338,6 @@ impl eframe::App for FolsumGui {
                     ui.label(format!("Folder verification {shown_directory_verification_status}"));
                 });
 
-                #[cfg(any(target_family = "unix", target_family = "windows"))]
                 ui.separator();
 
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {

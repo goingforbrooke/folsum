@@ -1,11 +1,8 @@
 //! Verify an (in-memory) summarized directory against a verification file.
-// Std crates for native and WASM builds.
 use std::fs::{File, read_dir};
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-// Std crates for macOS and Windows builds.
-#[cfg(any(target_family = "unix", target_family = "windows"))]
 use std::thread;
 
 // Internal crates for native and WASM builds.
@@ -396,7 +393,7 @@ mod tests {
 
     use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
     use tempfile::Builder as TempfileBuilder;
-    use tempfile::{NamedTempFile, tempdir};
+    use tempfile::tempdir;
     use pretty_assertions::assert_eq;
     use test_log::test;
 
