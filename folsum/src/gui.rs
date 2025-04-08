@@ -174,7 +174,7 @@ impl eframe::App for FolsumGui {
                     ui.label("and create a manifest from.");
                 });
 
-                ui.label("A manifest file containing audit results will be exported to the folder that was inventoried.");
+                ui.label("A manifest file describing the folder's contents will be exported to the folder that was inventoried.");
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to inventory.
