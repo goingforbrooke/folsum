@@ -1,12 +1,13 @@
-//! Verify an (in-memory) summarized directory against a verification file.
+//! Audit an (in-memory) directory inventory against a manifest file.
+//!
+//! We accomplish this by comparing the manifest file's listings against the directory's contents.
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-// Internal crates for native and WASM builds.
-use crate::{CSV_HEADERS, DirectoryVerificationStatus, FileIntegrity, FoundFile, IntegrityDetail, ManifestCreationStatus};
+use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail, ManifestCreationStatus};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -15,26 +16,27 @@ use chrono::NaiveDateTime;
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-/// Verify summarization against (CSV) verification file.
+/// Audit directory inventory against a previously-generated (CSV) manifest file.
 ///
 /// # Arguments
 ///
-/// `manifest_file_path`: Path to a manifest file from a previous summarization.
+/// `manifest_file_path`: Path to a manifest file from a previous inventory.
 ///
 /// # Returns
 ///
-/// Which verification entries failed weren't found in the summary and why.
-pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
-                            directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
-                            manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+/// Manifest entries that weren't found in the directory inventory and why.
+pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
+                                 directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
+                                 manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+    // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-    let summarized_files = Arc::clone(&summarized_files);
-    let directory_verification_status = Arc::clone(&directory_verification_status);
+    let inventoried_files = Arc::clone(&inventoried_files);
+    let directory_audit_status = Arc::clone(&directory_audit_status);
     let manifest_creation_status = Arc::clone(&manifest_creation_status);
 
     let _thread_handle = thread::spawn(move || {
-        // Note that directory verification has begun.
-        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::InProgress;
+        // Note that directory audit has begun.
+        *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
         // Extract the path to the previous manifest from the Arc.
         let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
@@ -52,31 +54,31 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         let manifest_entries = load_previous_manifest(&previous_manifest)?;
 
-        // todo: Relativize file path before verification steps b/c we're probably doing it twice.
+        // todo: Relativize file path before audit steps b/c we're probably doing it twice.
 
-        // Grab a file lock so we can filter for matching summarized files.
-        let mut locked_summarized_files = summarized_files.lock().unwrap();
+        // Grab a file lock so we can filter for matching inventoried files.
+        let mut locked_inventoried_files = inventoried_files.lock().unwrap();
 
-        // For each summarized file...
-        for summarized_file in &mut locked_summarized_files.iter_mut() {
+        // For each inventoried file...
+        for inventoried_file in &mut locked_inventoried_files.iter_mut() {
             // ... See if its file path exists in the verification manifest.
-            let matching_manifest_entry = lookup_manifest_entry(&summarized_file.file_path, &manifest_entries)?;
+            let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
             let assessed_integrity =  match matching_manifest_entry {
                 Some(matching_manifest_entry) => {
                     // Assess the file's integrity (which is just an MD5) 😨.
-                    assess_integrity(summarized_file, &matching_manifest_entry)?
+                    assess_integrity(inventoried_file, &matching_manifest_entry)?
                 }
                 None => {
                     // Assume bad file integrity b/c the file path wasn't found.
-                    let assumed_integrity = IntegrityDetail::default();
+                    let assumed_integrity = FileIntegrityDetail::default();
                     FileIntegrity::VerificationFailed(assumed_integrity)
                 }
             };
 
-            // Modify shared memory entry for the summarized file-- add verification status (for column).
+            // Modify shared memory entry for the inventoried file-- add verification status (for column).
             match assessed_integrity {
-                FileIntegrity::Verified(_) => summarized_file.file_verification_status = assessed_integrity,
-                FileIntegrity::VerificationFailed(_) => summarized_file.file_verification_status = assessed_integrity,
+                FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
+                FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
                 _ => {
                     let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
                     error!("{}", error_message);
@@ -86,53 +88,56 @@ pub fn verify_summarization(summarized_files: &Arc<Mutex<Vec<FoundFile>>>,
         }
 
         // Check if there were any verification failures.
-        let verification_failures = locked_summarized_files.iter().any(|summarized_file| {
-            matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
+        let verification_failures = locked_inventoried_files.iter().any(|found_file| {
+            matches!(found_file.file_integrity, FileIntegrity::VerificationFailed(_))
         });
         // Note whether directory verification was successful in the GUI.
         if verification_failures {
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::VerificationFailed;
-            info!("One or more summarized files failed verification")
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
+            info!("One or more inventoried files failed verification")
         } else {
-            *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Verified;
-            info!("Summarized files passed verification");
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
+            info!("Inventoried files passed verification");
         }
 
-        info!("Completed verification of summarized files");
+        info!("Completed verification of inventoried files");
         Ok(())
     });
     Ok(())
 }
 
-/// Look up a (recently-found) [`FoundFile`] summarization entry in a verification manifest from a previous run.
+/// Look up a (recently-found) [`FoundFile`] inventory entry in a FolSum manifest from a previous run.
 ///
 /// Files are found if their paths match.
-fn lookup_manifest_entry(summarized_file_path: &PathBuf, manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
-    // Find entries from the verification file with paths that match this summarized file.
+fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
+                         manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
+    // Find entries from the verification file with paths that match this inventoried file.
     let found_file = manifest_entries
         .iter()
-        // Find every summarized file with a path that matches this verification entry.
+        // Find every inventoried file with a path that matches this verification entry.
         .find(|manifest_entry| {
-            &manifest_entry.file_path == summarized_file_path
+            &manifest_entry.file_path == inventoried_file_path
         })
         .cloned();
 
     // Log: Note what was found.
     match &found_file {
-        Some(found_file) => trace!("Found a summarized file with a path in the verification manifest: {found_file:?}"),
-        None => trace!("Found no summarized files with a path matching in the verification manifest were found."),
+        Some(found_file) => trace!("Found a inventoried file with a path in the manifest: {found_file:?}"),
+        None => trace!("Found no inventoried files with a matching path in the manifest."),
     };
 
-    trace!("Found file in the verification manifest: {found_file:?}");
+    trace!("Found a file with a matching path in the manifest: {found_file:?}");
     Ok(found_file)
 }
 
-/// Decide if a file's integrity is intact (according to a previously-created manifest).
+/// Decide if a file's integrity is valid (according to a previously-created manifest).
 ///
-/// A [`FoundFile`] is considered verified if its relative path (to the root of the summarization directory) and hashes match.
-fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
+/// A [`FoundFile`]'s [`FileIntegrity`] is considered valid if:
+///     1. its relative path to the root of the inventoried directory matches.
+///     2. its MD5 hashe matches.
+fn assess_integrity(inventoried_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
     // todo: note that file verification is "in progress" (for GUI column).
-    let md5_hash_matches = &manifest_entry.md5_hash == &summarized_file.md5_hash;
+    let md5_hash_matches = &manifest_entry.md5_hash == &inventoried_file.md5_hash;
 
     // Log: Note whether MD5 hashes match.
     match md5_hash_matches {
@@ -140,7 +145,7 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
         false => trace!("MD5 hashes don't match")
     };
 
-    let integrity_detail = IntegrityDetail {
+    let integrity_detail = FileIntegrityDetail {
         // We can safely assume that the file path has already been found.
         file_path_matches: true,
         md5_hash_matches,
@@ -149,24 +154,26 @@ fn assess_integrity(summarized_file: &FoundFile, manifest_entry: &FoundFile) -> 
     // todo: Add SHA1 hashing.
 
     // Consider a file verified if the file path and MD5 hash match.
-    let file_verification_status = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
+    let decided_file_integrity = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
         true => FileIntegrity::Verified(integrity_detail),
         false => FileIntegrity::VerificationFailed(integrity_detail),
     };
 
     debug!("Assessed integrity of manifest entry {manifest_entry:?} \
-            and found it to be {file_verification_status:?}");
-    Ok(file_verification_status)
+            and found it to be {decided_file_integrity:?}");
+    Ok(decided_file_integrity)
 }
 
 /// Verification manifest from a previous run.
+///
+/// These are loaded from manifest files with [`load_previous_manifest`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VerificationManifest {
     pub file_path: PathBuf,
     date_created: NaiveDateTime,
 }
 
-/// Load [`FoundFile`]s from a verification (CSV) file.
+/// Load [`FoundFile`]s from a (CSV) manifest file.
 fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
     let csv_file_handle = File::open(&manifest_file_path)?;
     let mut line_iterator = io::BufReader::new(csv_file_handle).lines();
@@ -184,7 +191,7 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
                         when {CSV_HEADERS:?} was expected"),
     };
 
-    let mut verification_entries: Vec<FoundFile> = vec![];
+    let mut manifest_entries: Vec<FoundFile> = vec![];
     // Interpret the remaining (non-header) CSV rows as file findings.
     for raw_line in line_iterator {
         let csv_line = raw_line?;
@@ -206,10 +213,10 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
         let md5_hash = extracted_md5_hash.to_string();
         let found_file = FoundFile::new(file_path, md5_hash);
 
-        verification_entries.push(found_file);
+        manifest_entries.push(found_file);
     }
 
-    let verification_entry_count = verification_entries.len();
+    let verification_entry_count = manifest_entries.len();
     info!("Loaded {verification_entry_count:?} verification entries");
-    Ok(verification_entries)
+    Ok(manifest_entries)
 }

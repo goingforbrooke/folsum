@@ -4,69 +4,62 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-// Internal crates for macOS, Windows, *and* WASM builds.
-use crate::FoundFile;
-use crate::get_md5_hash;
-use crate::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
-
-// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 use walkdir::WalkDir;
 
-// External test/demo crates.
 #[cfg(any(debug_assertions, test, feature = "bench"))]
 use rand::distr::Alphanumeric;
 #[cfg(any(debug_assertions, test, feature = "bench"))]
 use rand::{rng, Rng};
 
+use crate::FoundFile;
+use crate::get_md5_hash;
+use crate::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
 
 
-/// Summarize directories in native builds.
-pub fn summarize_directory(
-    summarization_path: &Arc<Mutex<Option<PathBuf>>>,
-    file_paths: &Arc<Mutex<Vec<FoundFile>>>,
-    summarization_start: &Arc<Mutex<Instant>>,
+/// Inventory a directory.
+pub fn inventory_directory(
+    chosen_inventory_path: &Arc<Mutex<Option<PathBuf>>>,
+    inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
+    inventory_start: &Arc<Mutex<Instant>>,
     time_taken: &Arc<Mutex<Duration>>,
-    summarization_status: &Arc<Mutex<SummarizationStatus>>,
-    directory_verification_status: &Arc<Mutex<DirectoryVerificationStatus>>,
-    manifest_verification_status: &Arc<Mutex<ManifestCreationStatus>>,
+    inventory_status: &Arc<Mutex<InventoryStatus>>,
+    directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
+    manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>,
 ) -> Result<(), &'static str> {
 
-    let locked_path: &mut Option<PathBuf> = &mut *summarization_path.lock().unwrap();
-    // If the user picked a directory to summarize....
-    if locked_path.is_some() {
-        // ...then recursively count file extensions in the chosen directory.
-
+    let locked_chosen_inventory_path: &mut Option<PathBuf> = &mut *chosen_inventory_path.lock().unwrap();
+    // If the user picked a directory to inventory....
+    if locked_chosen_inventory_path.is_some() {
         // Reset file findings.
-        *file_paths.lock().unwrap() = vec![];
+        *inventoried_files.lock().unwrap() = vec![];
 
-        *summarization_status.lock().unwrap() = SummarizationStatus::InProgress;
-        *directory_verification_status.lock().unwrap() = DirectoryVerificationStatus::Unverified;
-        *manifest_verification_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
-
-        // Note that summarization is in progress.
+        // Note that inventory is in progress.
+        *inventory_status.lock().unwrap() = InventoryStatus::InProgress;
+        *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Unaudited;
+        *manifest_creation_status.lock().unwrap() = ManifestCreationStatus::NotStarted;
 
         // Copy the Arcs of persistent members so they can be accessed by a separate thread.
-        let summarization_path_copy = Arc::clone(&summarization_path);
-        let file_paths_copy = Arc::clone(&file_paths);
-        let start_copy = Arc::clone(&summarization_start);
+        let chosen_inventory_path_copy = Arc::clone(&chosen_inventory_path);
+        let inventoried_files_copy = Arc::clone(&inventoried_files);
+        let start_copy = Arc::clone(&inventory_start);
         let time_taken_copy = Arc::clone(&time_taken);
-        let summarization_status_copy = Arc::clone(&summarization_status);
+        let inventory_status_copy = Arc::clone(&inventory_status);
 
         thread::spawn(move || {
-            // Start the stopwatch for summarization time.
+            // Start the stopwatch for inventory time.
             let mut locked_start_copy = start_copy.lock().unwrap();
             *locked_start_copy = Instant::now();
-            info!("Started summarization");
+            info!("Started inventory");
 
-            let locked_summarization_path = summarization_path_copy.lock().unwrap();
+            let locked_inventory_path = chosen_inventory_path_copy.lock().unwrap();
             // Clone the user's chosen path so we can release its lock, allowing live table updates.
-            let summarization_path_copy = locked_summarization_path.clone();
-            // Release the mutex lock on the chosen path so the summarization count table can update.
-            drop(locked_summarization_path);
+            let inventory_path_copy = locked_inventory_path.clone();
+            // Release the mutex lock on the chosen path so the inventory table in the GUI can update.
+            drop(locked_inventory_path);
 
-            match summarization_path_copy {
+            match inventory_path_copy {
                 Some(ref provided_path) => {
                     info!("Started recursing through {provided_path:?}");
 
@@ -85,12 +78,12 @@ pub fn summarize_directory(
                         // Convert from absolute path to a relative (to given directory) path.
                         // todo: Handle relative path prefix strip errors.
                         let file_path = foundfile_path.strip_prefix(provided_path).unwrap().to_path_buf();
-                        // todo: Propagate errors for "No such file or directory" when running `get_md5_hash` in `summarize_directory`.
+                        // todo: Propagate errors for "No such file or directory" when running `get_md5_hash` in `inventory_directory`.
                         let md5_hash = get_md5_hash(&foundfile_path).unwrap();
                         let found_file = FoundFile::new(file_path, md5_hash);
 
                         // Lock the extension counts variable so we can add a file to it.
-                        let mut locked_paths_copy = file_paths_copy.lock().unwrap();
+                        let mut locked_paths_copy = inventoried_files_copy.lock().unwrap();
 
                         // Add newly encountered file paths to known file paths.
                         locked_paths_copy.push(found_file);
@@ -98,15 +91,15 @@ pub fn summarize_directory(
                         // Release the file paths lock so the GUI can update.
                         drop(locked_paths_copy);
 
-                        // Update the summarization time stopwatch.
+                        // Update the inventory time stopwatch.
                         let mut locked_time_taken_copy = time_taken_copy.lock().unwrap();
                         *locked_time_taken_copy = locked_start_copy.elapsed();
                     }
                     // End of loop
                 },
-                None => error!("No summarization path was provided"),
+                None => error!("No inventory path was provided"),
             }
-            *summarization_status_copy.lock().unwrap() = SummarizationStatus::Done;
+            *inventory_status_copy.lock().unwrap() = InventoryStatus::Done;
         });
     };
     Ok(())
@@ -114,15 +107,12 @@ pub fn summarize_directory(
 
 /// Create an "answer key" of fake file paths.
 ///
-/// These will be used to create "fake files" for testing things like `summarize_directory`. This
-/// fixture would be under `#[cfg(test)]`, but we need it for WASM builds so the browser demo has
-/// something so summarize.
+/// These will be used to create "fake files" for testing things like `audit_directory`.
 ///
-/// * `base_dir` - The root directory where the fake files will eventually be created.
 /// * `total_files` - The total number of fake file paths to generate.
 /// * `max_depth` - The maximum directory depth for the fake files.
-/// * `extensions` - A slice of file extensions to randomly choose from.
-// Make available for `cargo check`, native unit tests, benchmarks, and the browser demo (but not native builds).
+///
+/// The `cfg` flag makes this available for `cargo check`, native unit tests, and benchmarks.
 #[cfg(any(debug_assertions, test, feature = "bench"))]
 #[allow(unused)]
 fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
@@ -184,10 +174,10 @@ pub mod tests {
     use std::thread::sleep;
     use std::time::{Duration, Instant};
 
-    use crate::common::{DirectoryVerificationStatus, ManifestCreationStatus, SummarizationStatus};
+    use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
     use crate::hashers::get_md5_hash;
     use crate::{FoundFile};
-    use crate::summarize::{summarize_directory, generate_fake_file_paths};
+    use crate::inventory::{inventory_directory, generate_fake_file_paths};
 
     #[cfg(test)]
     use anyhow::bail;
@@ -197,7 +187,7 @@ pub mod tests {
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
 
-    /// Test fixture/demo setup: Create "fake files" to summarize in demos and unit tests.
+    /// Test fixture/demo setup: Create "fake files" to inventory in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
         let temp_dir = tempdir().unwrap();
 
@@ -243,9 +233,9 @@ pub mod tests {
         Ok(expected_hashes)
     }
 
-    /// Run directory summarization in a temporary directory of "fake" files.
+    /// Perform inventory in a temporary directory of "fake" files.
     ///
-    /// This is abstracted away from [`test_directory_summarization`] so it can be called by the benchmarker.
+    /// This is abstracted away from [`test_directory_audit`]... so it can be called by the benchmarker.
     ///
     /// # Returns
     ///
@@ -253,8 +243,8 @@ pub mod tests {
     /// - datastore variable (to check at the end of a test)
     /// - `Vec<PathBuf>` of file paths that we expect to find
     /// - `Vec<String>` of MD5 hashes that we expect to find.
-    pub fn run_fake_summarization() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>, Vec<String>), anyhow::Error> {
-        // Set up the test by creating "fake files" to summarize.
+    pub fn perform_fake_inventory() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>, Vec<String>), anyhow::Error> {
+        // Set up the test by creating "fake files" to inventory.
         let expected_file_paths = generate_fake_file_paths(20, 3);
 
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
@@ -266,27 +256,27 @@ pub mod tests {
 
 
         // Set up "dummy" datastores so we can run the test.
-        let summarization_path = Arc::new(Mutex::new(Some(testdir_path)));
+        let chosen_inventory_path = Arc::new(Mutex::new(Some(testdir_path)));
         let file_paths = Arc::new(Mutex::new(vec![]));
-        let summarization_start = Arc::new(Mutex::new(Instant::now()));
+        let inventory_start = Arc::new(Mutex::new(Instant::now()));
         let time_taken = Arc::new(Mutex::new(Duration::ZERO));
-        let summarization_status = Arc::new(Mutex::new(SummarizationStatus::NotStarted));
-        let directory_verification_status = Arc::new(Mutex::new(DirectoryVerificationStatus::Unverified));
+        let inventory_status = Arc::new(Mutex::new(InventoryStatus::NotStarted));
+        let directory_audit_status = Arc::new(Mutex::new(DirectoryAuditStatus::Unaudited));
         let manifest_creation_status = Arc::new(Mutex::new(ManifestCreationStatus::NotStarted));
 
-        // Summarize the tempfiles.
-        summarize_directory(&summarization_path,
+        // Inventory the tempfiles.
+        inventory_directory(&chosen_inventory_path,
                             &file_paths,
-                            &summarization_start,
+                            &inventory_start,
                             &time_taken,
-                            &summarization_status,
-                            &directory_verification_status,
+                            &inventory_status,
+                            &directory_audit_status,
                             &manifest_creation_status).unwrap();
 
-        // Keep the test files around long enough for summarization to finish.
+        // Keep the test files around long enough for inventory to finish.
         loop {
-            if matches!(*summarization_status.lock().unwrap(), SummarizationStatus::Done) {
-                // Destroy the test files b/c we're done summarizing them.
+            if matches!(*inventory_status.lock().unwrap(), InventoryStatus::Done) {
+                // Destroy the test files b/c we're done inventory them.
                 drop(tempdir_handle);
                 break;
             }
@@ -294,25 +284,25 @@ pub mod tests {
         }
 
 
-        // Return the datastore variable so the unit test can verify what's been summarized.
+        // Return the datastore variable so the unit test can verify what's been inventoried.
         Ok((file_paths, expected_file_paths, expected_md5_hashes))
     }
 
 
-    /// Native: Ensure that [`summarize_directory`] successfully finds directory contents.
+    /// Native: Ensure that [`inventory_directory`] successfully finds directory contents.
     ///
     /// Assumes a scenario in which all files exist and have valid integrity.
     #[test_log::test]
-    fn test_directory_summarization_integrity_valid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, expected_md5_hashes)= run_fake_summarization()?;
+    fn test_directory_inventory_integrity_valid() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths, expected_md5_hashes)= perform_fake_inventory()?;
 
-        // Assume that summarization will complete in less than a second.
+        // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
 
         // Lock the dummy file tracker so we can check its contents.
         let locked_paths_copy = file_paths.lock().unwrap();
 
-        // Check if the summarization was successful.
+        // Check if inventory was successful.
         for actual_found_file in locked_paths_copy.iter() {
             let actual_file_path = &actual_found_file.file_path;
             assert!(expected_file_paths.contains(actual_file_path),
@@ -326,19 +316,19 @@ pub mod tests {
         Ok(())
     }
 
-    /// Native: Ensure that [`summarize_directory`] successfully finds verification discrepencies.
+    /// Native: Ensure that [`inventory_directory`] successfully finds audit discrepancies.
     ///
     /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
     #[test_log::test]
-    fn test_directory_summarization_integrity_invalid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, mut expected_md5_hashes)= run_fake_summarization()?;
+    fn test_directory_inventory_integrity_invalid() -> Result<(), anyhow::Error> {
+        let (file_paths, expected_file_paths, mut expected_md5_hashes) = perform_fake_inventory()?;
 
         // Keep around the original hash so we can ensure that it was missed later.
         let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
-        // Perturbation: Mess up the first MD5 hash, as if the verification file showed something different from what will be summarized, because we want to catch that!
+        // Perturbation: Mess up the first MD5 hash, as if the manifest file showed something different from what will be inventoried, b/c we want to catch that!
         *expected_md5_hashes.first_mut().unwrap() = "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string();
 
-        // Assume that summarization will complete in less than a second.
+        // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
 
         // Lock the dummy file tracker so we can check its contents.
@@ -347,7 +337,7 @@ pub mod tests {
         // Keep track of our little assertions so we can see if anything failed at the end.
         let mut existence_check_failures: Vec<&PathBuf> = vec![];
         let mut hash_match_failures: Vec<&String> = vec![];
-        // Check if the summarization was successful (
+        // Check if the inventory was successful (
         for actual_found_file in locked_paths_copy.iter() {
             // Check if the file paths match.
             let actual_file_path = &actual_found_file.file_path;

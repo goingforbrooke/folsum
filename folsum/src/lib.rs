@@ -1,7 +1,7 @@
 #![warn(clippy::all, rust_2018_idioms)]
 
 mod common;
-pub use common::{CSV_HEADERS, DirectoryVerificationStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FOLSUM_CSV_EXTENSION, FoundFile, IntegrityDetail, ManifestCreationStatus, SummarizationStatus};
+pub use common::{CSV_HEADERS, DirectoryAuditStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FileIntegrityDetail, FOLSUM_CSV_EXTENSION, FoundFile, InventoryStatus, ManifestCreationStatus};
 
 mod export_csv;
 pub use export_csv::{create_export_path, export_csv};
@@ -14,11 +14,11 @@ pub use hashers::get_md5_hash;
 mod logging;
 pub use logging::setup_native_logging;
 
-mod summarize;
-pub use summarize::summarize_directory;
+mod inventory;
+pub use inventory::inventory_directory;
 // Summarization benchmarks.
 #[cfg(feature = "bench")]
-pub use summarize::tests::run_fake_summarization;
+pub use inventory::tests::perform_fake_inventory;
 
 mod verification;
-pub use verification::{verify_summarization, VerificationManifest};
+pub use verification::{audit_directory_inventory, VerificationManifest};

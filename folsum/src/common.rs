@@ -19,14 +19,13 @@ pub const FILEDATE_PREFIX_FORMAT: &str = "%Y-%-m-%-d-%-H-%-M";
 pub const FOLSUM_CSV_EXTENSION: &str = ".folsum.csv";
 
 
-/// Point in the summarization process of a directory's contents.
+/// Point in the process of inventorying a directory's contents.
 #[derive(Clone)]
-pub enum SummarizationStatus {
+pub enum InventoryStatus {
     NotStarted,
     InProgress,
     Done,
 }
-
 
 /// Point in the process of creating a manifest export file.
 #[derive(Clone, Debug)]
@@ -36,42 +35,41 @@ pub enum ManifestCreationStatus {
     Done(PathBuf),
 }
 
-
-/// Integrity of the whole directory being summarized.
+/// Integrity of the directory being inventoried.
 #[derive(Clone, Debug)]
-pub enum DirectoryVerificationStatus {
-    Unverified,
+pub enum DirectoryAuditStatus {
+    Unaudited,
     InProgress,
-    Verified,
-    VerificationFailed,
+    Audited,
+    DiscrepanciesFound,
 }
 
-/// Details about why a [`FoundFile`] succeeded or failed verification.
+/// Details about why a [`FoundFile`] succeeded or failed an audit.
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct IntegrityDetail {
+pub struct FileIntegrityDetail {
     pub file_path_matches: bool,
     pub md5_hash_matches: bool,
 }
 
-/// Integrity of a file in a directory that's being summarized.
+/// Integrity of a file in a directory that's being inventoried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum FileIntegrity {
     #[default]
     Unverified,
     InProgress,
-    Verified(IntegrityDetail),
-    VerificationFailed(IntegrityDetail),
+    Verified(FileIntegrityDetail),
+    VerificationFailed(FileIntegrityDetail),
 }
 
 /// Files found by FolSum.
 #[derive(Clone, Debug, Default)]
 pub struct FoundFile {
-    // Relative path from the summarization directory to the file.
+    // Relative path from the inventory directory to the file.
     pub file_path: PathBuf,
     // MD5 digest as a hexadecimal string.
     pub md5_hash: String,
-    // Whether the file passed verification.
-    pub file_verification_status: FileIntegrity,
+    // Whether the file passed audit
+    pub file_integrity: FileIntegrity,
 }
 
 impl FoundFile {
@@ -79,7 +77,7 @@ impl FoundFile {
         Self {
             file_path,
             md5_hash,
-            file_verification_status: FileIntegrity::default(),
+            file_integrity: FileIntegrity::default(),
         }
     }
 }
