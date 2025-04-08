@@ -342,8 +342,9 @@ impl eframe::App for FolsumGui {
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            // Entitle the display table.
             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.heading("Summarization by File Extension");
+                ui.heading("Folder Inventory");
                 ui.separator();
             });
 
