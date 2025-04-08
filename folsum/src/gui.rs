@@ -1,26 +1,17 @@
-// Std crates for macOS, Windows, *and* WASM builds.
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-
-// Std crates for macOS and Windows builds.
 use std::time::{Duration, Instant};
 
-// External crates for all builds.
 use egui_extras::{Column, TableBuilder};
 
-// External crates for macOS and Windows builds.
+use dirs::home_dir;
 use egui::ViewportCommand;
 use rfd::FileDialog;
-
-// External crates for macOS, Windows, *and* WASM builds.
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 
-// Internal crates for macOS, Windows, *and* WASM builds.
-use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, VerificationManifest, verify_summarization};
-
-// Internal crates for macOS and Windows builds.
-use crate::{export_csv, find_previous_manifest, find_verification_manifest_files, summarize_directory};
+use crate::{DirectoryVerificationStatus, FileIntegrity, FoundFile, ManifestCreationStatus, SummarizationStatus, verify_summarization};
+use crate::{export_csv, summarize_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -34,9 +25,9 @@ pub struct FolsumGui {
     total_files: u32,
     // User's chosen directory that will be recursively summarized when the "Summarize" button's clicked.
     summarization_path: Arc<Mutex<Option<PathBuf>>>,
-    // The manifest file that we generated the last time that we assessed this directory.
+    // User's chosen manifest file that we generated previously.
     #[serde(skip)]
-    previous_manifest: Arc<Mutex<Option<VerificationManifest>>>,
+    chosen_manifest: Arc<Mutex<Option<PathBuf>>>,
     // Time that summarization starts so it can be used to calculate the time taken.
     #[serde(skip)]
     summarization_start: Arc<Mutex<Instant>>,
@@ -57,7 +48,7 @@ impl Default for FolsumGui {
             file_paths: Arc::new(Mutex::new(vec![])),
             total_files: 0,
             summarization_path: Arc::new(Mutex::new(None)),
-            previous_manifest: Arc::new(Mutex::new(None)),
+            chosen_manifest: Arc::new(Mutex::new(None)),
             summarization_start: Arc::new(Mutex::new(Instant::now())),
             time_taken: Arc::new(Mutex::new(Duration::ZERO)),
             summarization_status: Arc::new(Mutex::new(SummarizationStatus::NotStarted)),
@@ -94,7 +85,7 @@ impl eframe::App for FolsumGui {
             file_paths,
             total_files,
             summarization_path,
-            previous_manifest,
+            chosen_manifest,
             summarization_start,
             time_taken,
             summarization_status,
@@ -153,7 +144,6 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     ui.label("First,");
 
-                    // Don't add a directory picker when compiling for web.
                     if ui.button("choose").clicked() {
                         if let Some(path) = FileDialog::new().pick_folder() {
                             info!("User chose summarization directory: {:?}", path);
@@ -261,61 +251,58 @@ impl eframe::App for FolsumGui {
 
                 // Folder verification section.
                 ui.vertical(|ui| {
-                    let locked_previous_manifest = previous_manifest.lock().unwrap();
-                    let previous_manifest_copy = locked_previous_manifest.clone();
-                    drop(locked_previous_manifest);
-
                     // If everything's ready to verify...
-                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone()) && previous_manifest_copy.is_some();
+                    let verification_prerequisites_met = summarization_is_complete(summarization_status.clone());
 
                     // Verification text block.
                     ui.horizontal(|ui| {
                         ui.label("Second,");
-                        // Grey out/disable the "verify" button if summarization prerequisites aren't met.
+
+                        // Grey out/disable the "select" button if manifest selection prerequisites aren't met.
                         if ui.add_enabled(verification_prerequisites_met,
-                                          egui::Button::new("verify")).clicked() {
+                                          // Prompt the user to choose a FolSum manifest to verify against.
+                                          egui::Button::new("select")).clicked() {
+                            // Open the "select manifest file" dialog.
+                            let starting_directory = match summarization_path.lock().unwrap().clone() {
+                                // Open the verification file chooser in the same dir as the previous export.
+                                Some(verification_file) => verification_file.parent().unwrap().to_path_buf(),
+                                // Otherwise, if there was no previous verification file, then open the export dialog in the user's home dir.
+                                None => home_dir().expect("Failed to get user's home directory"),
+                            };
+                            if let Some(path) = FileDialog::new()
+                                // Show only `.csv` files b/c a shortcoming of rfd is that we can't filter for `.folsum.csv`.
+                                .add_filter("CSV", &["csv"])
+                                .set_title("Choose FolSum CSV file to verify against")
+                                // Open manifest file picker in the same directory that was selected for summarization.
+                                .set_directory(starting_directory)
+                                .pick_file() {
+                                info!("User chose verification file: {:?}", path);
+                                *chosen_manifest = Arc::new(Mutex::new(Some(path)));
+                            }
+
                             info!("🏁 User started verification");
                             verify_summarization(&file_paths,
                                                  &directory_verification_status,
                                                  &manifest_creation_status).unwrap();
+
                         }
-                        ui.label("the folder's contents against the previous FolSum manifest file.");
+                        ui.label("a previously-generated manifest to verify against.");
                     });
-                    ui.label("FolSum looks for manifests inside of the folder that was audited.");
                 });
 
                 ui.horizontal(|ui| {
-                    ui.label("Previous manifest file:");
+                    ui.label("Chosen manifest:");
 
-                    // Check if a file manifest was created b/c that means we can check for previous manifests.
-                    let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-                    let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-                    drop(locked_manifest_creation_status);
-
-                    let locked_previous_manifest = previous_manifest.lock().unwrap();
-                    let previous_manifest_copy = locked_previous_manifest.clone();
-                    drop(locked_previous_manifest);
-
-                    // If a new manifest file was made and the previous one hasn't been found yet, then find the previous one.
-                    if matches!(manifest_creation_status_copy, ManifestCreationStatus::Done(_)) && previous_manifest_copy.is_none() {
-                        // Figure out which manifest file to verify against.
-                        let found_verification_manifests = find_verification_manifest_files(&summarization_path).unwrap();
-                        let found_previous_manifest = find_previous_manifest(found_verification_manifests, &manifest_creation_status).unwrap();
-
-                        // Update shared state for the previous manifest file, which will be reset  when a new manifest file is made.
-                        *previous_manifest.lock().unwrap() = found_previous_manifest.clone();
-                    }
-
-                    let locked_previous_manifest = previous_manifest.lock().unwrap();
+                    let locked_previous_manifest = chosen_manifest.lock().unwrap();
                     let previous_manifest_copy = locked_previous_manifest.clone();
                     drop(locked_previous_manifest);
 
                     let shown_path = match previous_manifest_copy {
                         Some(ref found_previous_manifest) => {
-                            let manifest_filename = found_previous_manifest.file_path.file_name().unwrap();
+                            let manifest_filename = found_previous_manifest.file_name().unwrap();
                             manifest_filename.to_string_lossy().to_string()
                         },
-                        None => "No previous manifest file was found".to_string(),
+                        None => "No manifest file has been chosen".to_string(),
                     };
 
                     // Display the previous manifest file's path in monospace font.
