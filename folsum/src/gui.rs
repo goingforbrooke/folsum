@@ -158,8 +158,8 @@ impl eframe::App for FolsumGui {
                     let summarization_path_actual = locked_summarization_path.clone();
                     drop(locked_summarization_path);
 
-                    // Grey out the "audit" button until the user has selected a directory to summarize.
-                    if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
+                    // Grey out the "inventory" button until the user has selected a directory to summarize.
+                    if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("inventory")).clicked() {
                         info!("User started discovery manifest creation");
                         let _result = summarize_directory(
                             &summarization_path,
@@ -175,7 +175,7 @@ impl eframe::App for FolsumGui {
                     ui.label("and create a manifest from.");
                 });
 
-                ui.label("A manifest file containing audit results will be exported to the folder that was audited.");
+                ui.label("A manifest file containing inventory results will be exported to the folder that was inventoried.");
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to summarize.
@@ -202,7 +202,7 @@ impl eframe::App for FolsumGui {
                         SummarizationStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Audit {display_summarization_status}"));
+                    ui.label(format!("Inventory {display_summarization_status}"));
                 });
 
                 // Show the manifest file creation/export status to the user.
@@ -227,7 +227,7 @@ impl eframe::App for FolsumGui {
                 ui.horizontal(|ui| {
                     let locked_time_taken = time_taken.lock().unwrap();
                     ui.label(format!(
-                        "Audited {} files in {} milliseconds",
+                        "Inventoried {} files in {} milliseconds",
                         &total_files,
                         &locked_time_taken.as_millis()
                     ));
