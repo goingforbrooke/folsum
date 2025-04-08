@@ -19,7 +19,7 @@ pub const FILEDATE_PREFIX_FORMAT: &str = "%Y-%-m-%-d-%-H-%-M";
 pub const FOLSUM_CSV_EXTENSION: &str = ".folsum.csv";
 
 
-/// Point in the summarization process of a directory's contents.
+/// Point in the process of inventorying a directory's contents.
 #[derive(Clone)]
 pub enum InventoryStatus {
     NotStarted,
@@ -35,7 +35,7 @@ pub enum ManifestCreationStatus {
     Done(PathBuf),
 }
 
-/// Integrity of the whole directory being summarized.
+/// Integrity of the directory being inventoried.
 #[derive(Clone, Debug)]
 pub enum DirectoryAuditStatus {
     Unaudited,
@@ -51,7 +51,7 @@ pub struct FileIntegrityDetail {
     pub md5_hash_matches: bool,
 }
 
-/// Integrity of a file in a directory that's being summarized.
+/// Integrity of a file in a directory that's being inventoried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum FileIntegrity {
     #[default]
@@ -68,8 +68,8 @@ pub struct FoundFile {
     pub file_path: PathBuf,
     // MD5 digest as a hexadecimal string.
     pub md5_hash: String,
-    // Whether the file passed verification.
-    pub file_verification_status: FileIntegrity,
+    // Whether the file passed audit
+    pub file_integrity: FileIntegrity,
 }
 
 impl FoundFile {
@@ -77,7 +77,7 @@ impl FoundFile {
         Self {
             file_path,
             md5_hash,
-            file_verification_status: FileIntegrity::default(),
+            file_integrity: FileIntegrity::default(),
         }
     }
 }

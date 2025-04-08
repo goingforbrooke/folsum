@@ -10,7 +10,7 @@ use egui_extras::{Column, TableBuilder};
 use log::{debug, error, info, trace, warn};
 use rfd::FileDialog;
 
-use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, InventoryStatus, audit_summarization};
+use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, InventoryStatus, audit_directory_inventory};
 use crate::{export_csv, inventory_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -85,7 +85,7 @@ impl eframe::App for FolsumGui {
             total_files,
             chosen_inventory_path,
             chosen_manifest,
-            inventory_start: summarization_start,
+            inventory_start,
             time_taken,
             inventory_status,
             directory_audit_status,
@@ -145,7 +145,7 @@ impl eframe::App for FolsumGui {
 
                     if ui.button("choose").clicked() {
                         if let Some(path) = FileDialog::new().pick_folder() {
-                            info!("User chose summarization directory: {:?}", path);
+                            info!("User chose inventory directory: {:?}", path);
                             *chosen_inventory_path = Arc::new(Mutex::new(Some(path)));
                         }
                     }
@@ -153,17 +153,17 @@ impl eframe::App for FolsumGui {
                     ui.label("a folder to ");
 
                     // Check whether the user has selected a directory to inventory.
-                    let locked_summarization_path = chosen_inventory_path.lock().unwrap();
-                    let summarization_path_actual = locked_summarization_path.clone();
-                    drop(locked_summarization_path);
+                    let locked_chosen_inventory_path = chosen_inventory_path.lock().unwrap();
+                    let chosen_inventory_path_copy = locked_chosen_inventory_path.clone();
+                    drop(locked_chosen_inventory_path);
 
                     // Grey out the "audit" button until the user has selected a directory to inventory.
-                    if ui.add_enabled(summarization_path_actual.is_some(), egui::Button::new("audit")).clicked() {
+                    if ui.add_enabled(chosen_inventory_path_copy.is_some(), egui::Button::new("inventory")).clicked() {
                         info!("User started discovery manifest creation");
                         let _result = inventory_directory(
                             &chosen_inventory_path,
                             &inventoried_files,
-                            &summarization_start,
+                            &inventory_start,
                             &time_taken,
                             &inventory_status,
                             &directory_audit_status,
@@ -174,7 +174,7 @@ impl eframe::App for FolsumGui {
                     ui.label("and create a manifest from.");
                 });
 
-                ui.label("A manifest file containing audit results will be exported to the folder that was audited.");
+                ui.label("A manifest file containing audit results will be exported to the folder that was inventoried.");
 
                 ui.horizontal(|ui| {
                     // Check if the user has picked a directory to inventory.
@@ -189,19 +189,19 @@ impl eframe::App for FolsumGui {
                 });
 
 
-                // Show the summarization status to the user.
+                // Show the inventory status to the user.
                 ui.horizontal(|ui| {
                     let locked_inventory_status = inventory_status.lock().unwrap();
                     let inventory_status_copy = locked_inventory_status.clone();
                     drop(locked_inventory_status);
 
-                    let display_summarization_status = match inventory_status_copy {
+                    let display_inventory_status = match inventory_status_copy {
                         InventoryStatus::NotStarted => "not started.",
                         InventoryStatus::InProgress => "in progress.",
                         InventoryStatus::Done => "completed.",
                     };
 
-                    ui.label(format!("Audit {display_summarization_status}"));
+                    ui.label(format!("Inventory {display_inventory_status}"));
                 });
 
                 // Show the manifest file creation/export status to the user.
@@ -255,10 +255,10 @@ impl eframe::App for FolsumGui {
                         ui.label("Second,");
 
                         // Grey out/disable the "select" file picker button if manifest selection prerequisites aren't met.
-                        if ui.add_enabled(summarization_is_complete(inventory_status.clone()),
+                        if ui.add_enabled(inventory_is_complete(inventory_status.clone()),
                                           // Prompt the user to choose a FolSum manifest to verify against.
                                           egui::Button::new("select")).clicked() {
-                            // Open the manifest file chooser in the same directory that was summarized.
+                            // Open the manifest file chooser in the same directory that was inventoried.
                             let starting_directory = chosen_inventory_path.lock().unwrap().clone().unwrap_or_else(|| {
                                 // Assume that an inventory directory has been selected b/c prereqs were met.
                                 let error_message = "Expected an inventory directory to be selected";
@@ -278,9 +278,9 @@ impl eframe::App for FolsumGui {
                             }
 
                             info!("🏁 User started audit");
-                            audit_summarization(&inventoried_files,
-                                                &directory_audit_status,
-                                                &manifest_creation_status).unwrap();
+                            audit_directory_inventory(&inventoried_files,
+                                                      &directory_audit_status,
+                                                      &manifest_creation_status).unwrap();
 
                         }
                         ui.label("a previously-generated manifest to verify against.");
@@ -378,7 +378,7 @@ impl eframe::App for FolsumGui {
                                 ui.label(found_file.md5_hash.clone());
                             });
                             row.col(|ui| {
-                                let display_file_integrity = match &found_file.file_verification_status {
+                                let display_file_integrity = match &found_file.file_integrity {
                                     FileIntegrity::Unverified => "Unverified",
                                     FileIntegrity::InProgress => "Verifying...",
                                     FileIntegrity::Verified(_) => "Verified",
@@ -403,12 +403,13 @@ impl eframe::App for FolsumGui {
     }
 }
 
-/// Check if summarization is done.
-fn summarization_is_complete(summarization_status: Arc<Mutex<InventoryStatus>>) -> bool {
-    let locked_summarization_status = summarization_status.lock().expect("Lock poisoned");
-    let summarization_status_copy = locked_summarization_status.clone();
-    drop(locked_summarization_status);
-    let summarization_complete = match summarization_status_copy {
+/// Check if inventory is done.
+fn inventory_is_complete(inventory_status: Arc<Mutex<InventoryStatus>>) -> bool {
+    let locked_inventory_status = inventory_status.lock().expect("Lock poisoned");
+    let inventory_status_copy = locked_inventory_status.clone();
+    drop(locked_inventory_status);
+
+    let inventory_complete = match inventory_status_copy {
         InventoryStatus::NotStarted => {
             trace!("❌ Nothing has been inventoried, so nothing can be audited");
             false
@@ -422,16 +423,16 @@ fn summarization_is_complete(summarization_status: Arc<Mutex<InventoryStatus>>) 
             true
         }
     };
-    summarization_complete
+    inventory_complete
 }
 
 // Decide whether we're ready to create an export file.
-fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>,
-                            summarization_status: &Arc<Mutex<InventoryStatus>>,
+fn export_prerequisites_met(chosen_inventory_path_copy: &Option<PathBuf>,
+                            inventory_status: &Arc<Mutex<InventoryStatus>>,
                             manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> bool {
-    let summarization_complete = summarization_is_complete(summarization_status.clone());
+    let inventory_is_complete = inventory_is_complete(inventory_status.clone());
 
-    let summarization_path_selected = summarization_path_copy.is_some();
+    let inventory_path_selected = chosen_inventory_path_copy.is_some();
 
     let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
     let manifest_creation_status_copy = locked_manifest_creation_status.clone();
@@ -444,8 +445,8 @@ fn export_prerequisites_met(summarization_path_copy: &Option<PathBuf>,
         ManifestCreationStatus::Done(_) => false,
     };
 
-    let export_prerequisites_met = summarization_complete
-        && summarization_path_selected
+    let export_prerequisites_met = inventory_is_complete
+        && inventory_path_selected
         && manifest_creator_ready;
 
     if export_prerequisites_met {

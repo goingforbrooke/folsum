@@ -25,9 +25,9 @@ use log::{debug, error, info, trace, warn};
 /// # Returns
 ///
 /// Manifest entries that weren't found in the directory inventory and why.
-pub fn audit_summarization(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
-                           directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
-                           manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
+                                 directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
+                                 manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
     // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let inventoried_files = Arc::clone(&inventoried_files);
@@ -75,10 +75,10 @@ pub fn audit_summarization(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                 }
             };
 
-            // Modify shared memory entry for the summarized file-- add verification status (for column).
+            // Modify shared memory entry for the inventoried file-- add verification status (for column).
             match assessed_integrity {
-                FileIntegrity::Verified(_) => inventoried_file.file_verification_status = assessed_integrity,
-                FileIntegrity::VerificationFailed(_) => inventoried_file.file_verification_status = assessed_integrity,
+                FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
+                FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
                 _ => {
                     let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
                     error!("{}", error_message);
@@ -88,19 +88,19 @@ pub fn audit_summarization(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
         }
 
         // Check if there were any verification failures.
-        let verification_failures = locked_inventoried_files.iter().any(|summarized_file| {
-            matches!(summarized_file.file_verification_status, FileIntegrity::VerificationFailed(_))
+        let verification_failures = locked_inventoried_files.iter().any(|found_file| {
+            matches!(found_file.file_integrity, FileIntegrity::VerificationFailed(_))
         });
         // Note whether directory verification was successful in the GUI.
         if verification_failures {
             *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
-            info!("One or more summarized files failed verification")
+            info!("One or more inventoried files failed verification")
         } else {
             *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
-            info!("Summarized files passed verification");
+            info!("Inventoried files passed verification");
         }
 
-        info!("Completed verification of summarized files");
+        info!("Completed verification of inventoried files");
         Ok(())
     });
     Ok(())
