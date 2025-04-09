@@ -157,7 +157,7 @@ impl eframe::App for FolsumGui {
                     let chosen_inventory_path_copy = locked_chosen_inventory_path.clone();
                     drop(locked_chosen_inventory_path);
 
-                    // Grey out the "audit" button until the user has selected a directory to inventory.
+                    // Grey out the "inventory" button until the user has selected a directory to inventory.
                     if ui.add_enabled(chosen_inventory_path_copy.is_some(), egui::Button::new("inventory")).clicked() {
                         info!("User started discovery manifest creation");
                         let _result = inventory_directory(
@@ -280,7 +280,7 @@ impl eframe::App for FolsumGui {
                             info!("🏁 User started audit");
                             audit_directory_inventory(&inventoried_files,
                                                       &directory_audit_status,
-                                                      &manifest_creation_status).unwrap();
+                                                      &chosen_manifest).unwrap();
 
                         }
                         ui.label("a previously-generated manifest to verify against.");

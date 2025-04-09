@@ -29,32 +29,30 @@ use log::{debug, error, info, trace, warn};
 /// Manifest entries that weren't found in the directory inventory and why.
 pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                                  directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
-                                 manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+                                 chosen_manifest: &Arc<Mutex<Option<PathBuf>>>) -> Result<(), anyhow::Error> {
     // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let inventoried_files = Arc::clone(&inventoried_files);
     let directory_audit_status = Arc::clone(&directory_audit_status);
-    let manifest_creation_status = Arc::clone(&manifest_creation_status);
+    let chosen_manifest = Arc::clone(&chosen_manifest);
 
     let _thread_handle = thread::spawn(move || {
         // Note that directory audit has begun.
         *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
-        // Extract the path to the previous manifest from the Arc.
-        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-        drop(locked_manifest_creation_status);
-        let previous_manifest = match manifest_creation_status_copy {
-            // Assume that a manifest file was already found b/c we checked prerequisites before this.
-            ManifestCreationStatus::Done(manifest_path) => manifest_path,
-            _ => {
-                let error_message = "Expected a manifest file to be found";
+        let locked_chosen_manifest = chosen_manifest.lock().unwrap();
+        let chosen_manifest_copy = locked_chosen_manifest.clone();
+        drop(locked_chosen_manifest);
+        let chosen_manifest_path = match chosen_manifest_copy {
+            Some(chosen_manifest_path) => chosen_manifest_path,
+            None => {
+                let error_message = "Expected to find a chosen manifest";
                 error!("{}", error_message);
-                bail!(error_message);
-            },
+                bail!(error_message)
+            }
         };
 
-        let manifest_entries = load_previous_manifest(&previous_manifest)?;
+        let manifest_entries = load_previous_manifest(&chosen_manifest_path)?;
 
         // todo: Relativize file path before audit steps b/c we're probably doing it twice.
 
@@ -131,7 +129,7 @@ fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
         None => trace!("Found no inventoried files with a matching path in the manifest."),
     };
 
-    trace!("Found a file with a matching path in the manifest: {found_file:?}");
+    debug!("Found a file with a matching path in the manifest: {found_file:?}");
     Ok(found_file)
 }
 
