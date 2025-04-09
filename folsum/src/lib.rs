@@ -20,5 +20,5 @@ pub use inventory::inventory_directory;
 #[cfg(feature = "bench")]
 pub use inventory::tests::{generate_fake_file_paths, perform_fake_inventory};
 
-mod verification;
-pub use verification::{audit_directory_inventory, VerificationManifest};
+mod audit;
+pub use audit::{audit_directory_inventory, VerificationManifest};
