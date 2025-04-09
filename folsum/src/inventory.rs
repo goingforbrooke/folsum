@@ -1,4 +1,3 @@
-// Std crates for macOS, Windows, *and* WASM builds.
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -7,11 +6,6 @@ use std::time::{Duration, Instant};
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
 use walkdir::WalkDir;
-
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-use rand::distr::Alphanumeric;
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-use rand::{rng, Rng};
 
 use crate::FoundFile;
 use crate::get_md5_hash;
@@ -69,6 +63,11 @@ pub fn inventory_directory(
                         .min_depth(1)
                         .into_iter()
                         .filter_map(Result::ok)
+                        // Ignore FolSum manifest files.
+                        .filter(|dir_entry| {
+                            let filename = dir_entry.file_name().to_string_lossy().to_string();
+                            !filename.ends_with(".folsum.csv")
+                        })
                         // Ignore subdirectories at all depths.
                         .filter(|dir_entry| !dir_entry.file_type().is_dir())
                     {
@@ -105,66 +104,6 @@ pub fn inventory_directory(
     Ok(())
 }
 
-/// Create an "answer key" of fake file paths.
-///
-/// These will be used to create "fake files" for testing things like `audit_directory`.
-///
-/// * `total_files` - The total number of fake file paths to generate.
-/// * `max_depth` - The maximum directory depth for the fake files.
-///
-/// The `cfg` flag makes this available for `cargo check`, native unit tests, and benchmarks.
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-#[allow(unused)]
-fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
-    // Persist the random number generator to avoid re-initialization.
-    let mut random_number_generator = rng();
-
-    let mut fake_paths = Vec::new();
-
-    // For each file that we need to create...
-    for _ in 0..total_files {
-        // Decide the depth for this file's directory.
-        let current_depth = random_number_generator.random_range(0..=max_depth);
-
-        let mut dir_paths = PathBuf::new();
-        // Create a subdirectory at the current depth.
-        for _ in 0..current_depth {
-            // Create an eight character random dir name.
-            let dir_name: String = (&mut random_number_generator)
-                .sample_iter(&Alphanumeric)
-                .take(8)
-                .map(char::from)
-                .collect();
-            // Add the new directory to the stack.
-            dir_paths.push(dir_name);
-        }
-
-        // Create a ten character filename.
-        let file_stem: String = rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .map(char::from)
-            .collect();
-
-        // File types for browser demos and unit tests.
-        let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
-                                              "jpg", "png", "gif", "mp4", "avi",
-                                              "mkv", "dll", "sys", "app", "dmg",
-                                              "zip", "iso", "pages", "numbers",
-                                              "7zip", "html", "py", "rs", "js",
-                                              "rs"];
-
-        // Choose a random extension from the provided list.
-        let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
-
-        // Create the full file name with extension.
-        let file_name = format!("{}.{}", file_stem, this_extension);
-        let file_path = dir_paths.join(file_name);
-        fake_paths.push(file_path);
-    }
-    fake_paths
-}
-
 #[cfg(any(test, feature = "bench"))]
 pub mod tests {
     use std::fs::{create_dir_all, File};
@@ -176,16 +115,76 @@ pub mod tests {
 
     use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
     use crate::hashers::get_md5_hash;
-    use crate::{FoundFile};
-    use crate::inventory::{inventory_directory, generate_fake_file_paths};
+    use crate::FoundFile;
+    use crate::inventory::inventory_directory;
 
     #[cfg(test)]
     use anyhow::bail;
-    use rand::Rng;
+    #[cfg(feature = "bench")]
+    use rand::distr::Alphanumeric;
+    #[cfg(feature = "bench")]
+    use rand::{rng, Rng};
     use test_log;
     use tempfile::{tempdir, TempDir};
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
+
+
+    /// Create an "answer key" of fake file paths.
+    ///
+    /// These will be used to create "fake files" for testing things like `audit_directory`.
+    ///
+    /// * `total_files` - The total number of fake file paths to generate.
+    /// * `max_depth` - The maximum directory depth for the fake files.
+    pub fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
+        // Persist the random number generator to avoid re-initialization.
+        let mut random_number_generator = rng();
+
+        let mut fake_paths: Vec<PathBuf> = Vec::new();
+
+        // For each file that we need to create...
+        for _ in 0..total_files {
+            // Decide the depth for this file's directory.
+            let current_depth = random_number_generator.random_range(0..=max_depth);
+
+            let mut dir_paths = PathBuf::new();
+            // Create a subdirectory at the current depth.
+            for _ in 0..current_depth {
+                // Create an eight character random dir name.
+                let dir_name: String = (&mut random_number_generator)
+                    .sample_iter(&Alphanumeric)
+                    .take(8)
+                    .map(char::from)
+                    .collect();
+                // Add the new directory to the stack.
+                dir_paths.push(dir_name);
+            }
+
+            // Create a ten character filename.
+            let file_stem: String = rng()
+                .sample_iter(&Alphanumeric)
+                .take(10)
+                .map(char::from)
+                .collect();
+
+            // File types for browser demos and unit tests.
+            let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
+                                                  "jpg", "png", "gif", "mp4", "avi",
+                                                  "mkv", "dll", "sys", "app", "dmg",
+                                                  "zip", "iso", "pages", "numbers",
+                                                  "7zip", "html", "py", "rs", "js",
+                                                  "rs"];
+
+            // Choose a random extension from the provided list.
+            let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
+
+            // Create the full file name with extension.
+            let file_name = format!("{}.{}", file_stem, this_extension);
+            let file_path = dir_paths.join(file_name);
+            fake_paths.push(file_path);
+        }
+        fake_paths
+    }
 
     /// Test fixture/demo setup: Create "fake files" to inventory in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {
@@ -233,7 +232,6 @@ pub mod tests {
         Ok(expected_hashes)
     }
 
-    /// Perform inventory in a temporary directory of "fake" files.
     ///
     /// This is abstracted away from [`test_directory_audit`]... so it can be called by the benchmarker.
     ///
@@ -241,12 +239,8 @@ pub mod tests {
     ///
     /// Tuple:
     /// - datastore variable (to check at the end of a test)
-    /// - `Vec<PathBuf>` of file paths that we expect to find
     /// - `Vec<String>` of MD5 hashes that we expect to find.
-    pub fn perform_fake_inventory() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>, Vec<String>), anyhow::Error> {
-        // Set up the test by creating "fake files" to inventory.
-        let expected_file_paths = generate_fake_file_paths(20, 3);
-
+    pub fn perform_fake_inventory(expected_file_paths: &Vec<PathBuf>) -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<String>), anyhow::Error> {
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.as_ref().to_path_buf();
@@ -285,16 +279,47 @@ pub mod tests {
 
 
         // Return the datastore variable so the unit test can verify what's been inventoried.
-        Ok((file_paths, expected_file_paths, expected_md5_hashes))
+        Ok((file_paths, expected_md5_hashes))
     }
 
+    /// Ensure that [`inventory_directory`] doesn't include FolSum manifest files in its findings.
+    #[test_log::test]
+    fn test_manifest_files_are_ignored() -> Result<(), anyhow::Error> {
+        // Set up the test.
+        let mut expected_file_paths = generate_fake_file_paths(20, 3);
 
-    /// Native: Ensure that [`inventory_directory`] successfully finds directory contents.
+        // Add a hypothetical manifest file to the test files so we can test if it's ignored.
+        let test_manifest_file = PathBuf::from("2025-4-8-16-50_wow.folsum.csv");
+        expected_file_paths.push(test_manifest_file.clone());
+
+        let (file_paths, _expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
+
+        // Assume that inventory will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        // Lock the dummy file tracker so we can check its contents.
+        let locked_paths_copy = file_paths.lock().unwrap();
+        let found_paths: Vec<PathBuf> = locked_paths_copy
+            .iter()
+            .map(|found_file| {
+                found_file.file_path.clone()
+            })
+            .collect();
+
+        assert!(!found_paths.contains(&test_manifest_file),
+                "FolSum manifest file was inventoried when it shouldn't have been");
+        Ok(())
+    }
+
+    /// Ensure that [`inventory_directory`] successfully finds directory contents.
     ///
     /// Assumes a scenario in which all files exist and have valid integrity.
     #[test_log::test]
     fn test_directory_inventory_integrity_valid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, expected_md5_hashes)= perform_fake_inventory()?;
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+
+        let (file_paths, expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
 
         // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
@@ -321,7 +346,10 @@ pub mod tests {
     /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
     #[test_log::test]
     fn test_directory_inventory_integrity_invalid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, mut expected_md5_hashes) = perform_fake_inventory()?;
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+
+        let (file_paths, mut expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
 
         // Keep around the original hash so we can ensure that it was missed later.
         let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
