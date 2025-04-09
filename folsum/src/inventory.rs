@@ -5,10 +5,6 @@ use std::time::{Duration, Instant};
 
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-use rand::distr::Alphanumeric;
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-use rand::{rng, Rng};
 use walkdir::WalkDir;
 
 use crate::FoundFile;
@@ -103,66 +99,6 @@ pub fn inventory_directory(
     Ok(())
 }
 
-/// Create an "answer key" of fake file paths.
-///
-/// These will be used to create "fake files" for testing things like `audit_directory`.
-///
-/// * `total_files` - The total number of fake file paths to generate.
-/// * `max_depth` - The maximum directory depth for the fake files.
-///
-/// The `cfg` flag makes this available for `cargo check`, native unit tests, and benchmarks.
-#[cfg(any(debug_assertions, test, feature = "bench"))]
-#[allow(unused)]
-fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
-    // Persist the random number generator to avoid re-initialization.
-    let mut random_number_generator = rng();
-
-    let mut fake_paths = Vec::new();
-
-    // For each file that we need to create...
-    for _ in 0..total_files {
-        // Decide the depth for this file's directory.
-        let current_depth = random_number_generator.random_range(0..=max_depth);
-
-        let mut dir_paths = PathBuf::new();
-        // Create a subdirectory at the current depth.
-        for _ in 0..current_depth {
-            // Create an eight character random dir name.
-            let dir_name: String = (&mut random_number_generator)
-                .sample_iter(&Alphanumeric)
-                .take(8)
-                .map(char::from)
-                .collect();
-            // Add the new directory to the stack.
-            dir_paths.push(dir_name);
-        }
-
-        // Create a ten character filename.
-        let file_stem: String = rng()
-            .sample_iter(&Alphanumeric)
-            .take(10)
-            .map(char::from)
-            .collect();
-
-        // File types for browser demos and unit tests.
-        let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
-                                              "jpg", "png", "gif", "mp4", "avi",
-                                              "mkv", "dll", "sys", "app", "dmg",
-                                              "zip", "iso", "pages", "numbers",
-                                              "7zip", "html", "py", "rs", "js",
-                                              "rs"];
-
-        // Choose a random extension from the provided list.
-        let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
-
-        // Create the full file name with extension.
-        let file_name = format!("{}.{}", file_stem, this_extension);
-        let file_path = dir_paths.join(file_name);
-        fake_paths.push(file_path);
-    }
-    fake_paths
-}
-
 #[cfg(any(test, feature = "bench"))]
 pub mod tests {
     use std::fs::{create_dir_all, File};
@@ -174,16 +110,76 @@ pub mod tests {
 
     use crate::common::{DirectoryAuditStatus, ManifestCreationStatus, InventoryStatus};
     use crate::hashers::get_md5_hash;
-    use crate::{FoundFile};
-    use crate::inventory::{inventory_directory, generate_fake_file_paths};
+    use crate::FoundFile;
+    use crate::inventory::inventory_directory;
 
     #[cfg(test)]
     use anyhow::bail;
-    use rand::Rng;
+    #[cfg(feature = "bench")]
+    use rand::distr::Alphanumeric;
+    #[cfg(feature = "bench")]
+    use rand::{rng, Rng};
     use test_log;
     use tempfile::{tempdir, TempDir};
     #[allow(unused)]
     use tracing::{debug, error, info, trace, warn};
+
+
+    /// Create an "answer key" of fake file paths.
+    ///
+    /// These will be used to create "fake files" for testing things like `audit_directory`.
+    ///
+    /// * `total_files` - The total number of fake file paths to generate.
+    /// * `max_depth` - The maximum directory depth for the fake files.
+    pub fn generate_fake_file_paths(total_files: u32, max_depth: u16) -> Vec<PathBuf> {
+        // Persist the random number generator to avoid re-initialization.
+        let mut random_number_generator = rng();
+
+        let mut fake_paths = Vec::new();
+
+        // For each file that we need to create...
+        for _ in 0..total_files {
+            // Decide the depth for this file's directory.
+            let current_depth = random_number_generator.random_range(0..=max_depth);
+
+            let mut dir_paths = PathBuf::new();
+            // Create a subdirectory at the current depth.
+            for _ in 0..current_depth {
+                // Create an eight character random dir name.
+                let dir_name: String = (&mut random_number_generator)
+                    .sample_iter(&Alphanumeric)
+                    .take(8)
+                    .map(char::from)
+                    .collect();
+                // Add the new directory to the stack.
+                dir_paths.push(dir_name);
+            }
+
+            // Create a ten character filename.
+            let file_stem: String = rng()
+                .sample_iter(&Alphanumeric)
+                .take(10)
+                .map(char::from)
+                .collect();
+
+            // File types for browser demos and unit tests.
+            let file_extensions: Vec<&str> = vec!["pdf", "docx", "exe", "txt", "xlsx",
+                                                  "jpg", "png", "gif", "mp4", "avi",
+                                                  "mkv", "dll", "sys", "app", "dmg",
+                                                  "zip", "iso", "pages", "numbers",
+                                                  "7zip", "html", "py", "rs", "js",
+                                                  "rs"];
+
+            // Choose a random extension from the provided list.
+            let this_extension = file_extensions[rng().random_range(0..file_extensions.len())];
+
+            // Create the full file name with extension.
+            let file_name = format!("{}.{}", file_stem, this_extension);
+            let file_path = dir_paths.join(file_name);
+            fake_paths.push(file_path);
+        }
+        fake_paths
+    }
 
     /// Test fixture/demo setup: Create "fake files" to inventory in demos and unit tests.
     fn create_fake_files(desired_filepaths: &Vec<PathBuf>) -> Result<TempDir, anyhow::Error> {

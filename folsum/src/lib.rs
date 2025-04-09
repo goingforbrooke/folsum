@@ -18,7 +18,7 @@ mod inventory;
 pub use inventory::inventory_directory;
 // Summarization benchmarks.
 #[cfg(feature = "bench")]
-pub use inventory::tests::perform_fake_inventory;
+pub use inventory::tests::{generate_fake_file_paths, perform_fake_inventory};
 
 mod verification;
 pub use verification::{audit_directory_inventory, VerificationManifest};

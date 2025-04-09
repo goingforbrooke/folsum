@@ -130,7 +130,7 @@ fn define_console_format() -> Result<fern::Dispatch> {
 /// Basic usage:
 ///
 /// ```rust
-/// # use crate::logging::setup_native_logging;
+/// # use crate::folsum::setup_native_logging;
 /// setup_native_logging("TestAppName");
 /// use log::{debug, error, info, trace, warn};
 /// //Output: 11:58🧊logging.rsL79::testappname::logging Initialized logger
