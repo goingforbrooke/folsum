@@ -364,7 +364,7 @@ impl eframe::App for FolsumGui {
                         ui.heading("MD5 Hash");
                     });
                     header.col(|ui| {
-                        ui.heading("Verification Status");
+                        ui.heading("Audit Finding");
                     });
                 })
                 .body(|mut body| {
