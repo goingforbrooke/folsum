@@ -135,7 +135,7 @@ pub mod tests {
         // Persist the random number generator to avoid re-initialization.
         let mut random_number_generator = rng();
 
-        let mut fake_paths = Vec::new();
+        let mut fake_paths: Vec<PathBuf> = Vec::new();
 
         // For each file that we need to create...
         for _ in 0..total_files {
@@ -227,7 +227,6 @@ pub mod tests {
         Ok(expected_hashes)
     }
 
-    /// Perform inventory in a temporary directory of "fake" files.
     ///
     /// This is abstracted away from [`test_directory_audit`]... so it can be called by the benchmarker.
     ///
@@ -278,11 +277,34 @@ pub mod tests {
         Ok((file_paths, expected_md5_hashes))
     }
 
-    ///// Ensure that [`inventory_directory`] doesn't include FolSum manifest files in its findings.
-    //#[test_log::test]
-    //fn test_manifest_files_are_ignored() -> Result<(), anyhow::Error> {
+    /// Ensure that [`inventory_directory`] doesn't include FolSum manifest files in its findings.
+    #[test_log::test]
+    fn test_manifest_files_are_ignored() -> Result<(), anyhow::Error> {
+        // Set up the test.
+        let mut expected_file_paths = generate_fake_file_paths(20, 3);
 
-    //}
+        // Add a hypothetical manifest file to the test files so we can test if it's ignored.
+        let test_manifest_file = PathBuf::from("2025-4-8-16-50_wow.folsum.csv");
+        expected_file_paths.push(test_manifest_file.clone());
+
+        let (file_paths, _expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
+
+        // Assume that inventory will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        // Lock the dummy file tracker so we can check its contents.
+        let locked_paths_copy = file_paths.lock().unwrap();
+        let found_paths: Vec<PathBuf> = locked_paths_copy
+            .iter()
+            .map(|found_file| {
+                found_file.file_path.clone()
+            })
+            .collect();
+
+        assert!(!found_paths.contains(&test_manifest_file),
+                "FolSum manifest file was inventoried when it shouldn't have been");
+        Ok(())
+    }
 
     /// Ensure that [`inventory_directory`] successfully finds directory contents.
     ///
