@@ -20,7 +20,9 @@ use log::{debug, error, info, trace, warn};
 ///
 /// # Arguments
 ///
-/// `manifest_file_path`: Path to a manifest file from a previous inventory.
+/// - `inventoried_files`: Inventory of a directory's contents.
+/// - `directory_audit_status`: Where we are in the audit process.
+/// - `manifest_creation_status`: Where we are in the manifest creation process.
 ///
 /// # Returns
 ///
