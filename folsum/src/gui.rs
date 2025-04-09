@@ -404,7 +404,7 @@ impl eframe::App for FolsumGui {
     }
 }
 
-/// Check if inventory is done.
+/// Check if we're done inventorying the directory.
 fn inventory_is_complete(inventory_status: Arc<Mutex<InventoryStatus>>) -> bool {
     let locked_inventory_status = inventory_status.lock().expect("Lock poisoned");
     let inventory_status_copy = locked_inventory_status.clone();
