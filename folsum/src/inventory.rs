@@ -1,4 +1,3 @@
-// Std crates for macOS, Windows, *and* WASM builds.
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -6,12 +5,11 @@ use std::time::{Duration, Instant};
 
 #[allow(unused)]
 use log::{debug, error, info, trace, warn};
-use walkdir::WalkDir;
-
 #[cfg(any(debug_assertions, test, feature = "bench"))]
 use rand::distr::Alphanumeric;
 #[cfg(any(debug_assertions, test, feature = "bench"))]
 use rand::{rng, Rng};
+use walkdir::WalkDir;
 
 use crate::FoundFile;
 use crate::get_md5_hash;
@@ -241,12 +239,8 @@ pub mod tests {
     ///
     /// Tuple:
     /// - datastore variable (to check at the end of a test)
-    /// - `Vec<PathBuf>` of file paths that we expect to find
     /// - `Vec<String>` of MD5 hashes that we expect to find.
-    pub fn perform_fake_inventory() -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<PathBuf>, Vec<String>), anyhow::Error> {
-        // Set up the test by creating "fake files" to inventory.
-        let expected_file_paths = generate_fake_file_paths(20, 3);
-
+    pub fn perform_fake_inventory(expected_file_paths: &Vec<PathBuf>) -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<String>), anyhow::Error> {
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.as_ref().to_path_buf();
@@ -285,16 +279,24 @@ pub mod tests {
 
 
         // Return the datastore variable so the unit test can verify what's been inventoried.
-        Ok((file_paths, expected_file_paths, expected_md5_hashes))
+        Ok((file_paths, expected_md5_hashes))
     }
 
+    ///// Ensure that [`inventory_directory`] doesn't include FolSum manifest files in its findings.
+    //#[test_log::test]
+    //fn test_manifest_files_are_ignored() -> Result<(), anyhow::Error> {
 
-    /// Native: Ensure that [`inventory_directory`] successfully finds directory contents.
+    //}
+
+    /// Ensure that [`inventory_directory`] successfully finds directory contents.
     ///
     /// Assumes a scenario in which all files exist and have valid integrity.
     #[test_log::test]
     fn test_directory_inventory_integrity_valid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, expected_md5_hashes)= perform_fake_inventory()?;
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+
+        let (file_paths, expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
 
         // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
@@ -321,7 +323,10 @@ pub mod tests {
     /// Assumes a scenario in which all files exist, but one's MD5 hash has been perturbed.
     #[test_log::test]
     fn test_directory_inventory_integrity_invalid() -> Result<(), anyhow::Error> {
-        let (file_paths, expected_file_paths, mut expected_md5_hashes) = perform_fake_inventory()?;
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+
+        let (file_paths, mut expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
 
         // Keep around the original hash so we can ensure that it was missed later.
         let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
