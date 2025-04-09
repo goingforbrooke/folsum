@@ -379,18 +379,19 @@ impl eframe::App for FolsumGui {
                             });
                             row.col(|ui| {
                                 let display_file_integrity = match &found_file.file_integrity {
-                                    FileIntegrity::Unverified => "Unverified",
-                                    FileIntegrity::InProgress => "Verifying...",
-                                    FileIntegrity::Verified(_) => "Verified",
+                                    FileIntegrity::Unverified => "Unaudited",
+                                    FileIntegrity::InProgress => "Auditing...",
+                                    FileIntegrity::Verified(_) => "Audited",
                                     FileIntegrity::VerificationFailed(integrity_detail) => {
                                         // If the file's missing...
                                         if !integrity_detail.file_path_matches {
-                                            "Failed verification: file missing"
+                                            "Failed audit: file missing"
                                         // Otherwise, if the file's MD5 hash doesn't match...
                                         } else if !integrity_detail.md5_hash_matches {
-                                            "Failed verification: MD5 hash mismatch"
+                                            "Failed audit: MD5 hash mismatch"
                                         } else {
-                                            "Failed verification: unknown reason"
+                                            warn!("File failed audit for unknown reason");
+                                            "Failed audit: unknown reason"
                                         }
                                     }
                                 };
