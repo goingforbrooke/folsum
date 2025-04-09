@@ -61,7 +61,7 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         // For each inventoried file...
         for inventoried_file in &mut locked_inventoried_files.iter_mut() {
-            // ... See if its file path exists in the verification manifest.
+            // ... See if its file path exists in the manifest.
             let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
             let assessed_integrity =  match matching_manifest_entry {
                 Some(matching_manifest_entry) => {
@@ -75,7 +75,7 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                 }
             };
 
-            // Modify shared memory entry for the inventoried file-- add verification status (for column).
+            // Modify shared memory entry for the inventoried file so we can show the audit status in its respective column.
             match assessed_integrity {
                 FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
                 FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
@@ -87,20 +87,20 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
             }
         }
 
-        // Check if there were any verification failures.
-        let verification_failures = locked_inventoried_files.iter().any(|found_file| {
+        // Check if there were any audit failures.
+        let audit_failures = locked_inventoried_files.iter().any(|found_file| {
             matches!(found_file.file_integrity, FileIntegrity::VerificationFailed(_))
         });
-        // Note whether directory verification was successful in the GUI.
-        if verification_failures {
+        // Note whether directory audit was successful in the GUI.
+        if audit_failures {
             *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
-            info!("One or more inventoried files failed verification")
+            info!("One or more inventoried files failed audit")
         } else {
             *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
-            info!("Inventoried files passed verification");
+            info!("Inventoried files passed audit");
         }
 
-        info!("Completed verification of inventoried files");
+        info!("Completed audit of inventoried files");
         Ok(())
     });
     Ok(())
@@ -111,10 +111,10 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
 /// Files are found if their paths match.
 fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
                          manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
-    // Find entries from the verification file with paths that match this inventoried file.
+    // Find entries from the manifest file with paths that match this inventoried file.
     let found_file = manifest_entries
         .iter()
-        // Find every inventoried file with a path that matches this verification entry.
+        // Find every inventoried file with a path that matches this manifest entry.
         .find(|manifest_entry| {
             &manifest_entry.file_path == inventoried_file_path
         })
@@ -136,7 +136,7 @@ fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
 ///     1. its relative path to the root of the inventoried directory matches.
 ///     2. its MD5 hashe matches.
 fn assess_integrity(inventoried_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
-    // todo: note that file verification is "in progress" (for GUI column).
+    // todo: note that file audit is "in progress" (for GUI column).
     let md5_hash_matches = &manifest_entry.md5_hash == &inventoried_file.md5_hash;
 
     // Log: Note whether MD5 hashes match.
@@ -153,7 +153,7 @@ fn assess_integrity(inventoried_file: &FoundFile, manifest_entry: &FoundFile) ->
 
     // todo: Add SHA1 hashing.
 
-    // Consider a file verified if the file path and MD5 hash match.
+    // Consider a file to have passed audit if the file path and MD5 hash match.
     let decided_file_integrity = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
         true => FileIntegrity::Verified(integrity_detail),
         false => FileIntegrity::VerificationFailed(integrity_detail),
@@ -173,7 +173,7 @@ pub struct VerificationManifest {
     date_created: NaiveDateTime,
 }
 
-/// Load [`FoundFile`]s from a (CSV) manifest file.
+/// Load [`FoundFile`]s from a previously-created (CSV) manifest file.
 fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
     let csv_file_handle = File::open(&manifest_file_path)?;
     let mut line_iterator = io::BufReader::new(csv_file_handle).lines();
@@ -216,7 +216,7 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
         manifest_entries.push(found_file);
     }
 
-    let verification_entry_count = manifest_entries.len();
-    info!("Loaded {verification_entry_count:?} verification entries");
+    let audit_entry_count = manifest_entries.len();
+    info!("Loaded {audit_entry_count:?} manifest entries");
     Ok(manifest_entries)
 }
