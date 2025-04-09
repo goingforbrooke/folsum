@@ -61,15 +61,18 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
         // Grab a file lock so we can filter for matching inventoried files.
         let mut locked_inventoried_files = inventoried_files.lock().unwrap();
 
-        // For each inventoried file...
+        // Check each inventoried file against the manifest b/c we assume that most files will exist.
         for inventoried_file in &mut locked_inventoried_files.iter_mut() {
             // ... See if its file path exists in the manifest.
             let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
-            let assessed_integrity =  match matching_manifest_entry {
+
+            let assessed_integrity = match matching_manifest_entry {
+                // If the inventoried file exists in the manifest...
                 Some(matching_manifest_entry) => {
                     // Assess the file's integrity (which is just an MD5) 😨.
                     assess_integrity(inventoried_file, &matching_manifest_entry)?
                 }
+                // If the inventoried file doesn't exist in the manifest...
                 None => {
                     // Assume bad file integrity b/c the file path wasn't found.
                     let assumed_integrity = FileIntegrityDetail::default();
