@@ -63,6 +63,11 @@ pub fn inventory_directory(
                         .min_depth(1)
                         .into_iter()
                         .filter_map(Result::ok)
+                        // Ignore FolSum manifest files.
+                        .filter(|dir_entry| {
+                            let filename = dir_entry.file_name().to_string_lossy().to_string();
+                            !filename.ends_with(".folsum.csv")
+                        })
                         // Ignore subdirectories at all depths.
                         .filter(|dir_entry| !dir_entry.file_type().is_dir())
                     {
