@@ -379,8 +379,8 @@ impl eframe::App for FolsumGui {
                             });
                             row.col(|ui| {
                                 let display_file_integrity = match &found_file.file_integrity {
-                                    FileIntegrity::Unverified => "Unaudited",
                                     FileIntegrity::InProgress => "Auditing...",
+                                    FileIntegrity::Unverified => "Unaudited",
                                     FileIntegrity::Verified(_) => "Audited",
                                     FileIntegrity::VerificationFailed(integrity_detail) => {
                                         // If the file's missing...
@@ -393,7 +393,8 @@ impl eframe::App for FolsumGui {
                                             warn!("File failed audit for unknown reason");
                                             "Failed audit: unknown reason"
                                         }
-                                    }
+                                    },
+                                    FileIntegrity::NewlyAdded => "New file found"
                                 };
                                 ui.label(display_file_integrity);
                             });

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail, ManifestCreationStatus};
+use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -65,17 +65,10 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
             let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
 
             let assessed_integrity = match matching_manifest_entry {
-                // If the inventoried file exists in the manifest...
-                Some(matching_manifest_entry) => {
-                    // Assess the file's integrity (which is just an MD5) 😨.
-                    assess_integrity(inventoried_file, &matching_manifest_entry)?
-                }
-                // If the inventoried file doesn't exist in the manifest...
-                None => {
-                    // Assume bad file integrity b/c the file path wasn't found.
-                    let assumed_integrity = FileIntegrityDetail::default();
-                    FileIntegrity::VerificationFailed(assumed_integrity)
-                }
+                // If the inventoried file exists in the manifest, then assess the file's integrity (which is just an MD5) 😨.
+                Some(matching_manifest_entry) => assess_integrity(inventoried_file, &matching_manifest_entry)?,
+                // If the inventoried file doesn't exist in the manifest then the inventoried file was added.
+                None => FileIntegrity::NewlyAdded,
             };
 
             // Modify shared memory entry for the inventoried file so we can show the audit status in its respective column.
@@ -83,11 +76,24 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                 FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
                 FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
                 _ => {
-                    let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
+                    let error_message = format!("Encountered unexpected integrity state {assessed_integrity:?}\
+                                                       when only Verified or VerificationFailed was expected");
                     error!("{}", error_message);
                     bail!(error_message);
                 }
             }
+        }
+
+        // Sanity check: nothing should be unexamined.
+        let unexamined_files: Vec<&FoundFile> = locked_inventoried_files.iter()
+            .filter(|found_file| {
+                matches!(found_file.file_integrity, FileIntegrity::Unverified)
+            })
+            .collect();
+        if !unexamined_files.is_empty() {
+            let unexamined_count = unexamined_files.len();
+            warn!("Encountered {unexamined_count} \
+                   unexamined files: {unexamined_files:?}");
         }
 
         // Check if there were any audit failures.
