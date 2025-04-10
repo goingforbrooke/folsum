@@ -229,3 +229,15 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
     info!("Loaded {audit_entry_count:?} manifest entries");
     Ok(manifest_entries)
 }
+
+#[cfg(test)]
+mod tests{
+    use super::audit_directory_inventory;
+
+    use test_log::test;
+
+    #[test_log::test]
+    fn test_audit_directory_all_verified() {
+
+    }
+}
