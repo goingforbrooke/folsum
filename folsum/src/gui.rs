@@ -11,7 +11,7 @@ use log::{debug, error, info, trace, warn};
 use rfd::FileDialog;
 
 use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, InventoryStatus, audit_directory_inventory};
-use crate::{export_csv, inventory_directory};
+use crate::{export_inventory, inventory_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -241,7 +241,7 @@ impl eframe::App for FolsumGui {
 
                 // If we're ready to export a manifest file, then do so.
                 if export_prerequisites_met {
-                    let _result = export_csv(&inventoried_files, &manifest_creation_status, &chosen_inventory_path);
+                    let _result = export_inventory(&inventoried_files, &manifest_creation_status, &chosen_inventory_path);
                 };
 
                 ui.separator();

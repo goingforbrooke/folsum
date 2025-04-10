@@ -4,7 +4,7 @@ mod common;
 pub use common::{CSV_HEADERS, DirectoryAuditStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FileIntegrityDetail, FOLSUM_CSV_EXTENSION, FoundFile, InventoryStatus, ManifestCreationStatus};
 
 mod export_csv;
-pub use export_csv::{create_export_path, export_csv};
+pub use export_csv::{create_export_path, export_inventory};
 
 mod gui;
 pub use gui::FolsumGui;
