@@ -231,13 +231,23 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
+    use std::time::Duration;
+
     use super::audit_directory_inventory;
 
-    use test_log::test;
+    use crate::inventory::tests::{generate_fake_file_paths, perform_fake_inventory};
+    use std::thread::sleep;
 
     #[test_log::test]
-    fn test_audit_directory_all_verified() {
+    fn test_directory_audit_all_valid() -> Result<(), anyhow::Error> {
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+        let (file_paths, mut expected_md5_hashes, manifest_creation_status) = perform_fake_inventory(&expected_file_paths)?;
 
+        // Assume that inventory will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        Ok(())
     }
 }
