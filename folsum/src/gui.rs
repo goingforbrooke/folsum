@@ -254,10 +254,7 @@ impl eframe::App for FolsumGui {
                     ui.horizontal(|ui| {
                         ui.label("Second,");
 
-                        // Grey out/disable the "select" file picker button if manifest selection prerequisites aren't met.
-                        if ui.add_enabled(inventory_is_complete(inventory_status.clone()),
-                                          // Prompt the user to choose a FolSum manifest to verify against.
-                                          egui::Button::new("select")).clicked() {
+                        if ui.button("select").clicked() {
                             // Open the manifest file chooser in the same directory that was inventoried.
                             let starting_directory = chosen_inventory_path.lock().unwrap().clone().unwrap_or_else(|| {
                                 // Assume that an inventory directory has been selected b/c prereqs were met.
@@ -275,7 +272,19 @@ impl eframe::App for FolsumGui {
                                 .pick_file() {
                                 info!("User chose manifest file: {:?}", path);
                                 *chosen_manifest = Arc::new(Mutex::new(Some(path)));
+                                // If the user clicked "Cancel" instead of selecting a manifest file...
+                            } else {
+                                // ... then note that no manifest was chosen.
+                                *chosen_manifest = Arc::new(Mutex::new(None));
                             }
+                        }
+
+                        ui.label("a previously-generated manifest to ");
+
+                        // Grey out/disable the "audit" button if manifest selection prerequisites aren't met.
+                        if ui.add_enabled(inventory_is_complete(inventory_status.clone()),
+                                          // Prompt the user to choose a FolSum manifest to verify against.
+                                          egui::Button::new("audit")).clicked() {
 
                             info!("🏁 User started audit");
                             audit_directory_inventory(&inventoried_files,
@@ -283,7 +292,7 @@ impl eframe::App for FolsumGui {
                                                       &chosen_manifest).unwrap();
 
                         }
-                        ui.label("a previously-generated manifest to verify against.");
+                        ui.label("against.");
                     });
                 });
 

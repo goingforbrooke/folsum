@@ -37,6 +37,7 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
     let chosen_manifest = Arc::clone(&chosen_manifest);
 
     let _thread_handle = thread::spawn(move || {
+        debug!("Launched audit thread");
         // Note that directory audit has begun.
         *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
@@ -51,6 +52,7 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                 bail!(error_message)
             }
         };
+        debug!("Auditing against manifest: {chosen_manifest_path:?}");
 
         let manifest_entries = load_previous_manifest(&chosen_manifest_path)?;
 
@@ -61,6 +63,7 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
 
         // Check each inventoried file against the manifest b/c we assume that most files will exist.
         for inventoried_file in &mut locked_inventoried_files.iter_mut() {
+            debug!("Assessing inventoried file: {inventoried_file:?}");
             // ... See if its file path exists in the manifest.
             let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
 
