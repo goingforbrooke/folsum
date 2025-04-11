@@ -4,7 +4,7 @@ mod common;
 pub use common::{CSV_HEADERS, DirectoryAuditStatus, FILEDATE_PREFIX_FORMAT, FileIntegrity, FileIntegrityDetail, FOLSUM_CSV_EXTENSION, FoundFile, InventoryStatus, ManifestCreationStatus};
 
 mod export_csv;
-pub use export_csv::{create_export_path, export_csv};
+pub use export_csv::{create_export_path, export_inventory};
 
 mod gui;
 pub use gui::FolsumGui;
@@ -20,5 +20,5 @@ pub use inventory::inventory_directory;
 #[cfg(feature = "bench")]
 pub use inventory::tests::{generate_fake_file_paths, perform_fake_inventory};
 
-mod verification;
-pub use verification::{audit_directory_inventory, VerificationManifest};
+mod audit;
+pub use audit::{audit_directory_inventory, VerificationManifest};

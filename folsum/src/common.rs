@@ -54,11 +54,12 @@ pub struct FileIntegrityDetail {
 /// Integrity of a file in a directory that's being inventoried.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub enum FileIntegrity {
+    InProgress,
     #[default]
     Unverified,
-    InProgress,
     Verified(FileIntegrityDetail),
     VerificationFailed(FileIntegrityDetail),
+    NewlyAdded,
 }
 
 /// Files found by FolSum.
@@ -133,4 +134,6 @@ pub mod test_utilities {
             );
         }
     }
+
+
 }

@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail, ManifestCreationStatus};
+use crate::{CSV_HEADERS, DirectoryAuditStatus, FileIntegrity, FoundFile, FileIntegrityDetail};
 
 // External crates for native and WASM builds.
 use anyhow;
@@ -20,87 +20,100 @@ use log::{debug, error, info, trace, warn};
 ///
 /// # Arguments
 ///
-/// `manifest_file_path`: Path to a manifest file from a previous inventory.
+/// - `inventoried_files`: Inventory of a directory's contents.
+/// - `directory_audit_status`: Where we are in the audit process.
+/// - `manifest_creation_status`: Where we are in the manifest creation process.
 ///
 /// # Returns
 ///
 /// Manifest entries that weren't found in the directory inventory and why.
 pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
                                  directory_audit_status: &Arc<Mutex<DirectoryAuditStatus>>,
-                                 manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>) -> Result<(), anyhow::Error> {
+                                 chosen_manifest: &Arc<Mutex<Option<PathBuf>>>) -> Result<(), anyhow::Error> {
     // todo: Emit some kind of warning to the user if the manifest file's name doesn't match the directory's name.
     // Copy the Arcs of persistent members so they can be accessed by a separate thread.
     let inventoried_files = Arc::clone(&inventoried_files);
     let directory_audit_status = Arc::clone(&directory_audit_status);
-    let manifest_creation_status = Arc::clone(&manifest_creation_status);
+    let chosen_manifest = Arc::clone(&chosen_manifest);
 
     let _thread_handle = thread::spawn(move || {
+        debug!("Launched audit thread");
         // Note that directory audit has begun.
         *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::InProgress;
 
-        // Extract the path to the previous manifest from the Arc.
-        let locked_manifest_creation_status = manifest_creation_status.lock().unwrap();
-        let manifest_creation_status_copy = locked_manifest_creation_status.clone();
-        drop(locked_manifest_creation_status);
-        let previous_manifest = match manifest_creation_status_copy {
-            // Assume that a manifest file was already found b/c we checked prerequisites before this.
-            ManifestCreationStatus::Done(manifest_path) => manifest_path,
-            _ => {
-                let error_message = "Expected a manifest file to be found";
+        let locked_chosen_manifest = chosen_manifest.lock().unwrap();
+        let chosen_manifest_copy = locked_chosen_manifest.clone();
+        drop(locked_chosen_manifest);
+        let chosen_manifest_path = match chosen_manifest_copy {
+            Some(chosen_manifest_path) => chosen_manifest_path,
+            None => {
+                let error_message = "Expected to find a chosen manifest";
                 error!("{}", error_message);
-                bail!(error_message);
-            },
+                bail!(error_message)
+            }
         };
+        debug!("Auditing against manifest: {chosen_manifest_path:?}");
 
-        let manifest_entries = load_previous_manifest(&previous_manifest)?;
+        let manifest_entries = load_previous_manifest(&chosen_manifest_path)?;
 
         // todo: Relativize file path before audit steps b/c we're probably doing it twice.
 
         // Grab a file lock so we can filter for matching inventoried files.
         let mut locked_inventoried_files = inventoried_files.lock().unwrap();
 
-        // For each inventoried file...
+        // Check each inventoried file against the manifest b/c we assume that most files will exist.
         for inventoried_file in &mut locked_inventoried_files.iter_mut() {
-            // ... See if its file path exists in the verification manifest.
+            debug!("Assessing inventoried file: {inventoried_file:?}");
+            // ... See if its file path exists in the manifest.
             let matching_manifest_entry = lookup_manifest_entry(&inventoried_file.file_path, &manifest_entries)?;
-            let assessed_integrity =  match matching_manifest_entry {
-                Some(matching_manifest_entry) => {
-                    // Assess the file's integrity (which is just an MD5) 😨.
-                    assess_integrity(inventoried_file, &matching_manifest_entry)?
-                }
-                None => {
-                    // Assume bad file integrity b/c the file path wasn't found.
-                    let assumed_integrity = FileIntegrityDetail::default();
-                    FileIntegrity::VerificationFailed(assumed_integrity)
-                }
+
+            let assessed_integrity = match matching_manifest_entry {
+                // If the inventoried file exists in the manifest, then assess the file's integrity (which is just an MD5) 😨.
+                Some(matching_manifest_entry) => assess_integrity(inventoried_file, &matching_manifest_entry)?,
+                // If the inventoried file doesn't exist in the manifest then the inventoried file was added.
+                None => FileIntegrity::NewlyAdded,
             };
 
-            // Modify shared memory entry for the inventoried file-- add verification status (for column).
+            // Modify shared memory entry for the inventoried file so we can show the audit status in its respective column.
             match assessed_integrity {
                 FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
                 FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
+                FileIntegrity::NewlyAdded => inventoried_file.file_integrity = assessed_integrity,
                 _ => {
-                    let error_message = "Encountered unexpected integrity state {assessed_integrity:?} when only Verified or VerificationFailed was expected";
+                    let error_message = format!("Encountered unexpected integrity state {assessed_integrity:?} \
+                                                       when only Verified or VerificationFailed was expected");
                     error!("{}", error_message);
                     bail!(error_message);
                 }
             }
         }
 
-        // Check if there were any verification failures.
-        let verification_failures = locked_inventoried_files.iter().any(|found_file| {
-            matches!(found_file.file_integrity, FileIntegrity::VerificationFailed(_))
-        });
-        // Note whether directory verification was successful in the GUI.
-        if verification_failures {
-            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
-            info!("One or more inventoried files failed verification")
-        } else {
-            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
-            info!("Inventoried files passed verification");
+        // Sanity check: nothing should be unexamined.
+        let unexamined_files: Vec<&FoundFile> = locked_inventoried_files.iter()
+            .filter(|found_file| {
+                matches!(found_file.file_integrity, FileIntegrity::Unverified)
+            })
+            .collect();
+        if !unexamined_files.is_empty() {
+            let unexamined_count = unexamined_files.len();
+            warn!("Encountered {unexamined_count} \
+                   unexamined files: {unexamined_files:?}");
         }
 
-        info!("Completed verification of inventoried files");
+        // Check if there were any audit failures.
+        let audit_failures = locked_inventoried_files.iter().any(|found_file| {
+            matches!(found_file.file_integrity, FileIntegrity::VerificationFailed(_))
+        });
+        // Note whether directory audit was successful in the GUI.
+        if audit_failures {
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::DiscrepanciesFound;
+            info!("One or more inventoried files failed audit")
+        } else {
+            *directory_audit_status.lock().unwrap() = DirectoryAuditStatus::Audited;
+            info!("Inventoried files passed audit");
+        }
+
+        info!("Completed audit of inventoried files");
         Ok(())
     });
     Ok(())
@@ -111,10 +124,10 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
 /// Files are found if their paths match.
 fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
                          manifest_entries: &Vec<FoundFile>) -> Result<Option<FoundFile>, anyhow::Error> {
-    // Find entries from the verification file with paths that match this inventoried file.
+    // Find entries from the manifest file with paths that match this inventoried file.
     let found_file = manifest_entries
         .iter()
-        // Find every inventoried file with a path that matches this verification entry.
+        // Find every inventoried file with a path that matches this manifest entry.
         .find(|manifest_entry| {
             &manifest_entry.file_path == inventoried_file_path
         })
@@ -126,7 +139,7 @@ fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
         None => trace!("Found no inventoried files with a matching path in the manifest."),
     };
 
-    trace!("Found a file with a matching path in the manifest: {found_file:?}");
+    debug!("Found a file with a matching path in the manifest: {found_file:?}");
     Ok(found_file)
 }
 
@@ -136,7 +149,7 @@ fn lookup_manifest_entry(inventoried_file_path: &PathBuf,
 ///     1. its relative path to the root of the inventoried directory matches.
 ///     2. its MD5 hashe matches.
 fn assess_integrity(inventoried_file: &FoundFile, manifest_entry: &FoundFile) -> Result<FileIntegrity, anyhow::Error> {
-    // todo: note that file verification is "in progress" (for GUI column).
+    // todo: note that file audit is "in progress" (for GUI column).
     let md5_hash_matches = &manifest_entry.md5_hash == &inventoried_file.md5_hash;
 
     // Log: Note whether MD5 hashes match.
@@ -153,7 +166,7 @@ fn assess_integrity(inventoried_file: &FoundFile, manifest_entry: &FoundFile) ->
 
     // todo: Add SHA1 hashing.
 
-    // Consider a file verified if the file path and MD5 hash match.
+    // Consider a file to have passed audit if the file path and MD5 hash match.
     let decided_file_integrity = match integrity_detail.file_path_matches && integrity_detail.md5_hash_matches {
         true => FileIntegrity::Verified(integrity_detail),
         false => FileIntegrity::VerificationFailed(integrity_detail),
@@ -173,7 +186,7 @@ pub struct VerificationManifest {
     date_created: NaiveDateTime,
 }
 
-/// Load [`FoundFile`]s from a (CSV) manifest file.
+/// Load [`FoundFile`]s from a previously-created (CSV) manifest file.
 fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>, anyhow::Error> {
     let csv_file_handle = File::open(&manifest_file_path)?;
     let mut line_iterator = io::BufReader::new(csv_file_handle).lines();
@@ -216,7 +229,29 @@ fn load_previous_manifest(manifest_file_path: &PathBuf) -> Result<Vec<FoundFile>
         manifest_entries.push(found_file);
     }
 
-    let verification_entry_count = manifest_entries.len();
-    info!("Loaded {verification_entry_count:?} verification entries");
+    let audit_entry_count = manifest_entries.len();
+    info!("Loaded {audit_entry_count:?} manifest entries");
     Ok(manifest_entries)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::audit_directory_inventory;
+
+    use crate::inventory::tests::{generate_fake_file_paths, perform_fake_inventory};
+    use std::thread::sleep;
+
+    #[test_log::test]
+    fn test_directory_audit_all_valid() -> Result<(), anyhow::Error> {
+        // Set up the test.
+        let expected_file_paths = generate_fake_file_paths(20, 3);
+        let (file_paths, mut expected_md5_hashes, manifest_creation_status) = perform_fake_inventory(&expected_file_paths)?;
+
+        // Assume that inventory will complete in less than a second.
+        sleep(Duration::from_secs(1));
+
+        Ok(())
+    }
 }

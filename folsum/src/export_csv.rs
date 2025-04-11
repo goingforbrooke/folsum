@@ -26,7 +26,7 @@ use crate::{CSV_HEADERS, FILEDATE_PREFIX_FORMAT, FoundFile};
 /// # Parameters
 /// - `export_file`: Path to the file that will be created.
 /// - `file_paths`: Summarized files (from the GUI table).
-pub fn export_csv(
+pub fn export_inventory(
     file_paths: &Arc<Mutex<Vec<FoundFile>>>,
     manifest_creation_status: &Arc<Mutex<ManifestCreationStatus>>,
     inventory_path: &Arc<Mutex<Option<PathBuf>>>,

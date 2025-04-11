@@ -11,7 +11,7 @@ use log::{debug, error, info, trace, warn};
 use rfd::FileDialog;
 
 use crate::{DirectoryAuditStatus, FileIntegrity, FoundFile, ManifestCreationStatus, InventoryStatus, audit_directory_inventory};
-use crate::{export_csv, inventory_directory};
+use crate::{export_inventory, inventory_directory};
 
 // We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -157,7 +157,7 @@ impl eframe::App for FolsumGui {
                     let chosen_inventory_path_copy = locked_chosen_inventory_path.clone();
                     drop(locked_chosen_inventory_path);
 
-                    // Grey out the "audit" button until the user has selected a directory to inventory.
+                    // Grey out the "inventory" button until the user has selected a directory to inventory.
                     if ui.add_enabled(chosen_inventory_path_copy.is_some(), egui::Button::new("inventory")).clicked() {
                         info!("User started discovery manifest creation");
                         let _result = inventory_directory(
@@ -241,7 +241,7 @@ impl eframe::App for FolsumGui {
 
                 // If we're ready to export a manifest file, then do so.
                 if export_prerequisites_met {
-                    let _result = export_csv(&inventoried_files, &manifest_creation_status, &chosen_inventory_path);
+                    let _result = export_inventory(&inventoried_files, &manifest_creation_status, &chosen_inventory_path);
                 };
 
                 ui.separator();
@@ -254,10 +254,7 @@ impl eframe::App for FolsumGui {
                     ui.horizontal(|ui| {
                         ui.label("Second,");
 
-                        // Grey out/disable the "select" file picker button if manifest selection prerequisites aren't met.
-                        if ui.add_enabled(inventory_is_complete(inventory_status.clone()),
-                                          // Prompt the user to choose a FolSum manifest to verify against.
-                                          egui::Button::new("select")).clicked() {
+                        if ui.button("select").clicked() {
                             // Open the manifest file chooser in the same directory that was inventoried.
                             let starting_directory = chosen_inventory_path.lock().unwrap().clone().unwrap_or_else(|| {
                                 // Assume that an inventory directory has been selected b/c prereqs were met.
@@ -275,15 +272,27 @@ impl eframe::App for FolsumGui {
                                 .pick_file() {
                                 info!("User chose manifest file: {:?}", path);
                                 *chosen_manifest = Arc::new(Mutex::new(Some(path)));
+                                // If the user clicked "Cancel" instead of selecting a manifest file...
+                            } else {
+                                // ... then note that no manifest was chosen.
+                                *chosen_manifest = Arc::new(Mutex::new(None));
                             }
+                        }
+
+                        ui.label("a previously-generated manifest to ");
+
+                        // Grey out/disable the "audit" button if manifest selection prerequisites aren't met.
+                        if ui.add_enabled(inventory_is_complete(inventory_status.clone()),
+                                          // Prompt the user to choose a FolSum manifest to verify against.
+                                          egui::Button::new("audit")).clicked() {
 
                             info!("🏁 User started audit");
                             audit_directory_inventory(&inventoried_files,
                                                       &directory_audit_status,
-                                                      &manifest_creation_status).unwrap();
+                                                      &chosen_manifest).unwrap();
 
                         }
-                        ui.label("a previously-generated manifest to verify against.");
+                        ui.label("against.");
                     });
                 });
 
@@ -364,7 +373,7 @@ impl eframe::App for FolsumGui {
                         ui.heading("MD5 Hash");
                     });
                     header.col(|ui| {
-                        ui.heading("Verification Status");
+                        ui.heading("Audit Finding");
                     });
                 })
                 .body(|mut body| {
@@ -379,20 +388,22 @@ impl eframe::App for FolsumGui {
                             });
                             row.col(|ui| {
                                 let display_file_integrity = match &found_file.file_integrity {
-                                    FileIntegrity::Unverified => "Unverified",
-                                    FileIntegrity::InProgress => "Verifying...",
-                                    FileIntegrity::Verified(_) => "Verified",
+                                    FileIntegrity::InProgress => "Auditing...",
+                                    FileIntegrity::Unverified => "Unaudited",
+                                    FileIntegrity::Verified(_) => "Audited",
                                     FileIntegrity::VerificationFailed(integrity_detail) => {
                                         // If the file's missing...
                                         if !integrity_detail.file_path_matches {
-                                            "Failed verification: file missing"
+                                            "Failed audit: file missing"
                                         // Otherwise, if the file's MD5 hash doesn't match...
                                         } else if !integrity_detail.md5_hash_matches {
-                                            "Failed verification: MD5 hash mismatch"
+                                            "Failed audit: MD5 hash mismatch"
                                         } else {
-                                            "Failed verification: unknown reason"
+                                            warn!("File failed audit for unknown reason");
+                                            "Failed audit: unknown reason"
                                         }
-                                    }
+                                    },
+                                    FileIntegrity::NewlyAdded => "New file found"
                                 };
                                 ui.label(display_file_integrity);
                             });
@@ -403,7 +414,7 @@ impl eframe::App for FolsumGui {
     }
 }
 
-/// Check if inventory is done.
+/// Check if we're done inventorying the directory.
 fn inventory_is_complete(inventory_status: Arc<Mutex<InventoryStatus>>) -> bool {
     let locked_inventory_status = inventory_status.lock().expect("Lock poisoned");
     let inventory_status_copy = locked_inventory_status.clone();

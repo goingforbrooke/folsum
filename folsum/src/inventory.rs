@@ -240,7 +240,7 @@ pub mod tests {
     /// Tuple:
     /// - datastore variable (to check at the end of a test)
     /// - `Vec<String>` of MD5 hashes that we expect to find.
-    pub fn perform_fake_inventory(expected_file_paths: &Vec<PathBuf>) -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<String>), anyhow::Error> {
+    pub fn perform_fake_inventory(expected_file_paths: &Vec<PathBuf>) -> Result<(Arc<Mutex<Vec<FoundFile>>>, Vec<String>, Arc<Mutex<ManifestCreationStatus>>), anyhow::Error> {
         let tempdir_handle = create_fake_files(&expected_file_paths)?;
         // Extract the tempdir containing the files to test against.
         let testdir_path = tempdir_handle.as_ref().to_path_buf();
@@ -279,7 +279,7 @@ pub mod tests {
 
 
         // Return the datastore variable so the unit test can verify what's been inventoried.
-        Ok((file_paths, expected_md5_hashes))
+        Ok((file_paths, expected_md5_hashes, manifest_creation_status))
     }
 
     /// Ensure that [`inventory_directory`] doesn't include FolSum manifest files in its findings.
@@ -292,7 +292,7 @@ pub mod tests {
         let test_manifest_file = PathBuf::from("2025-4-8-16-50_wow.folsum.csv");
         expected_file_paths.push(test_manifest_file.clone());
 
-        let (file_paths, _expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
+        let (file_paths, _expected_md5_hashes, _manifest_creation_status) = perform_fake_inventory(&expected_file_paths)?;
 
         // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
@@ -315,11 +315,11 @@ pub mod tests {
     ///
     /// Assumes a scenario in which all files exist and have valid integrity.
     #[test_log::test]
-    fn test_directory_inventory_integrity_valid() -> Result<(), anyhow::Error> {
+    fn test_directory_inventory_finds_contents() -> Result<(), anyhow::Error> {
         // Set up the test.
         let expected_file_paths = generate_fake_file_paths(20, 3);
 
-        let (file_paths, expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
+        let (file_paths, expected_md5_hashes, _manifest_creation_status) = perform_fake_inventory(&expected_file_paths)?;
 
         // Assume that inventory will complete in less than a second.
         sleep(Duration::from_secs(1));
@@ -348,16 +348,15 @@ pub mod tests {
     fn test_directory_inventory_integrity_invalid() -> Result<(), anyhow::Error> {
         // Set up the test.
         let expected_file_paths = generate_fake_file_paths(20, 3);
+        let (file_paths, mut expected_md5_hashes, _manifest_creation_status) = perform_fake_inventory(&expected_file_paths)?;
 
-        let (file_paths, mut expected_md5_hashes) = perform_fake_inventory(&expected_file_paths)?;
+        // Assume that inventory will complete in less than a second.
+        sleep(Duration::from_secs(1));
 
         // Keep around the original hash so we can ensure that it was missed later.
         let pre_perturbed_hash = expected_md5_hashes.first().unwrap().clone();
         // Perturbation: Mess up the first MD5 hash, as if the manifest file showed something different from what will be inventoried, b/c we want to catch that!
         *expected_md5_hashes.first_mut().unwrap() = "😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱😱".to_string();
-
-        // Assume that inventory will complete in less than a second.
-        sleep(Duration::from_secs(1));
 
         // Lock the dummy file tracker so we can check its contents.
         let locked_paths_copy = file_paths.lock().unwrap();
