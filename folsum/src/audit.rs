@@ -78,8 +78,9 @@ pub fn audit_directory_inventory(inventoried_files: &Arc<Mutex<Vec<FoundFile>>>,
             match assessed_integrity {
                 FileIntegrity::Verified(_) => inventoried_file.file_integrity = assessed_integrity,
                 FileIntegrity::VerificationFailed(_) => inventoried_file.file_integrity = assessed_integrity,
+                FileIntegrity::NewlyAdded => inventoried_file.file_integrity = assessed_integrity,
                 _ => {
-                    let error_message = format!("Encountered unexpected integrity state {assessed_integrity:?}\
+                    let error_message = format!("Encountered unexpected integrity state {assessed_integrity:?} \
                                                        when only Verified or VerificationFailed was expected");
                     error!("{}", error_message);
                     bail!(error_message);
