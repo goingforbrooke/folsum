@@ -4,7 +4,32 @@ description = "Changelog"
 weight = 2
 +++
 
+# v2.3.0 - 2025-04-10
+
+### Added
+
+- Note when new files have been found in the Audit column
+- Ignore FolSum's manifest files (`.folsum.csv`) when inventorying a folder
+- Manual manifest file selection
+- Link to FolSum's site in the bottom left
+
+### Changed
+
+- Renamed instances of "verify" to "audit"
+- Renamed instances of "audit" to "inventory"
+- Four digit year to two digit year in manifest file names
+- Removed automatic manifest file discovery
+- Removed WASM demo
+- 
+### Fixed
+
+- Bug where previous manifest files wouldn't be discovered correctly
+
 # v2.2.1 - 2025-04-04
+
+### Added
+
+- Add MD5 hash to GUI table
 
 ### Fixed
 
@@ -12,10 +37,6 @@ weight = 2
 
 # v2.2.0 - 2025-04-03
 
-### Added
-
-- Add MD5 hash to GUI table
- 
 ### Changed
 
 - Remove "export" button and make manifests creation implicit (in-directory)

@@ -47,6 +47,8 @@ fn try_main() -> Result<(), DynError> {
         Some("bundle") => bundle(&folsum_root, &project_root),
         // If "dist" was passed as the first command line argument, then build and bundle the application.
         Some("dist") => dist(&folsum_root, &project_root),
+        // If "test" was passed, then run FolSum's unit tests.
+        Some("test") => test(&folsum_root),
         // If "help" was passed as the first command line argument, then describe available tasks.
         Some("help") => print_help(),
         // If the first command line argument was unrecognized, then describe available tasks.
@@ -59,9 +61,32 @@ fn print_help() -> Result<(), DynError> {
 
            build           builds application
            dist            builds and bundles application (equivalent to running `build` and `bundle`)
+           test            run FolSum's (unit) tests
            help            prints this help message
            "
     );
+    Ok(())
+}
+
+/// Run FolSum's unit tests.
+fn test(project_root: &PathBuf) -> Result<(), DynError> {
+    // Get the path to the `cargo` executable in a reliable way. Defaults to `cargo` if not found.
+    let cargo_path: String = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
+    debug!("using `cargo` executable: {}", cargo_path);
+    // Run `cargo test --features bench` in `folsum/folsum/`.
+    info!("Running tests with `test --package folsum --features bench`");
+    let build_result: Output = Command::new(cargo_path)
+        .current_dir(project_root)
+        .args(&["test", "--package", "folsum", "--features", "bench"])
+        .output()
+        .expect("Failed to cargo test FolSum");
+    debug!("test status: {}", build_result.status);
+    info!("Cargo test output:");
+    // Pass the test command's stdout and stderr through to the parent process.
+    io::stdout().write_all(&build_result.stdout).unwrap();
+    io::stderr().write_all(&build_result.stderr).unwrap();
+    // Ensure that the tests succeeded.
+    assert!(build_result.status.success());
     Ok(())
 }
 
@@ -128,6 +153,7 @@ fn bundle(folsum_root: &PathBuf, project_root: &PathBuf) -> Result<(), DynError>
         homepage: None,
         authors: None,
         default_run: None,
+        license: Some("MIT".to_string()),
     };
 
     // Extract bundle identifier.
